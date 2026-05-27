@@ -45,27 +45,69 @@ API 网关 / 后端服务
 
 | 层级 | 技术 | 说明 |
 | --- | --- | --- |
-| Web / H5 | Next.js + React + TypeScript | 快速构建 PC 和移动 H5，SEO 与服务端渲染可选 |
-| 小程序 | Taro + React + TypeScript | 后续复用部分 React 思路接入微信小程序 |
-| 后端 | NestJS + TypeScript | 与前端语言统一，适合模块化 API 服务 |
+| Web / H5 | Next.js + React + TypeScript | 构建 PC Web 与移动 H5，适合页面路由、SEO、学习端体验和后续增长页 |
+| UI | Tailwind CSS + shadcn/ui | 快速搭建一致、现代、可维护的学习端和管理端界面 |
+| 小程序 | Taro + React + TypeScript | 后续复用 React 经验接入微信小程序，不进入第一阶段 MVP |
+| 后端 | ASP.NET Core Web API + C# | 独立后端服务，业务逻辑清晰，适合个人开发和长期扩展 |
 | 数据库 | PostgreSQL | 结构化业务数据、学习记录、内容库 |
 | 缓存 | Redis | 验证码、会话、限流、排行榜、短期任务状态 |
-| ORM | Prisma 或 TypeORM | 推荐 Prisma，类型安全和迁移体验较好 |
+| ORM | Entity Framework Core | 与 ASP.NET Core 配套成熟，支持模型映射、迁移和 LINQ 查询 |
+| 接口文档 | Swagger / OpenAPI | 自动生成接口文档，便于前后端联调和 AI 辅助开发 |
 | 文件存储 | S3 兼容对象存储 | 保存音频、录音、图片 |
 | AI 服务 | 可插拔 Provider | 支持后续替换 LLM、ASR、TTS、发音评测供应商 |
 
 ### 3.2 备选方案
 
-如果团队更熟悉 Java：
+如果未来团队更熟悉 Java：
 
 - 后端可使用 Spring Boot + MyBatis Plus。
 - 前端仍可使用 Next.js。
 - AI 服务封装为独立 Provider 层。
 
+如果希望前后端统一 TypeScript：
+
+- 后端可使用 NestJS + Prisma。
+- 优点是语言统一，缺点是后端工程边界不如 C# / Java 对传统后端开发者直观。
+
 如果希望最快覆盖小程序、H5 和 App：
 
 - 可考虑 uni-app。
 - 代价是复杂交互和大型 Web 管理端体验可能不如 React / Next.js 方案。
+
+### 3.3 本项目确认方案
+
+本项目第一版确认使用：
+
+```text
+前端：Next.js + React + TypeScript + Tailwind CSS + shadcn/ui
+后端：ASP.NET Core Web API + C#
+数据库：PostgreSQL
+ORM：Entity Framework Core
+接口文档：Swagger / OpenAPI
+缓存：Redis，MVP 可后置
+文件存储：S3 兼容对象存储
+AI 能力：后端封装 Provider，统一接入 LLM / ASR / TTS / 发音评测
+```
+
+Next.js 只承担前端页面、路由、交互和 Web/H5 体验，不作为主要后端业务承载。核心业务逻辑、数据库访问、判题、学习记录、AI 调用、权限控制均放在 ASP.NET Core 后端。
+
+### 3.4 多端适配策略
+
+需要明确的是，Next.js 适合 PC Web 和移动 H5，但不能直接编译成微信小程序。因此本项目的多端策略不是“一套前端代码发布所有端”，而是“统一后端 API + 分端前端适配”。
+
+第一阶段确认支持：
+
+- PC Web：Next.js 响应式页面。
+- 移动 H5：Next.js 响应式页面，重点优化手机学习体验。
+- 管理后台：优先放在 Next.js 同一前端项目中，通过 `/admin` 路由承载。
+
+第二阶段扩展：
+
+- 微信小程序：使用 Taro + React + TypeScript 单独开发轻量学习端。
+- 小程序复用后端 API、接口类型、设计规范和核心业务规则。
+- 小程序第一版只承载每日语境听写、错词复习、打卡和分享。
+
+如果项目强要求“一套前端代码同时覆盖 H5 和微信小程序”，则应优先考虑 Taro 或 uni-app。但该方案在 PC Web、管理后台、复杂交互和长期维护体验上弱于 Next.js。因此本项目推荐先用 Next.js 做 Web/H5，把小程序作为独立轻量端后置开发。
 
 ## 4. 应用划分
 
@@ -75,20 +117,20 @@ API 网关 / 后端服务
 
 ```text
 apps/
-  web/        # PC Web + 移动 H5
-  admin/      # 后台管理端
+  web/        # Next.js，PC Web + 移动 H5 + 管理端页面
+  api/        # ASP.NET Core Web API
   miniapp/    # 微信小程序，v0.3 接入
 packages/
-  ui/         # 通用 UI 组件
-  shared/     # 类型、工具函数、常量
-  api-client/ # 接口请求封装
+  ui/         # 通用 UI 组件，后续抽取
+  shared/     # 类型、工具函数、常量，后续抽取
+  api-client/ # OpenAPI 生成或手写的接口请求封装
 ```
 
 第一阶段也可以先使用单体仓库：
 
 ```text
-web/
-server/
+apps/web/
+apps/api/
 docs/
 ```
 
@@ -99,21 +141,30 @@ docs/
 建议按业务模块组织：
 
 ```text
-src/
-  auth/
-  users/
-  content/
-  dictation/
-  vocabulary/
-  speaking/
-  learning-records/
-  reports/
-  membership/
-  admin/
-  ai/
-  storage/
-  common/
+apps/api/
+  Controllers/
+  Modules/
+    Auth/
+    Users/
+    Content/
+    Dictation/
+    Vocabulary/
+    Speaking/
+    LearningRecords/
+    Reports/
+    Membership/
+    Admin/
+    Ai/
+    Storage/
+  Data/
+    AppDbContext.cs
+    Migrations/
+  Entities/
+  Common/
+  Program.cs
 ```
+
+MVP 阶段可使用 Controller + Service + Entity 的清晰结构；当模块复杂后，再在每个模块内拆分 DTO、Service、Repository、Validator。
 
 ## 5. 核心领域模型
 
@@ -371,28 +422,31 @@ MVP 表：
 
 后端应定义统一接口，避免业务代码绑定单一供应商。
 
-```ts
-interface TtsProvider {
-  synthesize(input: {
-    text: string;
-    voice?: string;
-    speed?: number;
-  }): Promise<{ audioUrl: string; durationMs: number }>;
+```csharp
+public interface ITtsProvider
+{
+    Task<TtsResult> SynthesizeAsync(TtsRequest request, CancellationToken cancellationToken = default);
 }
 
-interface AsrProvider {
-  transcribe(input: {
-    audioUrl: string;
-    language: "en";
-  }): Promise<{ text: string; confidence?: number }>;
+public interface IAsrProvider
+{
+    Task<AsrResult> TranscribeAsync(AsrRequest request, CancellationToken cancellationToken = default);
 }
 
-interface LlmProvider {
-  chat(input: {
-    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-    temperature?: number;
-  }): Promise<{ text: string; usage?: unknown }>;
+public interface ILlmProvider
+{
+    Task<LlmResult> ChatAsync(LlmChatRequest request, CancellationToken cancellationToken = default);
 }
+
+public sealed record TtsRequest(string Text, string? Voice = null, double? Speed = null);
+public sealed record TtsResult(string AudioUrl, int DurationMs);
+
+public sealed record AsrRequest(string AudioUrl, string Language = "en");
+public sealed record AsrResult(string Text, double? Confidence = null);
+
+public sealed record LlmChatMessage(string Role, string Content);
+public sealed record LlmChatRequest(IReadOnlyList<LlmChatMessage> Messages, double? Temperature = null);
+public sealed record LlmResult(string Text, object? Usage = null);
 ```
 
 ### 8.3 AI 内容安全
@@ -429,7 +483,7 @@ interface LlmProvider {
 | GET | /api/dictation/next | 获取下一题 |
 | POST | /api/dictation/submit | 提交答案 |
 | GET | /api/dictation/history | 获取练习历史 |
-| POST | /api/dictation/:id/hint | 使用提示 |
+| POST | /api/dictation/{id}/hint | 使用提示 |
 
 获取下一题响应示例：
 
@@ -479,10 +533,10 @@ interface LlmProvider {
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | POST | /api/speaking/sessions | 创建口语会话 |
-| POST | /api/speaking/sessions/:id/messages | 发送用户消息 |
-| POST | /api/speaking/sessions/:id/audio | 上传用户录音 |
-| POST | /api/speaking/sessions/:id/end | 结束并生成报告 |
-| GET | /api/speaking/sessions/:id | 获取会话详情 |
+| POST | /api/speaking/sessions/{id}/messages | 发送用户消息 |
+| POST | /api/speaking/sessions/{id}/audio | 上传用户录音 |
+| POST | /api/speaking/sessions/{id}/end | 结束并生成报告 |
+| GET | /api/speaking/sessions/{id} | 获取会话详情 |
 
 ### 9.6 管理端
 
@@ -490,9 +544,9 @@ interface LlmProvider {
 | --- | --- | --- |
 | GET | /api/admin/sentences | 句子列表 |
 | POST | /api/admin/sentences | 新增句子 |
-| PATCH | /api/admin/sentences/:id | 编辑句子 |
+| PATCH | /api/admin/sentences/{id} | 编辑句子 |
 | POST | /api/admin/sentences/import | 批量导入 |
-| POST | /api/admin/sentences/:id/publish | 发布句子 |
+| POST | /api/admin/sentences/{id}/publish | 发布句子 |
 | GET | /api/admin/words | 单词列表 |
 | POST | /api/admin/audio/tts | 生成音频 |
 
@@ -602,8 +656,8 @@ MVP 推荐使用 TTS 批量生成音频，降低内容生产成本。
 ### 15.1 MVP 部署
 
 ```text
-Web / Admin: Vercel 或自建 Node 服务
-API Server: 云服务器 / 容器服务
+Web / Admin: Vercel、Cloudflare Pages 或自建 Node 服务
+API Server: ASP.NET Core Docker 容器，部署到云服务器 / 容器服务
 Database: 云 PostgreSQL
 Redis: 云 Redis
 Storage: 对象存储
@@ -621,16 +675,19 @@ CDN: 音频与静态资源加速
 
 关键环境变量：
 
-- DATABASE_URL
-- REDIS_URL
-- JWT_SECRET
-- OBJECT_STORAGE_BUCKET
-- OBJECT_STORAGE_ACCESS_KEY
-- OBJECT_STORAGE_SECRET_KEY
-- AI_PROVIDER
-- AI_API_KEY
-- TTS_PROVIDER
-- ASR_PROVIDER
+- ConnectionStrings__Default
+- Redis__ConnectionString
+- Jwt__Issuer
+- Jwt__Audience
+- Jwt__SigningKey
+- Storage__Bucket
+- Storage__AccessKey
+- Storage__SecretKey
+- Storage__Endpoint
+- Ai__Provider
+- Ai__ApiKey
+- Tts__Provider
+- Asr__Provider
 
 ## 16. 开发阶段拆分
 
@@ -692,4 +749,3 @@ CDN: 音频与静态资源加速
 - AI 口语至少支持录音上传、语音识别、AI 回复和复盘。
 - 音频资源可以通过 CDN 或对象存储稳定访问。
 - 核心接口有基础日志和错误处理。
-
