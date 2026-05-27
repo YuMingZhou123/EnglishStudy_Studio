@@ -35,7 +35,7 @@ API 网关 / 后端服务
         |
         +-- PostgreSQL
         +-- Redis
-        +-- 对象存储
+        +-- MinIO / S3 兼容对象存储
         +-- AI / ASR / TTS / 发音评测服务
 ```
 
@@ -53,7 +53,7 @@ API 网关 / 后端服务
 | 缓存 | Redis | 验证码、会话、限流、排行榜、短期任务状态 |
 | ORM | Entity Framework Core | 与 ASP.NET Core 配套成熟，支持模型映射、迁移和 LINQ 查询 |
 | 接口文档 | Swagger / OpenAPI | 自动生成接口文档，便于前后端联调和 AI 辅助开发 |
-| 文件存储 | S3 兼容对象存储 | 保存音频、录音、图片 |
+| 文件存储 | MinIO，S3 兼容对象存储 | 本地和 MVP 默认使用 MinIO 保存音频、录音、图片，生产可切换 OSS / R2 / COS |
 | AI 服务 | 可插拔 Provider | 支持后续替换 LLM、ASR、TTS、发音评测供应商 |
 
 ### 3.2 备选方案
@@ -85,7 +85,7 @@ API 网关 / 后端服务
 ORM：Entity Framework Core
 接口文档：Swagger / OpenAPI
 缓存：Redis，MVP 可后置
-文件存储：S3 兼容对象存储
+文件存储：MinIO，本地和 MVP 默认使用；生产可切换阿里云 OSS / 腾讯云 COS / Cloudflare R2
 AI 能力：后端封装 Provider，统一接入 LLM / ASR / TTS / 发音评测
 ```
 
@@ -599,11 +599,77 @@ MVP 推荐使用 TTS 批量生成音频，降低内容生产成本。
 - 慢速音频
 - 用户录音回放
 
-### 12.2 存储策略
+### 12.2 存储方案
 
-- 平台音频存储到对象存储。
+本项目确认使用 MinIO 作为本地开发和 MVP 阶段的对象存储服务。
+
+```text
+开发 / MVP：
+PostgreSQL + MinIO + ASP.NET Core
+
+生产可选：
+PostgreSQL + 阿里云 OSS / 腾讯云 COS / Cloudflare R2 + ASP.NET Core
+```
+
+MinIO 与 S3 API 兼容，适合在本地模拟云对象存储。后端通过统一文件存储接口访问 MinIO，后续切换到正式云 OSS 时尽量只改配置或 Provider 实现。
+
+本地建议配置：
+
+```text
+MinIO API: http://localhost:9000
+MinIO Console: http://localhost:9001
+Bucket: english-study
+AccessKey: minioadmin
+SecretKey: minioadmin
+UseSSL: false
+```
+
+建议 Bucket 规划：
+
+```text
+english-study
+  audio/       # 平台句子音频
+  images/      # 头像、封面图
+  recordings/  # 用户口语录音
+  generated/   # AI 生成音频或临时资源
+```
+
+### 12.3 存储策略
+
+- 平台音频存储到 MinIO / 对象存储。
 - 用户录音可设置生命周期，例如 30 天后删除。
 - 关键学习报告只保存文本识别结果和评分，不长期保存原始录音，除非用户授权。
+- 数据库只保存文件的 bucket、object key、URL、mime type、size 等元数据，不保存音频二进制内容。
+
+### 12.4 后端抽象
+
+后端定义统一文件存储接口，业务模块不直接依赖 MinIO SDK。
+
+```csharp
+public interface IFileStorageService
+{
+    Task<StoredFileResult> UploadAsync(
+        Stream stream,
+        string objectKey,
+        string contentType,
+        CancellationToken cancellationToken = default);
+
+    Task<Stream> OpenReadAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record StoredFileResult(
+    string Bucket,
+    string ObjectKey,
+    string Url,
+    string ContentType,
+    long Size);
+```
 
 ## 13. 安全设计
 
@@ -660,7 +726,7 @@ Web / Admin: Vercel、Cloudflare Pages 或自建 Node 服务
 API Server: ASP.NET Core Docker 容器，部署到云服务器 / 容器服务
 Database: 云 PostgreSQL
 Redis: 云 Redis
-Storage: 对象存储
+Storage: MinIO，本地 / 自托管；生产可切换 OSS / COS / R2
 CDN: 音频与静态资源加速
 ```
 
@@ -684,6 +750,7 @@ CDN: 音频与静态资源加速
 - Storage__AccessKey
 - Storage__SecretKey
 - Storage__Endpoint
+- Storage__UseSSL
 - Ai__Provider
 - Ai__ApiKey
 - Tts__Provider
