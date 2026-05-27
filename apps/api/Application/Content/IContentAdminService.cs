@@ -57,6 +57,10 @@ public interface IContentAdminService
         GenerateSentenceAudioRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ServiceResult<GenerateMissingSentenceAudioResponse>> GenerateMissingSentenceAudioAsync(
+        GenerateMissingSentenceAudioRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<ImportSentencesResponse>> ImportSentencesAsync(
         ImportSentencesRequest request,
         Guid createdBy,

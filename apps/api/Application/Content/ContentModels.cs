@@ -102,6 +102,27 @@ public sealed record GenerateSentenceAudioRequest(
     string? Voice = null,
     double Speed = 1);
 
+public sealed record GenerateMissingSentenceAudioRequest(
+    int Limit = 10,
+    string? Level = null,
+    string Status = "published",
+    string? Voice = null,
+    double Speed = 1,
+    bool IncludeExternalAudio = false);
+
+public sealed record GenerateMissingSentenceAudioItemResponse(
+    Guid SentenceId,
+    string Text,
+    bool Succeeded,
+    string? AudioUrl,
+    string? Error);
+
+public sealed record GenerateMissingSentenceAudioResponse(
+    int TotalCandidates,
+    int GeneratedCount,
+    int FailedCount,
+    IReadOnlyCollection<GenerateMissingSentenceAudioItemResponse> Items);
+
 public sealed record ImportSentenceKeywordRequest(
     string Lemma,
     string MeaningCn,

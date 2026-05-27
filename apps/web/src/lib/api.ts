@@ -223,6 +223,28 @@ export type ImportSentencesResult = {
   }>;
 };
 
+export type GenerateMissingAudioInput = {
+  limit?: number;
+  level?: string | null;
+  status?: string;
+  voice?: string | null;
+  speed?: number;
+  includeExternalAudio?: boolean;
+};
+
+export type GenerateMissingAudioResult = {
+  totalCandidates: number;
+  generatedCount: number;
+  failedCount: number;
+  items: Array<{
+    sentenceId: string;
+    text: string;
+    succeeded: boolean;
+    audioUrl?: string | null;
+    error?: string | null;
+  }>;
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -498,6 +520,20 @@ export const adminApi = {
   ) {
     return apiRequest<Sentence>(
       `/api/admin/sentences/${sentenceId}/generate-audio`,
+      {
+        method: "POST",
+        token,
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  generateMissingAudio(
+    token: string,
+    input: GenerateMissingAudioInput = {},
+  ) {
+    return apiRequest<GenerateMissingAudioResult>(
+      "/api/admin/sentences/generate-missing-audio",
       {
         method: "POST",
         token,

@@ -381,8 +381,93 @@ public sealed partial class ContentAdminService(
             return ServiceResult<SentenceResponse>.Failure("Sentence was not found.");
         }
 
+        await GenerateAudioForSentenceAsync(
+            sentence,
+            request.Voice,
+            request.Speed,
+            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetSentenceResultAsync(sentence.Id, cancellationToken);
+    }
+
+    public async Task<ServiceResult<GenerateMissingSentenceAudioResponse>> GenerateMissingSentenceAudioAsync(
+        GenerateMissingSentenceAudioRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var limit = Math.Clamp(request.Limit, 1, 20);
+        var query = dbContext.Sentences.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            !string.Equals(request.Status, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(sentence => sentence.Status == NormalizeStatus(request.Status));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Level) &&
+            !string.Equals(request.Level, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(sentence => sentence.Level == NormalizeLevel(request.Level));
+        }
+
+        query = request.IncludeExternalAudio
+            ? query.Where(sentence => sentence.AudioAssetId == null)
+            : query.Where(sentence =>
+                sentence.AudioAssetId == null &&
+                (sentence.AudioUrl == null || sentence.AudioUrl == string.Empty));
+
+        var totalCandidates = await query.CountAsync(cancellationToken);
+        var sentences = await query
+            .OrderBy(sentence => sentence.UpdatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var items = new List<GenerateMissingSentenceAudioItemResponse>();
+        foreach (var sentence in sentences)
+        {
+            try
+            {
+                var mediaAsset = await GenerateAudioForSentenceAsync(
+                    sentence,
+                    request.Voice,
+                    request.Speed,
+                    cancellationToken);
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                items.Add(new GenerateMissingSentenceAudioItemResponse(
+                    sentence.Id,
+                    sentence.Text,
+                    true,
+                    mediaAsset.Url,
+                    null));
+            }
+            catch (Exception ex)
+            {
+                items.Add(new GenerateMissingSentenceAudioItemResponse(
+                    sentence.Id,
+                    sentence.Text,
+                    false,
+                    null,
+                    ex.Message));
+            }
+        }
+
+        return ServiceResult<GenerateMissingSentenceAudioResponse>.Success(
+            new GenerateMissingSentenceAudioResponse(
+                totalCandidates,
+                items.Count(item => item.Succeeded),
+                items.Count(item => !item.Succeeded),
+                items));
+    }
+
+    private async Task<MediaAsset> GenerateAudioForSentenceAsync(
+        Sentence sentence,
+        string? voice,
+        double speed,
+        CancellationToken cancellationToken)
+    {
         var audio = await ttsProvider.SynthesizeAsync(
-            new TtsRequest(sentence.Text, request.Voice, request.Speed),
+            new TtsRequest(sentence.Text, voice, speed),
             cancellationToken);
 
         await using var stream = new MemoryStream(audio.AudioBytes);
@@ -412,9 +497,8 @@ public sealed partial class ContentAdminService(
         sentence.AudioAssetId = mediaAsset.Id;
         sentence.AudioUrl = mediaAsset.Url;
         sentence.UpdatedAt = now;
-        await dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetSentenceResultAsync(sentence.Id, cancellationToken);
+        return mediaAsset;
     }
 
     public async Task<ServiceResult<ImportSentencesResponse>> ImportSentencesAsync(

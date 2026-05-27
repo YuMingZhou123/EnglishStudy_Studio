@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   DictationMode,
+  GenerateMissingAudioResult,
   ImportSentencesInput,
   ImportSentencesResult,
   MediaAsset,
@@ -57,6 +58,15 @@ export default function AdminPage() {
   const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
   const [importText, setImportText] = useState(importSample);
   const [importResult, setImportResult] = useState<ImportSentencesResult | null>(null);
+  const [audioBatchResult, setAudioBatchResult] =
+    useState<GenerateMissingAudioResult | null>(null);
+  const [audioBatchForm, setAudioBatchForm] = useState({
+    limit: "5",
+    level: "all",
+    status: "published",
+    speed: "1",
+    includeExternalAudio: false,
+  });
 
   const [sceneForm, setSceneForm] = useState({
     code: "",
@@ -281,6 +291,39 @@ export default function AdminPage() {
         current.map((item) => (item.id === sentenceId ? sentence : item)),
       );
       setMessage("音频已生成");
+    });
+  }
+
+  async function generateMissingAudio(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    const limit = Number(audioBatchForm.limit);
+    const speed = Number(audioBatchForm.speed);
+    if (!Number.isFinite(limit) || limit <= 0) {
+      setError("批量数量必须大于 0");
+      return;
+    }
+
+    if (!Number.isFinite(speed) || speed <= 0) {
+      setError("语速必须大于 0");
+      return;
+    }
+
+    await runAction(async () => {
+      const result = await adminApi.generateMissingAudio(token, {
+        limit,
+        speed,
+        level: audioBatchForm.level,
+        status: audioBatchForm.status,
+        includeExternalAudio: audioBatchForm.includeExternalAudio,
+      });
+
+      setAudioBatchResult(result);
+      await refreshData(token);
+      setMessage(`批量音频完成：成功 ${result.generatedCount}，失败 ${result.failedCount}`);
     });
   }
 
@@ -551,6 +594,89 @@ export default function AdminPage() {
                     >
                       {media.objectKey}
                     </button>
+                  ))}
+                </div>
+              ) : null}
+            </AdminPanel>
+
+            <AdminPanel title="批量生成音频">
+              <form className="grid gap-3" onSubmit={generateMissingAudio}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AdminInput
+                    label="数量"
+                    onChange={(value) =>
+                      setAudioBatchForm((current) => ({ ...current, limit: value }))
+                    }
+                    type="number"
+                    value={audioBatchForm.limit}
+                  />
+                  <AdminInput
+                    label="语速"
+                    onChange={(value) =>
+                      setAudioBatchForm((current) => ({ ...current, speed: value }))
+                    }
+                    type="number"
+                    value={audioBatchForm.speed}
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AdminSelect
+                    label="难度"
+                    onChange={(value) =>
+                      setAudioBatchForm((current) => ({ ...current, level: value }))
+                    }
+                    options={[
+                      ["all", "全部"],
+                      ["beginner", "初级"],
+                      ["intermediate", "中级"],
+                      ["advanced", "高级"],
+                    ]}
+                    value={audioBatchForm.level}
+                  />
+                  <AdminSelect
+                    label="状态"
+                    onChange={(value) =>
+                      setAudioBatchForm((current) => ({ ...current, status: value }))
+                    }
+                    options={[
+                      ["published", "已发布"],
+                      ["draft", "草稿"],
+                      ["offline", "已下架"],
+                      ["all", "全部"],
+                    ]}
+                    value={audioBatchForm.status}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    checked={audioBatchForm.includeExternalAudio}
+                    onChange={(event) =>
+                      setAudioBatchForm((current) => ({
+                        ...current,
+                        includeExternalAudio: event.target.checked,
+                      }))
+                    }
+                    type="checkbox"
+                  />
+                  覆盖仅绑定外部 URL 的句子
+                </label>
+                <SubmitButton label="生成缺失音频" />
+              </form>
+
+              {audioBatchResult ? (
+                <div className="mt-4 grid gap-2 text-sm text-[#40504b]">
+                  <p>
+                    候选 {audioBatchResult.totalCandidates} 条，成功{" "}
+                    {audioBatchResult.generatedCount}，失败{" "}
+                    {audioBatchResult.failedCount}
+                  </p>
+                  {audioBatchResult.items.slice(0, 5).map((item) => (
+                    <p
+                      className={item.succeeded ? "text-[#1f6f64]" : "text-[#9a4727]"}
+                      key={item.sentenceId}
+                    >
+                      {item.succeeded ? "已生成" : "失败"}：{item.text}
+                    </p>
                   ))}
                 </div>
               ) : null}

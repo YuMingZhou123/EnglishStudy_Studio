@@ -146,6 +146,18 @@ public sealed class AdminContentController(IContentAdminService contentAdminServ
         return ToActionResult(result);
     }
 
+    [HttpPost("sentences/generate-missing-audio")]
+    public async Task<IActionResult> GenerateMissingSentenceAudio(
+        GenerateMissingSentenceAudioRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await contentAdminService.GenerateMissingSentenceAudioAsync(
+            request,
+            cancellationToken);
+
+        return ToActionResult(result);
+    }
+
     [HttpPost("sentences/import")]
     public async Task<IActionResult> ImportSentences(
         ImportSentencesRequest request,
