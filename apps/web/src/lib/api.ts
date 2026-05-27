@@ -30,6 +30,9 @@ export type TargetWord = {
   surfaceText: string;
   lemma: string;
   meaningCn: string;
+  phonetic?: string | null;
+  partOfSpeech?: string | null;
+  collocations?: string | null;
   firstLetter?: string | null;
 };
 

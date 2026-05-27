@@ -407,6 +407,51 @@ export default function DictationPage() {
                 </div>
               ))}
             </div>
+
+            {result.targetWords.length > 0 ? (
+              <div className="mt-5 border-t border-[#eef2ef] pt-5">
+                <h3 className="text-base font-semibold">目标词</h3>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {result.targetWords.map((word) => (
+                    <div
+                      className="rounded-md border border-[#e3e8e5] bg-[#fbfcfb] px-3 py-3 text-sm"
+                      key={`${word.blankId}-${word.wordId}`}
+                    >
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-lg font-semibold text-[#18211f]">
+                          {word.lemma}
+                        </span>
+                        {word.surfaceText !== word.lemma ? (
+                          <span className="text-[#69736f]">
+                            原句：{word.surfaceText}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#69736f]">
+                        {word.phonetic ? (
+                          <span className="rounded bg-white px-2 py-1">
+                            {word.phonetic}
+                          </span>
+                        ) : null}
+                        {word.partOfSpeech ? (
+                          <span className="rounded bg-white px-2 py-1">
+                            {word.partOfSpeech}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 leading-6 text-[#40504b]">
+                        {word.meaningCn}
+                      </p>
+                      {word.collocations ? (
+                        <p className="mt-2 leading-6 text-[#69736f]">
+                          常见搭配：{word.collocations}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </section>
         ) : null}
       </section>

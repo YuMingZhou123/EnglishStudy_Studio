@@ -645,6 +645,9 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             keyword.SurfaceText,
             keyword.Word.Lemma,
             keyword.Word.MeaningCn,
+            keyword.Word.Phonetic,
+            keyword.Word.PartOfSpeech,
+            keyword.Word.Collocations,
             string.IsNullOrWhiteSpace(keyword.SurfaceText)
                 ? null
                 : keyword.SurfaceText[..1]);

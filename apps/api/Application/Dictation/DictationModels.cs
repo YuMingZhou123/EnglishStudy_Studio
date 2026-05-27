@@ -26,6 +26,9 @@ public sealed record TargetWordResponse(
     string SurfaceText,
     string Lemma,
     string MeaningCn,
+    string? Phonetic,
+    string? PartOfSpeech,
+    string? Collocations,
     string? FirstLetter);
 
 public sealed record SubmitDictationRequest(
