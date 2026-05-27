@@ -97,3 +97,7 @@ public sealed record UploadMediaRequest(
     string ContentType,
     long Size,
     string Folder);
+
+public sealed record GenerateSentenceAudioRequest(
+    string? Voice = null,
+    double Speed = 1);

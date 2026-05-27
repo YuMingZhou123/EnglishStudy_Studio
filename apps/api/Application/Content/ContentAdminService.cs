@@ -8,7 +8,8 @@ namespace Api.Application.Content;
 
 public sealed partial class ContentAdminService(
     IAppDbContext dbContext,
-    IFileStorageService fileStorageService) : IContentAdminService
+    IFileStorageService fileStorageService,
+    ITtsProvider ttsProvider) : IContentAdminService
 {
     public async Task<IReadOnlyCollection<SceneResponse>> GetScenesAsync(
         CancellationToken cancellationToken = default)
@@ -287,6 +288,55 @@ public sealed partial class ContentAdminService(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ServiceResult<MediaAssetResponse>.Success(MapMedia(mediaAsset));
+    }
+
+    public async Task<ServiceResult<SentenceResponse>> GenerateSentenceAudioAsync(
+        Guid sentenceId,
+        GenerateSentenceAudioRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var sentence = await dbContext.Sentences
+            .FirstOrDefaultAsync(item => item.Id == sentenceId, cancellationToken);
+
+        if (sentence is null)
+        {
+            return ServiceResult<SentenceResponse>.Failure("Sentence was not found.");
+        }
+
+        var audio = await ttsProvider.SynthesizeAsync(
+            new TtsRequest(sentence.Text, request.Voice, request.Speed),
+            cancellationToken);
+
+        await using var stream = new MemoryStream(audio.AudioBytes);
+        var objectKey = $"audio/tts/{DateTimeOffset.UtcNow:yyyy/MM/dd}/{sentence.Id:N}-{Guid.NewGuid():N}{audio.FileExtension}";
+        var storedFile = await fileStorageService.UploadAsync(
+            stream,
+            objectKey,
+            audio.ContentType,
+            audio.AudioBytes.LongLength,
+            cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var mediaAsset = new MediaAsset
+        {
+            Bucket = storedFile.Bucket,
+            ObjectKey = storedFile.ObjectKey,
+            Url = storedFile.Url,
+            ContentType = storedFile.ContentType,
+            Size = storedFile.Size,
+            Source = $"tts:{audio.Provider}",
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.MediaAssets.Add(mediaAsset);
+        sentence.AudioAsset = mediaAsset;
+        sentence.AudioAssetId = mediaAsset.Id;
+        sentence.AudioUrl = mediaAsset.Url;
+        sentence.UpdatedAt = now;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetSentenceResultAsync(sentence.Id, cancellationToken);
     }
 
     private IQueryable<Sentence> SentencesQuery()

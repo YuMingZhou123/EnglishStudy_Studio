@@ -64,6 +64,8 @@ Learner: learner@example.com / Pass123$
 Admin: admin@example.com / Admin123$
 ```
 
+TTS 默认配置为 `Tts__Provider=auto`。本地未安装 Piper 时会使用 Windows Speech 生成 WAV；安装 Piper 后配置 `Tts__PiperExecutablePath` 和 `Tts__PiperModelPath` 即可切换。
+
 已跑通的 MVP 后端接口：
 
 ```text
@@ -80,6 +82,7 @@ GET  /api/admin/words
 POST /api/admin/words
 GET  /api/admin/sentences
 POST /api/admin/sentences
+POST /api/admin/sentences/{sentenceId}/generate-audio
 POST /api/admin/media/upload
 GET  /api/media/objects/{objectKey}
 ```

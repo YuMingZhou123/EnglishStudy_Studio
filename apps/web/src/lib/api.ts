@@ -351,6 +351,21 @@ export const adminApi = {
     });
   },
 
+  generateSentenceAudio(
+    token: string,
+    sentenceId: string,
+    input: { voice?: string | null; speed?: number } = {},
+  ) {
+    return apiRequest<Sentence>(
+      `/api/admin/sentences/${sentenceId}/generate-audio`,
+      {
+        method: "POST",
+        token,
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
   uploadMedia(token: string, file: File, folder = "audio") {
     const formData = new FormData();
     formData.append("file", file);

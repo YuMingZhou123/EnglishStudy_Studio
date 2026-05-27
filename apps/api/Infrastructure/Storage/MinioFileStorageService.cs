@@ -59,7 +59,9 @@ public sealed class MinioFileStorageService(IOptions<StorageOptions> options) : 
     {
         var endpoint = storageOptions.Endpoint;
         var useSsl = storageOptions.UseSSL;
-        if (Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
+        if ((endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) &&
+            Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
         {
             endpoint = endpointUri.Authority;
             useSsl = endpointUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);

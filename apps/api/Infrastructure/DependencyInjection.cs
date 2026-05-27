@@ -5,6 +5,7 @@ using Api.Infrastructure.Auth;
 using Api.Infrastructure.Options;
 using Api.Infrastructure.Persistence;
 using Api.Infrastructure.Storage;
+using Api.Infrastructure.Tts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,8 @@ public static class DependencyInjection
             configuration.GetSection(StorageOptions.SectionName));
         services.Configure<JwtOptions>(
             configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<TtsOptions>(
+            configuration.GetSection(TtsOptions.SectionName));
 
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
             ?? new JwtOptions();
@@ -56,6 +59,7 @@ public static class DependencyInjection
         services.AddAuthorization();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IFileStorageService, MinioFileStorageService>();
+        services.AddScoped<ITtsProvider, LocalTtsProvider>();
 
         services.AddHttpClient();
 

@@ -215,6 +215,23 @@ export default function AdminPage() {
     });
   }
 
+  async function generateAudio(sentenceId: string) {
+    if (!token) {
+      return;
+    }
+
+    await runAction(async () => {
+      const sentence = await adminApi.generateSentenceAudio(token, sentenceId, {
+        speed: 1,
+      });
+
+      setSentences((current) =>
+        current.map((item) => (item.id === sentenceId ? sentence : item)),
+      );
+      setMessage("音频已生成");
+    });
+  }
+
   async function runAction(action: () => Promise<void>) {
     setError(null);
     setMessage(null);
@@ -526,6 +543,13 @@ export default function AdminPage() {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        <button
+                          className="h-9 rounded-md border border-[#1f6f64] px-3 text-sm font-medium text-[#1f6f64]"
+                          onClick={() => generateAudio(sentence.id)}
+                          type="button"
+                        >
+                          TTS
+                        </button>
                         <button
                           className="h-9 rounded-md bg-[#1f6f64] px-3 text-sm font-semibold text-white"
                           onClick={() => setSentenceStatus(sentence.id, "published")}

@@ -41,4 +41,9 @@ public interface IContentAdminService
     Task<ServiceResult<MediaAssetResponse>> UploadMediaAsync(
         UploadMediaRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<SentenceResponse>> GenerateSentenceAudioAsync(
+        Guid sentenceId,
+        GenerateSentenceAudioRequest request,
+        CancellationToken cancellationToken = default);
 }

@@ -104,6 +104,20 @@ public sealed class AdminContentController(IContentAdminService contentAdminServ
         return ToActionResult(result);
     }
 
+    [HttpPost("sentences/{sentenceId:guid}/generate-audio")]
+    public async Task<IActionResult> GenerateSentenceAudio(
+        Guid sentenceId,
+        GenerateSentenceAudioRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await contentAdminService.GenerateSentenceAudioAsync(
+            sentenceId,
+            request,
+            cancellationToken);
+
+        return ToActionResult(result);
+    }
+
     [HttpPost("media/upload")]
     [RequestSizeLimit(50_000_000)]
     public async Task<IActionResult> UploadMedia(
