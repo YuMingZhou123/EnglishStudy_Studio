@@ -1,0 +1,644 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  DictationMode,
+  MediaAsset,
+  Scene,
+  Sentence,
+  SentenceKeywordInput,
+  Word,
+  adminApi,
+  authApi,
+} from "@/lib/api";
+import { clearSession, getToken } from "@/lib/session";
+
+type KeywordDraft = SentenceKeywordInput & { key: string };
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [words, setWords] = useState<Word[]>([]);
+  const [sentences, setSentences] = useState<Sentence[]>([]);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [sceneForm, setSceneForm] = useState({
+    code: "",
+    name: "",
+    description: "",
+  });
+  const [wordForm, setWordForm] = useState({
+    lemma: "",
+    phonetic: "",
+    partOfSpeech: "",
+    meaningCn: "",
+    cefrLevel: "A2",
+  });
+  const [sentenceForm, setSentenceForm] = useState({
+    text: "",
+    translation: "",
+    level: "beginner" as DictationMode,
+    sceneId: "",
+    audioAssetId: "",
+    audioUrl: "",
+    status: "draft",
+  });
+  const [keywordDrafts, setKeywordDrafts] = useState<KeywordDraft[]>([
+    { key: crypto.randomUUID(), wordId: "", surfaceText: "", priority: 100 },
+  ]);
+
+  const refreshData = useCallback(
+    async (authToken: string) => {
+      if (!authToken) {
+        return;
+      }
+
+      const [sceneItems, wordItems, sentenceItems] = await Promise.all([
+        adminApi.scenes(authToken),
+        adminApi.words(authToken),
+        adminApi.sentences(authToken),
+      ]);
+
+      setScenes(sceneItems);
+      setWords(wordItems);
+      setSentences(sentenceItems);
+
+      setSentenceForm((current) =>
+        current.sceneId || sceneItems.length === 0
+          ? current
+          : { ...current, sceneId: sceneItems[0].id },
+      );
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const savedToken = getToken();
+    if (!savedToken) {
+      router.replace("/");
+      return;
+    }
+
+    authApi
+      .me(savedToken)
+      .then((user) => {
+        if (!user.roles.some((role) => role === "Admin" || role === "ContentAdmin")) {
+          router.replace("/dashboard");
+          return;
+        }
+
+        setToken(savedToken);
+        return refreshData(savedToken);
+      })
+      .catch(() => {
+        clearSession();
+        router.replace("/");
+      })
+      .finally(() => setLoading(false));
+  }, [refreshData, router]);
+
+  async function createScene(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    await runAction(async () => {
+      await adminApi.createScene(token, { ...sceneForm, isEnabled: true });
+      setSceneForm({ code: "", name: "", description: "" });
+      await refreshData(token);
+      setMessage("场景已创建");
+    });
+  }
+
+  async function createWord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    await runAction(async () => {
+      const word = await adminApi.createWord(token, wordForm);
+      setWordForm({
+        lemma: "",
+        phonetic: "",
+        partOfSpeech: "",
+        meaningCn: "",
+        cefrLevel: "A2",
+      });
+      setWords((current) => [word, ...current]);
+      setMessage("单词已创建");
+    });
+  }
+
+  async function uploadMedia(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    const input = event.currentTarget.elements.namedItem("file") as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      setError("请选择音频文件");
+      return;
+    }
+
+    await runAction(async () => {
+      const media = await adminApi.uploadMedia(token, file, "audio");
+      setMediaAssets((current) => [media, ...current]);
+      setSentenceForm((current) => ({ ...current, audioAssetId: media.id }));
+      input.value = "";
+      setMessage("音频已上传到 MinIO");
+    });
+  }
+
+  async function createSentence(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    const keywords = keywordDrafts
+      .filter((keyword) => keyword.wordId && keyword.surfaceText.trim())
+      .map((keyword) => ({
+        wordId: keyword.wordId,
+        surfaceText: keyword.surfaceText,
+        priority: keyword.priority,
+        blankGroup: keyword.blankGroup,
+      }));
+
+    await runAction(async () => {
+      await adminApi.createSentence(token, {
+        ...sentenceForm,
+        audioAssetId: sentenceForm.audioAssetId || null,
+        audioUrl: sentenceForm.audioUrl || null,
+        keywords,
+      });
+      setSentenceForm((current) => ({
+        ...current,
+        text: "",
+        translation: "",
+        audioUrl: "",
+        audioAssetId: "",
+        status: "draft",
+      }));
+      setKeywordDrafts([
+        { key: crypto.randomUUID(), wordId: "", surfaceText: "", priority: 100 },
+      ]);
+      await refreshData(token);
+      setMessage("句子已创建");
+    });
+  }
+
+  async function setSentenceStatus(sentenceId: string, status: "published" | "offline") {
+    if (!token) {
+      return;
+    }
+
+    await runAction(async () => {
+      const sentence =
+        status === "published"
+          ? await adminApi.publishSentence(token, sentenceId)
+          : await adminApi.offlineSentence(token, sentenceId);
+
+      setSentences((current) =>
+        current.map((item) => (item.id === sentenceId ? sentence : item)),
+      );
+      setMessage(status === "published" ? "句子已发布" : "句子已下架");
+    });
+  }
+
+  async function runAction(action: () => Promise<void>) {
+    setError(null);
+    setMessage(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "操作失败");
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f4f7f5] text-[#40504b]">
+        正在进入内容后台...
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f4f7f5] px-5 py-6 text-[#18211f] sm:px-8">
+      <section className="mx-auto grid w-full max-w-7xl gap-5">
+        <header className="flex flex-col gap-4 border-b border-[#d9e1dc] pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Link className="text-sm font-medium text-[#35766f]" href="/dashboard">
+              返回学习台
+            </Link>
+            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+              内容管理
+            </h1>
+          </div>
+          <button
+            className="h-10 rounded-md border border-[#cfd8d3] px-4 text-sm font-medium text-[#40504b] transition hover:bg-white"
+            onClick={() => {
+              if (token) {
+                refreshData(token);
+              }
+            }}
+            disabled={!token}
+            type="button"
+          >
+            刷新
+          </button>
+        </header>
+
+        {message ? (
+          <p className="rounded-md border border-[#bfe2d5] bg-[#eef9f4] px-3 py-2 text-sm text-[#1f6f64]">
+            {message}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="rounded-md border border-[#f0c6b5] bg-[#fff5ef] px-3 py-2 text-sm text-[#9a4727]">
+            {error}
+          </p>
+        ) : null}
+
+        <section className="grid gap-5 xl:grid-cols-[360px_1fr]">
+          <div className="grid gap-5">
+            <AdminPanel title="新增场景">
+              <form className="grid gap-3" onSubmit={createScene}>
+                <AdminInput
+                  label="编码"
+                  onChange={(value) => setSceneForm((current) => ({ ...current, code: value }))}
+                  placeholder="daily"
+                  value={sceneForm.code}
+                />
+                <AdminInput
+                  label="名称"
+                  onChange={(value) => setSceneForm((current) => ({ ...current, name: value }))}
+                  placeholder="Daily English"
+                  value={sceneForm.name}
+                />
+                <AdminInput
+                  label="描述"
+                  onChange={(value) =>
+                    setSceneForm((current) => ({ ...current, description: value }))
+                  }
+                  value={sceneForm.description}
+                />
+                <SubmitButton label="创建场景" />
+              </form>
+            </AdminPanel>
+
+            <AdminPanel title="新增单词">
+              <form className="grid gap-3" onSubmit={createWord}>
+                <AdminInput
+                  label="单词"
+                  onChange={(value) => setWordForm((current) => ({ ...current, lemma: value }))}
+                  placeholder="schedule"
+                  value={wordForm.lemma}
+                />
+                <AdminInput
+                  label="释义"
+                  onChange={(value) =>
+                    setWordForm((current) => ({ ...current, meaningCn: value }))
+                  }
+                  placeholder="安排"
+                  value={wordForm.meaningCn}
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <AdminInput
+                    label="音标"
+                    onChange={(value) =>
+                      setWordForm((current) => ({ ...current, phonetic: value }))
+                    }
+                    value={wordForm.phonetic}
+                  />
+                  <AdminInput
+                    label="词性"
+                    onChange={(value) =>
+                      setWordForm((current) => ({ ...current, partOfSpeech: value }))
+                    }
+                    value={wordForm.partOfSpeech}
+                  />
+                </div>
+                <SubmitButton label="创建单词" />
+              </form>
+            </AdminPanel>
+
+            <AdminPanel title="上传音频">
+              <form className="grid gap-3" onSubmit={uploadMedia}>
+                <input
+                  accept="audio/*"
+                  className="rounded-md border border-[#cfd8d3] bg-white p-2 text-sm"
+                  name="file"
+                  type="file"
+                />
+                <SubmitButton label="上传到 MinIO" />
+              </form>
+              {mediaAssets.length > 0 ? (
+                <div className="mt-3 grid gap-2">
+                  {mediaAssets.map((media) => (
+                    <button
+                      className="truncate rounded-md border border-[#d9e1dc] px-3 py-2 text-left text-xs text-[#40504b] hover:bg-[#f4f7f5]"
+                      key={media.id}
+                      onClick={() =>
+                        setSentenceForm((current) => ({
+                          ...current,
+                          audioAssetId: media.id,
+                        }))
+                      }
+                      type="button"
+                    >
+                      {media.objectKey}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </AdminPanel>
+          </div>
+
+          <div className="grid gap-5">
+            <AdminPanel title="新增句子">
+              <form className="grid gap-4" onSubmit={createSentence}>
+                <label className="grid gap-2 text-sm font-medium">
+                  英文句子
+                  <textarea
+                    className="min-h-24 rounded-md border border-[#cfd8d3] p-3 text-sm outline-none focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                    onChange={(event) =>
+                      setSentenceForm((current) => ({ ...current, text: event.target.value }))
+                    }
+                    value={sentenceForm.text}
+                  />
+                </label>
+                <AdminInput
+                  label="中文翻译"
+                  onChange={(value) =>
+                    setSentenceForm((current) => ({ ...current, translation: value }))
+                  }
+                  value={sentenceForm.translation}
+                />
+
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <AdminSelect
+                    label="难度"
+                    onChange={(value) =>
+                      setSentenceForm((current) => ({
+                        ...current,
+                        level: value as DictationMode,
+                      }))
+                    }
+                    options={[
+                      ["beginner", "初级"],
+                      ["intermediate", "中级"],
+                      ["advanced", "高级"],
+                    ]}
+                    value={sentenceForm.level}
+                  />
+                  <AdminSelect
+                    label="场景"
+                    onChange={(value) =>
+                      setSentenceForm((current) => ({ ...current, sceneId: value }))
+                    }
+                    options={scenes.map((scene) => [scene.id, scene.name])}
+                    value={sentenceForm.sceneId}
+                  />
+                  <AdminSelect
+                    label="状态"
+                    onChange={(value) =>
+                      setSentenceForm((current) => ({ ...current, status: value }))
+                    }
+                    options={[
+                      ["draft", "草稿"],
+                      ["published", "发布"],
+                    ]}
+                    value={sentenceForm.status}
+                  />
+                  <AdminSelect
+                    label="音频"
+                    onChange={(value) =>
+                      setSentenceForm((current) => ({ ...current, audioAssetId: value }))
+                    }
+                    options={[
+                      ["", "暂不绑定"],
+                      ...mediaAssets.map((media) => [media.id, media.objectKey]),
+                    ]}
+                    value={sentenceForm.audioAssetId}
+                  />
+                </div>
+
+                <AdminInput
+                  label="外部音频 URL"
+                  onChange={(value) =>
+                    setSentenceForm((current) => ({ ...current, audioUrl: value }))
+                  }
+                  placeholder="可选"
+                  value={sentenceForm.audioUrl}
+                />
+
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold">目标关键词</h3>
+                    <button
+                      className="h-9 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium text-[#40504b]"
+                      onClick={() =>
+                        setKeywordDrafts((current) => [
+                          ...current,
+                          {
+                            key: crypto.randomUUID(),
+                            wordId: "",
+                            surfaceText: "",
+                            priority: 80,
+                          },
+                        ])
+                      }
+                      type="button"
+                    >
+                      添加关键词
+                    </button>
+                  </div>
+
+                  {keywordDrafts.map((keyword, index) => (
+                    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_90px_70px]" key={keyword.key}>
+                      <AdminSelect
+                        label="词条"
+                        onChange={(value) => updateKeyword(index, { wordId: value })}
+                        options={words.map((word) => [
+                          word.id,
+                          `${word.lemma} - ${word.meaningCn}`,
+                        ])}
+                        value={keyword.wordId}
+                      />
+                      <AdminInput
+                        label="句中原文"
+                        onChange={(value) => updateKeyword(index, { surfaceText: value })}
+                        value={keyword.surfaceText}
+                      />
+                      <AdminInput
+                        label="优先级"
+                        onChange={(value) =>
+                          updateKeyword(index, { priority: Number(value) || 0 })
+                        }
+                        type="number"
+                        value={String(keyword.priority)}
+                      />
+                      <button
+                        className="mt-6 h-10 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium text-[#9a4727]"
+                        onClick={() =>
+                          setKeywordDrafts((current) =>
+                            current.filter((item) => item.key !== keyword.key),
+                          )
+                        }
+                        type="button"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <SubmitButton label="保存句子" />
+              </form>
+            </AdminPanel>
+
+            <AdminPanel title="句子列表">
+              <div className="grid gap-3">
+                {sentences.map((sentence) => (
+                  <div
+                    className="rounded-lg border border-[#e3e8e5] p-4"
+                    key={sentence.id}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-semibold">{sentence.text}</p>
+                        <p className="mt-1 text-sm text-[#69736f]">
+                          {sentence.translation}
+                        </p>
+                        <p className="mt-2 text-xs text-[#69736f]">
+                          {sentence.sceneName} / {sentence.level} / {sentence.status}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="h-9 rounded-md bg-[#1f6f64] px-3 text-sm font-semibold text-white"
+                          onClick={() => setSentenceStatus(sentence.id, "published")}
+                          type="button"
+                        >
+                          发布
+                        </button>
+                        <button
+                          className="h-9 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium"
+                          onClick={() => setSentenceStatus(sentence.id, "offline")}
+                          type="button"
+                        >
+                          下架
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AdminPanel>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+
+  function updateKeyword(index: number, patch: Partial<KeywordDraft>) {
+    setKeywordDrafts((current) =>
+      current.map((keyword, itemIndex) =>
+        itemIndex === index ? { ...keyword, ...patch } : keyword,
+      ),
+    );
+  }
+}
+
+function AdminPanel({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function AdminInput({
+  label,
+  onChange,
+  placeholder,
+  type = "text",
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-medium">
+      {label}
+      <input
+        className="h-10 rounded-md border border-[#cfd8d3] px-3 text-sm outline-none focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        type={type}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function AdminSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: string[][];
+  value: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-medium">
+      {label}
+      <select
+        className="h-10 min-w-0 rounded-md border border-[#cfd8d3] bg-white px-3 text-sm outline-none focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map(([optionValue, labelText]) => (
+          <option key={optionValue} value={optionValue}>
+            {labelText}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SubmitButton({ label }: { label: string }) {
+  return (
+    <button
+      className="h-10 rounded-md bg-[#1f6f64] px-4 text-sm font-semibold text-white transition hover:bg-[#18574f]"
+      type="submit"
+    >
+      {label}
+    </button>
+  );
+}

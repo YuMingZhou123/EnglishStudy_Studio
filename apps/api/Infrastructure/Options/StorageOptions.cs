@@ -14,6 +14,8 @@ public sealed class StorageOptions
 
     public bool UseSSL { get; init; }
 
+    public string PublicApiBaseUrl { get; init; } = "http://localhost:5180";
+
     public Uri GetEndpointUri()
     {
         if (Endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||

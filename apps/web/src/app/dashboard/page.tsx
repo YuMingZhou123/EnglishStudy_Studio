@@ -76,6 +76,14 @@ export default function DashboardPage() {
           >
             退出
           </button>
+          {user?.roles.some((role) => role === "Admin" || role === "ContentAdmin") ? (
+            <Link
+              className="h-10 rounded-md bg-[#1f6f64] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#18574f]"
+              href="/admin"
+            >
+              内容后台
+            </Link>
+          ) : null}
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">

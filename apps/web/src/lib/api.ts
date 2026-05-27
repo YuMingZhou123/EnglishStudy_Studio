@@ -96,6 +96,66 @@ export type WrongWord = {
 
 export type DictationMode = "beginner" | "intermediate" | "advanced";
 
+export type Scene = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  isEnabled: boolean;
+};
+
+export type Word = {
+  id: string;
+  lemma: string;
+  phonetic?: string | null;
+  partOfSpeech?: string | null;
+  meaningCn: string;
+  cefrLevel?: string | null;
+  examTags?: string | null;
+  collocations?: string | null;
+};
+
+export type MediaAsset = {
+  id: string;
+  bucket: string;
+  objectKey: string;
+  url: string;
+  contentType: string;
+  size: number;
+  source: string;
+};
+
+export type SentenceKeywordInput = {
+  wordId: string;
+  surfaceText: string;
+  priority: number;
+  blankGroup?: string | null;
+};
+
+export type Sentence = {
+  id: string;
+  text: string;
+  translation: string;
+  level: DictationMode;
+  sceneId: string;
+  sceneName: string;
+  audioUrl?: string | null;
+  slowAudioUrl?: string | null;
+  audioAssetId?: string | null;
+  source: string;
+  status: string;
+  keywords: Array<{
+    id: string;
+    wordId: string;
+    surfaceText: string;
+    startIndex: number;
+    endIndex: number;
+    blankGroup?: string | null;
+    priority: number;
+    word: Word;
+  }>;
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -107,7 +167,11 @@ export async function apiRequest<T>(
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -206,5 +270,96 @@ export const dictationApi = {
 export const vocabularyApi = {
   wrongWords(token: string) {
     return apiRequest<WrongWord[]>("/api/vocabulary/wrong-words", { token });
+  },
+};
+
+export const adminApi = {
+  scenes(token: string) {
+    return apiRequest<Scene[]>("/api/admin/scenes", { token });
+  },
+
+  createScene(
+    token: string,
+    input: { code: string; name: string; description?: string; isEnabled: boolean },
+  ) {
+    return apiRequest<Scene>("/api/admin/scenes", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
+  words(token: string, keyword = "") {
+    const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+    return apiRequest<Word[]>(`/api/admin/words${query}`, { token });
+  },
+
+  createWord(
+    token: string,
+    input: {
+      lemma: string;
+      phonetic?: string;
+      partOfSpeech?: string;
+      meaningCn: string;
+      cefrLevel?: string;
+      examTags?: string;
+      collocations?: string;
+    },
+  ) {
+    return apiRequest<Word>("/api/admin/words", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
+  sentences(token: string) {
+    return apiRequest<Sentence[]>("/api/admin/sentences", { token });
+  },
+
+  createSentence(
+    token: string,
+    input: {
+      text: string;
+      translation: string;
+      level: DictationMode;
+      sceneId: string;
+      audioAssetId?: string | null;
+      audioUrl?: string | null;
+      keywords: SentenceKeywordInput[];
+      status: string;
+    },
+  ) {
+    return apiRequest<Sentence>("/api/admin/sentences", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
+  publishSentence(token: string, sentenceId: string) {
+    return apiRequest<Sentence>(`/api/admin/sentences/${sentenceId}/publish`, {
+      method: "POST",
+      token,
+    });
+  },
+
+  offlineSentence(token: string, sentenceId: string) {
+    return apiRequest<Sentence>(`/api/admin/sentences/${sentenceId}/offline`, {
+      method: "POST",
+      token,
+    });
+  },
+
+  uploadMedia(token: string, file: File, folder = "audio") {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+
+    return apiRequest<MediaAsset>("/api/admin/media/upload", {
+      method: "POST",
+      token,
+      body: formData,
+    });
   },
 };

@@ -4,6 +4,7 @@ using Api.Domain.Identity;
 using Api.Infrastructure.Auth;
 using Api.Infrastructure.Options;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -54,6 +55,7 @@ public static class DependencyInjection
 
         services.AddAuthorization();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IFileStorageService, MinioFileStorageService>();
 
         services.AddHttpClient();
 

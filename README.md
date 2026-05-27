@@ -74,6 +74,14 @@ GET  /api/dictation/next?mode=beginner|intermediate|advanced
 POST /api/dictation/submit
 GET  /api/dictation/history
 GET  /api/vocabulary/wrong-words
+GET  /api/admin/scenes
+POST /api/admin/scenes
+GET  /api/admin/words
+POST /api/admin/words
+GET  /api/admin/sentences
+POST /api/admin/sentences
+POST /api/admin/media/upload
+GET  /api/media/objects/{objectKey}
 ```
 
 新增 EF Core migration：
@@ -93,6 +101,7 @@ npm run dev
 默认地址：
 
 - Web: `http://localhost:3000`
+- Admin: `http://localhost:3000/admin`
 
 ## 环境变量
 

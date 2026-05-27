@@ -1,4 +1,5 @@
 using Api.Application.Auth;
+using Api.Application.Content;
 using Api.Application.Dictation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IContentAdminService, ContentAdminService>();
         services.AddScoped<IDictationService, DictationService>();
 
         return services;
