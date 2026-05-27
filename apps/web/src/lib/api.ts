@@ -178,6 +178,51 @@ export type Sentence = {
   }>;
 };
 
+export type ImportSentenceKeywordInput = {
+  lemma: string;
+  meaningCn: string;
+  surfaceText: string;
+  priority?: number;
+  phonetic?: string | null;
+  partOfSpeech?: string | null;
+  cefrLevel?: string | null;
+  examTags?: string | null;
+  collocations?: string | null;
+  blankGroup?: string | null;
+};
+
+export type ImportSentenceItemInput = {
+  text: string;
+  translation: string;
+  level: DictationMode;
+  sceneCode: string;
+  sceneName: string;
+  keywords: ImportSentenceKeywordInput[];
+  sceneDescription?: string | null;
+  audioUrl?: string | null;
+  status?: string | null;
+};
+
+export type ImportSentencesInput = {
+  items: ImportSentenceItemInput[];
+  defaultStatus?: string;
+  updateExisting?: boolean;
+};
+
+export type ImportSentencesResult = {
+  totalCount: number;
+  createdScenes: number;
+  createdWords: number;
+  createdSentences: number;
+  updatedSentences: number;
+  skippedCount: number;
+  failures: Array<{
+    rowNumber: number;
+    text: string;
+    errors: string[];
+  }>;
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -397,6 +442,14 @@ export const adminApi = {
     },
   ) {
     return apiRequest<Sentence>("/api/admin/sentences", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
+  importSentences(token: string, input: ImportSentencesInput) {
+    return apiRequest<ImportSentencesResult>("/api/admin/sentences/import", {
       method: "POST",
       token,
       body: JSON.stringify(input),

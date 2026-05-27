@@ -417,6 +417,320 @@ public sealed partial class ContentAdminService(
         return await GetSentenceResultAsync(sentence.Id, cancellationToken);
     }
 
+    public async Task<ServiceResult<ImportSentencesResponse>> ImportSentencesAsync(
+        ImportSentencesRequest request,
+        Guid createdBy,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.Items is null || request.Items.Count == 0)
+        {
+            return ServiceResult<ImportSentencesResponse>.Failure("At least one sentence item is required.");
+        }
+
+        var failures = new List<ImportSentenceFailureResponse>();
+        var validRows = new List<(int RowNumber, ImportSentenceItemRequest Item, string SceneCode, string Status)>();
+        var seenSentenceTexts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var rowNumber = 0;
+        foreach (var item in request.Items)
+        {
+            rowNumber += 1;
+            if (item is null)
+            {
+                failures.Add(new ImportSentenceFailureResponse(
+                    rowNumber,
+                    string.Empty,
+                    ["Import row is empty."]));
+                continue;
+            }
+
+            var errors = ValidateImportItem(item, request.DefaultStatus, seenSentenceTexts);
+            if (errors.Count > 0)
+            {
+                failures.Add(new ImportSentenceFailureResponse(
+                    rowNumber,
+                    item?.Text ?? string.Empty,
+                    errors));
+                continue;
+            }
+
+            validRows.Add((
+                rowNumber,
+                item,
+                NormalizeCode(item.SceneCode),
+                NormalizeStatus(item.Status ?? request.DefaultStatus)));
+        }
+
+        if (validRows.Count == 0)
+        {
+            return ServiceResult<ImportSentencesResponse>.Success(new ImportSentencesResponse(
+                request.Items.Count,
+                0,
+                0,
+                0,
+                0,
+                failures.Count,
+                failures));
+        }
+
+        var sceneCodes = validRows
+            .Select(row => row.SceneCode)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var sceneCache = await dbContext.Scenes
+            .Where(scene => sceneCodes.Contains(scene.Code))
+            .ToDictionaryAsync(scene => scene.Code, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var lemmas = validRows
+            .SelectMany(row => row.Item.Keywords)
+            .Select(keyword => NormalizeWord(keyword.Lemma))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var wordCache = await dbContext.Words
+            .Where(word => lemmas.Contains(word.Lemma))
+            .ToDictionaryAsync(word => word.Lemma, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var sentenceTexts = validRows
+            .Select(row => row.Item.Text.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var sentenceCache = await dbContext.Sentences
+            .Where(sentence => sentenceTexts.Contains(sentence.Text))
+            .ToDictionaryAsync(sentence => sentence.Text, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var createdScenes = 0;
+        var createdWords = 0;
+        var createdSentences = 0;
+        var updatedSentences = 0;
+        var skippedCount = failures.Count;
+
+        foreach (var row in validRows)
+        {
+            var (scene, sceneCreated) = GetOrCreateImportScene(row.Item, row.SceneCode, sceneCache, now);
+            if (sceneCreated)
+            {
+                createdScenes += 1;
+            }
+
+            var keywordRequests = new List<SentenceKeywordRequest>();
+            foreach (var keyword in row.Item.Keywords)
+            {
+                var (word, wordCreated) = GetOrCreateImportWord(keyword, wordCache, now);
+                if (wordCreated)
+                {
+                    createdWords += 1;
+                }
+
+                keywordRequests.Add(new SentenceKeywordRequest(
+                    word.Id,
+                    keyword.SurfaceText.Trim(),
+                    keyword.Priority,
+                    TrimToNull(keyword.BlankGroup)));
+            }
+
+            var sentenceText = row.Item.Text.Trim();
+            if (sentenceCache.TryGetValue(sentenceText, out var sentence))
+            {
+                if (!request.UpdateExisting)
+                {
+                    skippedCount += 1;
+                    continue;
+                }
+
+                sentence.Translation = row.Item.Translation.Trim();
+                sentence.Level = NormalizeLevel(row.Item.Level);
+                sentence.SceneId = scene.Id;
+                sentence.AudioUrl = TrimToNull(row.Item.AudioUrl);
+                sentence.Status = row.Status;
+                sentence.UpdatedAt = now;
+
+                await dbContext.SentenceKeywords
+                    .Where(keyword => keyword.SentenceId == sentence.Id)
+                    .ExecuteDeleteAsync(cancellationToken);
+                updatedSentences += 1;
+            }
+            else
+            {
+                sentence = new Sentence
+                {
+                    Text = sentenceText,
+                    Translation = row.Item.Translation.Trim(),
+                    Level = NormalizeLevel(row.Item.Level),
+                    SceneId = scene.Id,
+                    AudioUrl = TrimToNull(row.Item.AudioUrl),
+                    Source = "import",
+                    Status = row.Status,
+                    CreatedBy = createdBy,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                dbContext.Sentences.Add(sentence);
+                sentenceCache[sentence.Text] = sentence;
+                createdSentences += 1;
+            }
+
+            await AddKeywordsAsync(sentence, keywordRequests, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<ImportSentencesResponse>.Success(new ImportSentencesResponse(
+            request.Items.Count,
+            createdScenes,
+            createdWords,
+            createdSentences,
+            updatedSentences,
+            skippedCount,
+            failures));
+    }
+
+    private static List<string> ValidateImportItem(
+        ImportSentenceItemRequest item,
+        string defaultStatus,
+        HashSet<string> seenSentenceTexts)
+    {
+        var errors = new List<string>();
+
+        var text = item.Text?.Trim() ?? string.Empty;
+        var translation = item.Translation?.Trim() ?? string.Empty;
+        var sceneCode = NormalizeCode(item.SceneCode);
+        var sceneName = item.SceneName?.Trim() ?? string.Empty;
+        var status = (item.Status ?? defaultStatus).Trim().ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            errors.Add("Sentence text is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(translation))
+        {
+            errors.Add("Sentence translation is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(sceneCode) || string.IsNullOrWhiteSpace(sceneName))
+        {
+            errors.Add("Scene code and scene name are required.");
+        }
+
+        if (item.Keywords is null || item.Keywords.Count == 0)
+        {
+            errors.Add("At least one keyword is required.");
+        }
+
+        if (!IsValidStatus(status))
+        {
+            errors.Add("Sentence status must be draft, published, or offline.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(text) && !seenSentenceTexts.Add(text))
+        {
+            errors.Add("Duplicate sentence text in import file.");
+        }
+
+        if (item.Keywords is not null)
+        {
+            foreach (var keyword in item.Keywords)
+            {
+                if (keyword is null)
+                {
+                    errors.Add("Keyword row is empty.");
+                    continue;
+                }
+
+                var lemma = NormalizeWord(keyword.Lemma);
+                var meaning = keyword.MeaningCn?.Trim() ?? string.Empty;
+                var surfaceText = keyword.SurfaceText?.Trim() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(lemma) || string.IsNullOrWhiteSpace(meaning))
+                {
+                    errors.Add($"Keyword '{keyword.SurfaceText}' requires lemma and Chinese meaning.");
+                }
+
+                if (string.IsNullOrWhiteSpace(surfaceText))
+                {
+                    errors.Add("Keyword surface text is required.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(text) &&
+                    !string.IsNullOrWhiteSpace(surfaceText) &&
+                    !text.Contains(surfaceText, StringComparison.OrdinalIgnoreCase))
+                {
+                    errors.Add($"Keyword '{surfaceText}' does not appear in the sentence.");
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private (Scene Scene, bool Created) GetOrCreateImportScene(
+        ImportSentenceItemRequest item,
+        string sceneCode,
+        IDictionary<string, Scene> sceneCache,
+        DateTimeOffset now)
+    {
+        if (sceneCache.TryGetValue(sceneCode, out var scene))
+        {
+            scene.Name = item.SceneName.Trim();
+            scene.Description = TrimToNull(item.SceneDescription);
+            scene.IsEnabled = true;
+            scene.UpdatedAt = now;
+            return (scene, false);
+        }
+
+        scene = new Scene
+        {
+            Code = sceneCode,
+            Name = item.SceneName.Trim(),
+            Description = TrimToNull(item.SceneDescription),
+            IsEnabled = true,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.Scenes.Add(scene);
+        sceneCache[sceneCode] = scene;
+        return (scene, true);
+    }
+
+    private (Word Word, bool Created) GetOrCreateImportWord(
+        ImportSentenceKeywordRequest keyword,
+        IDictionary<string, Word> wordCache,
+        DateTimeOffset now)
+    {
+        var lemma = NormalizeWord(keyword.Lemma);
+        if (wordCache.TryGetValue(lemma, out var word))
+        {
+            word.MeaningCn = keyword.MeaningCn.Trim();
+            word.Phonetic = TrimToNull(keyword.Phonetic);
+            word.PartOfSpeech = TrimToNull(keyword.PartOfSpeech);
+            word.CefrLevel = TrimToNull(keyword.CefrLevel);
+            word.ExamTags = TrimToNull(keyword.ExamTags);
+            word.Collocations = TrimToNull(keyword.Collocations);
+            word.UpdatedAt = now;
+            return (word, false);
+        }
+
+        word = new Word
+        {
+            Lemma = lemma,
+            Phonetic = TrimToNull(keyword.Phonetic),
+            PartOfSpeech = TrimToNull(keyword.PartOfSpeech),
+            MeaningCn = keyword.MeaningCn.Trim(),
+            CefrLevel = TrimToNull(keyword.CefrLevel),
+            ExamTags = TrimToNull(keyword.ExamTags),
+            Collocations = TrimToNull(keyword.Collocations),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.Words.Add(word);
+        wordCache[lemma] = word;
+        return (word, true);
+    }
+
     private IQueryable<Sentence> SentencesQuery()
     {
         return dbContext.Sentences
@@ -587,6 +901,11 @@ public sealed partial class ContentAdminService(
         return normalized is "draft" or "published" or "offline"
             ? normalized
             : "draft";
+    }
+
+    private static bool IsValidStatus(string value)
+    {
+        return value is "draft" or "published" or "offline";
     }
 
     private static string NormalizeCode(string? value)

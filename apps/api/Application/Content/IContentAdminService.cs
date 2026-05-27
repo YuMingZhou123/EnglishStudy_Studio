@@ -56,4 +56,9 @@ public interface IContentAdminService
         Guid sentenceId,
         GenerateSentenceAudioRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<ImportSentencesResponse>> ImportSentencesAsync(
+        ImportSentencesRequest request,
+        Guid createdBy,
+        CancellationToken cancellationToken = default);
 }

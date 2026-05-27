@@ -101,3 +101,45 @@ public sealed record UploadMediaRequest(
 public sealed record GenerateSentenceAudioRequest(
     string? Voice = null,
     double Speed = 1);
+
+public sealed record ImportSentenceKeywordRequest(
+    string Lemma,
+    string MeaningCn,
+    string SurfaceText,
+    int Priority = 100,
+    string? Phonetic = null,
+    string? PartOfSpeech = null,
+    string? CefrLevel = null,
+    string? ExamTags = null,
+    string? Collocations = null,
+    string? BlankGroup = null);
+
+public sealed record ImportSentenceItemRequest(
+    string Text,
+    string Translation,
+    string Level,
+    string SceneCode,
+    string SceneName,
+    IReadOnlyCollection<ImportSentenceKeywordRequest> Keywords,
+    string? SceneDescription = null,
+    string? AudioUrl = null,
+    string? Status = null);
+
+public sealed record ImportSentencesRequest(
+    IReadOnlyCollection<ImportSentenceItemRequest> Items,
+    string DefaultStatus = "draft",
+    bool UpdateExisting = true);
+
+public sealed record ImportSentenceFailureResponse(
+    int RowNumber,
+    string Text,
+    IReadOnlyCollection<string> Errors);
+
+public sealed record ImportSentencesResponse(
+    int TotalCount,
+    int CreatedScenes,
+    int CreatedWords,
+    int CreatedSentences,
+    int UpdatedSentences,
+    int SkippedCount,
+    IReadOnlyCollection<ImportSentenceFailureResponse> Failures);

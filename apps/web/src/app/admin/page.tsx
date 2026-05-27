@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   DictationMode,
+  ImportSentencesInput,
+  ImportSentencesResult,
   MediaAsset,
   Scene,
   Sentence,
@@ -16,6 +18,29 @@ import {
 import { clearSession, getToken } from "@/lib/session";
 
 type KeywordDraft = SentenceKeywordInput & { key: string };
+
+const importSample = `{
+  "defaultStatus": "published",
+  "updateExisting": true,
+  "items": [
+    {
+      "text": "I need to schedule a meeting with the marketing team.",
+      "translation": "我需要和市场团队安排一次会议。",
+      "level": "beginner",
+      "sceneCode": "workplace",
+      "sceneName": "职场沟通",
+      "keywords": [
+        {
+          "lemma": "schedule",
+          "meaningCn": "安排",
+          "surfaceText": "schedule",
+          "priority": 100,
+          "partOfSpeech": "verb"
+        }
+      ]
+    }
+  ]
+}`;
 
 export default function AdminPage() {
   const router = useRouter();
@@ -30,6 +55,8 @@ export default function AdminPage() {
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
   const [editingWordId, setEditingWordId] = useState<string | null>(null);
   const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
+  const [importText, setImportText] = useState(importSample);
+  const [importResult, setImportResult] = useState<ImportSentencesResult | null>(null);
 
   const [sceneForm, setSceneForm] = useState({
     code: "",
@@ -254,6 +281,30 @@ export default function AdminPage() {
         current.map((item) => (item.id === sentenceId ? sentence : item)),
       );
       setMessage("音频已生成");
+    });
+  }
+
+  async function importSentences(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    let payload: ImportSentencesInput;
+    try {
+      payload = JSON.parse(importText) as ImportSentencesInput;
+    } catch {
+      setError("JSON 格式不正确");
+      return;
+    }
+
+    await runAction(async () => {
+      const result = await adminApi.importSentences(token, payload);
+      setImportResult(result);
+      await refreshData(token);
+      setMessage(
+        `导入完成：新增句子 ${result.createdSentences}，更新句子 ${result.updatedSentences}`,
+      );
     });
   }
 
@@ -501,6 +552,42 @@ export default function AdminPage() {
                       {media.objectKey}
                     </button>
                   ))}
+                </div>
+              ) : null}
+            </AdminPanel>
+
+            <AdminPanel title="批量导入">
+              <form className="grid gap-3" onSubmit={importSentences}>
+                <label className="grid gap-2 text-sm font-medium">
+                  JSON 内容
+                  <textarea
+                    className="min-h-80 rounded-md border border-[#cfd8d3] bg-white p-3 font-mono text-xs leading-5 outline-none focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                    onChange={(event) => setImportText(event.target.value)}
+                    value={importText}
+                  />
+                </label>
+                <SubmitButton label="导入题库" />
+              </form>
+
+              {importResult ? (
+                <div className="mt-4 grid gap-2 text-sm text-[#40504b]">
+                  <p>
+                    共 {importResult.totalCount} 条，新增场景 {importResult.createdScenes}
+                    ，新增单词 {importResult.createdWords}
+                  </p>
+                  <p>
+                    新增句子 {importResult.createdSentences}，更新句子{" "}
+                    {importResult.updatedSentences}，跳过 {importResult.skippedCount}
+                  </p>
+                  {importResult.failures.length > 0 ? (
+                    <div className="grid gap-2">
+                      {importResult.failures.slice(0, 5).map((failure) => (
+                        <p className="text-xs text-[#9a4727]" key={failure.rowNumber}>
+                          第 {failure.rowNumber} 条：{failure.errors.join("；")}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </AdminPanel>

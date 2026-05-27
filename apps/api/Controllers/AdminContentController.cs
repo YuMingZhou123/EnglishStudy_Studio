@@ -146,6 +146,19 @@ public sealed class AdminContentController(IContentAdminService contentAdminServ
         return ToActionResult(result);
     }
 
+    [HttpPost("sentences/import")]
+    public async Task<IActionResult> ImportSentences(
+        ImportSentencesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await contentAdminService.ImportSentencesAsync(
+            request,
+            User.GetRequiredUserId(),
+            cancellationToken);
+
+        return ToActionResult(result);
+    }
+
     [HttpPost("media/upload")]
     [RequestSizeLimit(50_000_000)]
     public async Task<IActionResult> UploadMedia(
