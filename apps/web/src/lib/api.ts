@@ -82,6 +82,27 @@ export type DictationHistoryItem = {
   createdAt: string;
 };
 
+export type DailyLearningStat = {
+  date: string;
+  attemptCount: number;
+  correctCount: number;
+  accuracy: number;
+};
+
+export type LearningSummary = {
+  dailyDictationGoal: number;
+  todayAttemptCount: number;
+  todayCorrectCount: number;
+  todayAccuracy: number;
+  wrongWordCount: number;
+  dueReviewCount: number;
+  totalAttemptCount: number;
+  learningDayCount: number;
+  currentStreakDays: number;
+  recentAccuracy: number;
+  recentDays: DailyLearningStat[];
+};
+
 export type WrongWord = {
   wordId: string;
   lemma: string;
@@ -264,6 +285,10 @@ export const dictationApi = {
       `/api/dictation/history?limit=${limit}`,
       { token },
     );
+  },
+
+  summary(token: string) {
+    return apiRequest<LearningSummary>("/api/dictation/summary", { token });
   },
 };
 

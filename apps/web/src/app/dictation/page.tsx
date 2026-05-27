@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DictationMode,
   DictationQuestion,
@@ -13,6 +13,7 @@ import { getToken } from "@/lib/session";
 
 export default function DictationPage() {
   const router = useRouter();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [token] = useState<string | null>(() =>
     typeof window === "undefined" ? null : getToken(),
   );
@@ -112,7 +113,35 @@ export default function DictationPage() {
     }
   }
 
-  function speak(rate = 1) {
+  async function playQuestionAudio(rate = 1) {
+    if (!question) {
+      return;
+    }
+
+    const audio = audioRef.current;
+    const audioSource =
+      rate < 1 && question.slowAudioUrl ? question.slowAudioUrl : question.audioUrl;
+
+    if (audio && audioSource) {
+      window.speechSynthesis?.cancel();
+      audio.pause();
+      audio.src = audioSource;
+      audio.currentTime = 0;
+      audio.playbackRate = rate < 1 && question.slowAudioUrl ? 1 : rate;
+
+      try {
+        await audio.play();
+        setReplayCount((count) => count + 1);
+        return;
+      } catch {
+        // Fall through to browser TTS when autoplay policies or media loading fail.
+      }
+    }
+
+    speakWithBrowserVoice(rate);
+  }
+
+  function speakWithBrowserVoice(rate = 1) {
     if (!question || !("speechSynthesis" in window)) {
       return;
     }
@@ -189,14 +218,14 @@ export default function DictationPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   className="h-10 rounded-md bg-[#1f6f64] px-3 text-sm font-semibold text-white transition hover:bg-[#18574f]"
-                  onClick={() => speak(1)}
+                  onClick={() => playQuestionAudio(1)}
                   type="button"
                 >
                   原速朗读
                 </button>
                 <button
                   className="h-10 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium text-[#40504b] transition hover:bg-[#f4f7f5]"
-                  onClick={() => speak(0.75)}
+                  onClick={() => playQuestionAudio(0.75)}
                   type="button"
                 >
                   慢速朗读
@@ -204,8 +233,13 @@ export default function DictationPage() {
               </div>
             </div>
 
-            {question.audioUrl ? (
-              <audio className="mt-4 w-full" controls src={question.audioUrl}>
+            {question.audioUrl || question.slowAudioUrl ? (
+              <audio
+                className="mt-4 w-full"
+                controls
+                ref={audioRef}
+                src={question.audioUrl ?? question.slowAudioUrl ?? undefined}
+              >
                 <track kind="captions" />
               </audio>
             ) : null}

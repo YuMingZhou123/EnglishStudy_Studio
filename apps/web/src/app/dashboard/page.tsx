@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   CurrentUser,
   DictationHistoryItem,
+  LearningSummary,
   WrongWord,
   authApi,
   dictationApi,
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [history, setHistory] = useState<DictationHistoryItem[]>([]);
   const [wrongWords, setWrongWords] = useState<WrongWord[]>([]);
+  const [summary, setSummary] = useState<LearningSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,11 +33,13 @@ export default function DashboardPage() {
       authApi.me(token),
       dictationApi.history(token, 6),
       vocabularyApi.wrongWords(token),
+      dictationApi.summary(token),
     ])
-      .then(([currentUser, historyItems, words]) => {
+      .then(([currentUser, historyItems, words, learningSummary]) => {
         setUser(currentUser);
         setHistory(historyItems);
         setWrongWords(words);
+        setSummary(learningSummary);
       })
       .catch(() => {
         clearSession();
@@ -48,6 +52,14 @@ export default function DashboardPage() {
     clearSession();
     router.replace("/");
   }
+
+  const dailyGoal = summary?.dailyDictationGoal ?? 10;
+  const todayAttemptCount = summary?.todayAttemptCount ?? 0;
+  const todayProgress = Math.min(
+    100,
+    Math.round((todayAttemptCount / Math.max(1, dailyGoal)) * 100),
+  );
+  const nextMode = user?.currentLevel ?? "beginner";
 
   if (loading) {
     return (
@@ -86,13 +98,86 @@ export default function DashboardPage() {
           ) : null}
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <SummaryCard label="今日记录" value={`${history.length} 次`} />
-          <SummaryCard label="错词本" value={`${wrongWords.length} 个`} />
+        <section className="grid gap-4 md:grid-cols-4">
+          <SummaryCard label="今日进度" value={`${todayAttemptCount}/${dailyGoal}`} />
+          <SummaryCard
+            label="今日正确率"
+            value={`${summary?.todayAccuracy ?? 0}%`}
+          />
+          <SummaryCard
+            label="待复习错词"
+            value={`${summary?.dueReviewCount ?? wrongWords.length} 个`}
+          />
           <SummaryCard
             label="当前水平"
             value={levelLabel(user?.currentLevel ?? "beginner")}
           />
+        </section>
+
+        <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">今日任务</h2>
+              <p className="mt-1 text-sm leading-6 text-[#69736f]">
+                完成 {dailyGoal} 句语境听写，优先保持连续学习节奏。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                className="h-10 rounded-md bg-[#1f6f64] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#18574f]"
+                href={`/dictation?mode=${nextMode}`}
+              >
+                继续训练
+              </Link>
+              <Link
+                className="h-10 rounded-md border border-[#cfd8d3] px-4 py-2.5 text-sm font-medium text-[#40504b] transition hover:bg-[#f4f7f5]"
+                href="/vocabulary"
+              >
+                复习错词
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-[#40504b]">
+                已完成 {todayAttemptCount} 句
+              </span>
+              <span className="text-[#69736f]">{todayProgress}%</span>
+            </div>
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-[#edf2ef]">
+              <div
+                className="h-full rounded-full bg-[#1f6f64] transition-all"
+                style={{ width: `${todayProgress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-[160px_1fr]">
+            <div className="rounded-md bg-[#f4f7f5] px-3 py-2 text-sm">
+              <p className="font-semibold text-[#18211f]">
+                连续 {summary?.currentStreakDays ?? 0} 天
+              </p>
+              <p className="mt-1 text-[#69736f]">
+                累计练习 {summary?.totalAttemptCount ?? 0} 次
+              </p>
+            </div>
+            <div className="grid grid-cols-7 items-end gap-2">
+              {(summary?.recentDays ?? []).map((day) => (
+                <div className="grid gap-1 text-center text-xs" key={day.date}>
+                  <div className="flex h-16 items-end justify-center rounded-md bg-[#f4f7f5] px-1">
+                    <div
+                      className="w-full rounded-t bg-[#8fb9ad]"
+                      style={{
+                        height: `${Math.max(8, Math.min(100, day.accuracy || 0))}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-[#69736f]">{formatDay(day.date)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
@@ -207,4 +292,13 @@ function levelLabel(level: string) {
     advanced: "高级",
   };
   return labels[level] ?? "初级";
+}
+
+function formatDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(5);
+  }
+
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }

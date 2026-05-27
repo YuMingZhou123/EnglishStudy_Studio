@@ -19,6 +19,10 @@ public interface IDictationService
         int limit = 20,
         CancellationToken cancellationToken = default);
 
+    Task<LearningSummaryResponse> GetLearningSummaryAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<WrongWordResponse>> GetWrongWordsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);

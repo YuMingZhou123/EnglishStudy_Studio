@@ -13,6 +13,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
     private const string Beginner = "beginner";
     private const string Intermediate = "intermediate";
     private const string Advanced = "advanced";
+    private const int DailyDictationGoal = 10;
 
     public async Task<ServiceResult<DictationQuestionResponse>> GetNextQuestionAsync(
         Guid userId,
@@ -167,6 +168,108 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
                 state.NextReviewAt,
                 state.LastReviewedAt))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<LearningSummaryResponse> GetLearningSummaryAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var localNow = DateTimeOffset.Now;
+        var today = DateOnly.FromDateTime(localNow.DateTime);
+        var localTodayStart = new DateTimeOffset(
+            today.Year,
+            today.Month,
+            today.Day,
+            0,
+            0,
+            0,
+            localNow.Offset);
+        var todayStart = localTodayStart.ToUniversalTime();
+        var tomorrowStart = localTodayStart.AddDays(1).ToUniversalTime();
+        var recentStart = localTodayStart.AddDays(-6).ToUniversalTime();
+
+        var recentAttempts = await dbContext.DictationAttempts
+            .AsNoTracking()
+            .Where(attempt =>
+                attempt.UserId == userId &&
+                attempt.CreatedAt >= recentStart &&
+                attempt.CreatedAt < tomorrowStart)
+            .Select(attempt => new
+            {
+                attempt.CreatedAt,
+                attempt.IsCorrect
+            })
+            .ToListAsync(cancellationToken);
+
+        var allAttemptDates = await dbContext.DictationAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.UserId == userId)
+            .Select(attempt => attempt.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var wrongWordCount = await dbContext.UserWordStates
+            .AsNoTracking()
+            .CountAsync(
+                state => state.UserId == userId && state.MistakeCount > 0,
+                cancellationToken);
+
+        var dueReviewCount = await dbContext.UserWordStates
+            .AsNoTracking()
+            .CountAsync(
+                state =>
+                    state.UserId == userId &&
+                    state.MistakeCount > 0 &&
+                    (state.NextReviewAt == null || state.NextReviewAt <= now),
+                cancellationToken);
+
+        var totalAttemptCount = allAttemptDates.Count;
+        var learningDates = allAttemptDates
+            .Select(item => DateOnly.FromDateTime(item.ToLocalTime().DateTime))
+            .ToHashSet();
+
+        var currentStreakDays = 0;
+        for (var date = today; learningDates.Contains(date); date = date.AddDays(-1))
+        {
+            currentStreakDays += 1;
+        }
+
+        var todayAttempts = recentAttempts
+            .Where(attempt => DateOnly.FromDateTime(attempt.CreatedAt.ToLocalTime().DateTime) == today)
+            .ToArray();
+
+        var recentDays = Enumerable.Range(0, 7)
+            .Select(offset => today.AddDays(offset - 6))
+            .Select(date =>
+            {
+                var attempts = recentAttempts
+                    .Where(attempt => DateOnly.FromDateTime(attempt.CreatedAt.ToLocalTime().DateTime) == date)
+                    .ToArray();
+                var correctCount = attempts.Count(attempt => attempt.IsCorrect);
+
+                return new DailyLearningStatResponse(
+                    date,
+                    attempts.Length,
+                    correctCount,
+                    CalculateAccuracy(attempts.Length, correctCount));
+            })
+            .ToArray();
+
+        var todayCorrectCount = todayAttempts.Count(attempt => attempt.IsCorrect);
+        var recentCorrectCount = recentAttempts.Count(attempt => attempt.IsCorrect);
+
+        return new LearningSummaryResponse(
+            DailyDictationGoal,
+            todayAttempts.Length,
+            todayCorrectCount,
+            CalculateAccuracy(todayAttempts.Length, todayCorrectCount),
+            wrongWordCount,
+            dueReviewCount,
+            totalAttemptCount,
+            learningDates.Count,
+            currentStreakDays,
+            CalculateAccuracy(recentAttempts.Count, recentCorrectCount),
+            recentDays);
     }
 
     private IQueryable<Sentence> PublishedSentencesQuery()
@@ -432,6 +535,13 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         normalized = NonAnswerCharactersRegex().Replace(normalized, " ");
         normalized = WhitespaceRegex().Replace(normalized, " ");
         return normalized.Trim();
+    }
+
+    private static double CalculateAccuracy(int totalCount, int correctCount)
+    {
+        return totalCount == 0
+            ? 0
+            : Math.Round(correctCount * 100.0 / totalCount, 2);
     }
 
     [GeneratedRegex("[^a-z0-9'\\s]+", RegexOptions.Compiled)]

@@ -47,6 +47,15 @@ public sealed class DictationController(IDictationService dictationService) : Co
             cancellationToken);
     }
 
+    [HttpGet("summary")]
+    public async Task<LearningSummaryResponse> Summary(
+        CancellationToken cancellationToken = default)
+    {
+        return await dictationService.GetLearningSummaryAsync(
+            User.GetRequiredUserId(),
+            cancellationToken);
+    }
+
     private ObjectResult ToActionResult<T>(ServiceResult<T> result)
     {
         if (result.Succeeded)

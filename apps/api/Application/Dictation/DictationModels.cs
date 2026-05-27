@@ -67,6 +67,25 @@ public sealed record DictationHistoryItemResponse(
     string Translation,
     DateTimeOffset CreatedAt);
 
+public sealed record DailyLearningStatResponse(
+    DateOnly Date,
+    int AttemptCount,
+    int CorrectCount,
+    double Accuracy);
+
+public sealed record LearningSummaryResponse(
+    int DailyDictationGoal,
+    int TodayAttemptCount,
+    int TodayCorrectCount,
+    double TodayAccuracy,
+    int WrongWordCount,
+    int DueReviewCount,
+    int TotalAttemptCount,
+    int LearningDayCount,
+    int CurrentStreakDays,
+    double RecentAccuracy,
+    IReadOnlyCollection<DailyLearningStatResponse> RecentDays);
+
 public sealed record WrongWordResponse(
     Guid WordId,
     string Lemma,
