@@ -1,6 +1,7 @@
-using Api.Data;
-using Api.Entities;
-using Api.Options;
+using Api.Application;
+using Api.Infrastructure;
+using Api.Infrastructure.Options;
+using Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -10,14 +11,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-builder.Services.AddIdentityCore<ApplicationUser>()
-    .AddRoles<ApplicationRole>()
-    .AddEntityFrameworkStores<AppDbContext>();
-builder.Services.Configure<StorageOptions>(
-    builder.Configuration.GetSection(StorageOptions.SectionName));
-builder.Services.AddHttpClient();
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 

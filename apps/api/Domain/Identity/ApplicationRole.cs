@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Api.Entities;
+namespace Api.Domain.Identity;
 
 public sealed class ApplicationRole : IdentityRole<Guid>
 {
@@ -16,4 +16,3 @@ public sealed class ApplicationRole : IdentityRole<Guid>
 
     public ICollection<RolePermission> RolePermissions { get; } = new List<RolePermission>();
 }
-

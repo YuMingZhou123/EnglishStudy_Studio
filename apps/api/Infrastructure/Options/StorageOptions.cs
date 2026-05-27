@@ -1,4 +1,4 @@
-namespace Api.Options;
+namespace Api.Infrastructure.Options;
 
 public sealed class StorageOptions
 {
@@ -26,4 +26,3 @@ public sealed class StorageOptions
         return new Uri($"{scheme}://{Endpoint}");
     }
 }
-

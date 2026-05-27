@@ -60,7 +60,7 @@ dotnet run --project apps/api
 新增 EF Core migration：
 
 ```powershell
-dotnet tool run dotnet-ef migrations add <MigrationName> --project apps/api --startup-project apps/api --output-dir Data/Migrations
+dotnet tool run dotnet-ef migrations add <MigrationName> --project apps/api --startup-project apps/api --output-dir Infrastructure/Persistence/Migrations
 ```
 
 ## 前端

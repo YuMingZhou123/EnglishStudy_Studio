@@ -1,4 +1,4 @@
-namespace Api.Entities;
+namespace Api.Domain.Identity;
 
 public sealed class RolePermission
 {
@@ -12,4 +12,3 @@ public sealed class RolePermission
 
     public Permission Permission { get; set; } = null!;
 }
-
