@@ -319,6 +319,21 @@ export const authApi = {
   me(token: string) {
     return apiRequest<CurrentUser>("/api/auth/me", { token });
   },
+
+  updateMe(
+    token: string,
+    input: {
+      displayName?: string;
+      currentLevel?: string;
+      learningGoal?: string;
+    },
+  ) {
+    return apiRequest<CurrentUser>("/api/auth/me", {
+      method: "PUT",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
 };
 
 export const dictationApi = {

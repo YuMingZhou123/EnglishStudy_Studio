@@ -11,6 +11,11 @@ public sealed record LoginRequest(
     string Email,
     string Password);
 
+public sealed record UpdateCurrentUserRequest(
+    string? DisplayName,
+    string? CurrentLevel,
+    string? LearningGoal);
+
 public sealed record AuthResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt,

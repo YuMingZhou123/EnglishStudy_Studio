@@ -1,4 +1,4 @@
-import type { AuthResponse } from "./api";
+import type { AuthResponse, CurrentUser } from "./api";
 
 const TOKEN_KEY = "english-study-token";
 const USER_KEY = "english-study-user";
@@ -6,6 +6,10 @@ const USER_KEY = "english-study-user";
 export function saveSession(auth: AuthResponse) {
   window.localStorage.setItem(TOKEN_KEY, auth.accessToken);
   window.localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
+}
+
+export function saveCurrentUser(user: CurrentUser) {
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function getToken() {

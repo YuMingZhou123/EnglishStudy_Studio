@@ -104,6 +104,37 @@ public sealed class AuthService(
         return ServiceResult<CurrentUserResponse>.Success(MapUser(user, roles));
     }
 
+    public async Task<ServiceResult<CurrentUserResponse>> UpdateCurrentUserAsync(
+        Guid userId,
+        UpdateCurrentUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return ServiceResult<CurrentUserResponse>.Failure("User was not found.");
+        }
+
+        user.DisplayName = string.IsNullOrWhiteSpace(request.DisplayName)
+            ? user.Email?.Split('@')[0]
+            : request.DisplayName.Trim();
+        user.CurrentLevel = NormalizeLevel(request.CurrentLevel);
+        user.LearningGoal = string.IsNullOrWhiteSpace(request.LearningGoal)
+            ? "daily"
+            : request.LearningGoal.Trim();
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return ServiceResult<CurrentUserResponse>.Failure(
+                updateResult.Errors.Select(error => error.Description).ToArray());
+        }
+
+        var roles = (await userManager.GetRolesAsync(user)).ToArray();
+        return ServiceResult<CurrentUserResponse>.Success(MapUser(user, roles));
+    }
+
     private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user)
     {
         var roles = (await userManager.GetRolesAsync(user)).ToArray();

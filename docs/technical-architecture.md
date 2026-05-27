@@ -81,6 +81,7 @@ API 网关 / 后端服务
 ```text
 前端：Next.js + React + TypeScript + Tailwind CSS + shadcn/ui
 后端：ASP.NET Core Web API + C#
+后端架构：DDD 风格模块化单体
 数据库：PostgreSQL
 ORM：Entity Framework Core
 接口文档：Swagger / OpenAPI
@@ -136,35 +137,49 @@ docs/
 
 待业务变复杂后再迁移到 monorepo。
 
-### 4.2 后端服务模块
+### 4.2 后端 DDD 分层
 
-建议按业务模块组织：
+本项目后端采用 DDD 风格的模块化单体。第一版不拆微服务，先在一个 ASP.NET Core Web API 工程内保持清晰边界，后续如果业务量增长，再按限界上下文拆分服务。
+
+当前目录约定：
 
 ```text
 apps/api/
-  Controllers/
-  Modules/
+  Domain/              # 领域层：核心业务对象、聚合、领域状态
+    Identity/          # 用户、角色、权限
+    Content/           # 场景、单词、句子、音频素材
+    Learning/          # 听写记录、错词状态
+  Application/         # 应用层：用例服务、DTO、接口定义
     Auth/
-    Users/
     Content/
     Dictation/
-    Vocabulary/
-    Speaking/
-    LearningRecords/
-    Reports/
-    Membership/
-    Admin/
-    Ai/
+    Common/Interfaces/
+  Infrastructure/      # 基础设施层：EF Core、MinIO、JWT、TTS Provider
+    Persistence/
     Storage/
-  Data/
-    AppDbContext.cs
-    Migrations/
-  Entities/
-  Common/
+    Tts/
+    Auth/
+    Options/
+  Controllers/         # 接口层：HTTP API 入口，只做鉴权、参数接收、结果返回
   Program.cs
 ```
 
-MVP 阶段可使用 Controller + Service + Entity 的清晰结构；当模块复杂后，再在每个模块内拆分 DTO、Service、Repository、Validator。
+分层依赖方向：
+
+```text
+Controllers -> Application -> Domain
+Infrastructure -> Application / Domain
+Program.cs 负责组合依赖注入
+```
+
+实现约定：
+
+- `Domain` 不依赖 EF Core、HTTP、MinIO、TTS、JWT 等外部技术。
+- `Application` 编排业务用例，例如注册登录、出题、提交判题、内容管理。
+- `Application/Common/Interfaces` 定义外部能力接口，例如数据库上下文、文件存储、TTS。
+- `Infrastructure` 实现这些接口，例如 `AppDbContext`、`MinioFileStorageService`、`LocalTtsProvider`。
+- `Controllers` 不直接写业务逻辑，也不直接访问数据库。
+- MVP 阶段可以先使用应用服务直接协调 EF Core；当单个领域变复杂后，再补 Repository、Domain Service、领域事件等更完整的 DDD 组件。
 
 ## 5. 核心领域模型
 
@@ -530,6 +545,7 @@ public sealed record LlmResult(string Text, object? Usage = null);
 | POST | /api/auth/logout | 退出 |
 | POST | /api/auth/refresh | 刷新令牌 |
 | GET | /api/auth/me | 当前用户 |
+| PUT | /api/auth/me | 更新当前用户昵称、水平和学习目标 |
 
 ### 9.2 学习首页
 
@@ -871,11 +887,11 @@ CDN: 音频与静态资源加速
 
 ## 18. MVP 技术验收清单
 
-- 前端可以完成登录、首页、语境听写、错词复习、AI 口语基础流程。
+- 前端可以完成登录、首页、语境听写、错词复习和个人学习设置。
 - 后端提供稳定 REST API。
-- 数据库可以保存用户、句子、单词、答题记录和口语会话。
+- 数据库可以保存用户、句子、单词、答题记录和错词状态。
 - 管理端可以维护句子、单词、场景和音频。
 - 语境听写三种难度均可正常判题。
-- AI 口语至少支持录音上传、语音识别、AI 回复和复盘。
+- AI 口语暂不进入第一版，但后端保留 Provider 抽象，便于后续接入 ASR / LLM / TTS。
 - 音频资源可以通过 CDN 或对象存储稳定访问。
 - 核心接口有基础日志和错误处理。

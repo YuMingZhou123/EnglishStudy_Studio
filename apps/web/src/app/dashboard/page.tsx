@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   CurrentUser,
   DictationHistoryItem,
@@ -12,7 +12,7 @@ import {
   dictationApi,
   vocabularyApi,
 } from "@/lib/api";
-import { clearSession, getToken } from "@/lib/session";
+import { clearSession, getToken, saveCurrentUser } from "@/lib/session";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,6 +20,16 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<DictationHistoryItem[]>([]);
   const [wrongWords, setWrongWords] = useState<WrongWord[]>([]);
   const [summary, setSummary] = useState<LearningSummary | null>(null);
+  const [profileForm, setProfileForm] = useState({
+    displayName: "",
+    currentLevel: "beginner",
+    learningGoal: "daily",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +47,11 @@ export default function DashboardPage() {
     ])
       .then(([currentUser, historyItems, words, learningSummary]) => {
         setUser(currentUser);
+        setProfileForm({
+          displayName: currentUser.displayName ?? "",
+          currentLevel: currentUser.currentLevel ?? "beginner",
+          learningGoal: currentUser.learningGoal ?? "daily",
+        });
         setHistory(historyItems);
         setWrongWords(words);
         setSummary(learningSummary);
@@ -51,6 +66,38 @@ export default function DashboardPage() {
   function logout() {
     clearSession();
     router.replace("/");
+  }
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const token = getToken();
+    if (!token) {
+      router.replace("/");
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileMessage(null);
+
+    try {
+      const updatedUser = await authApi.updateMe(token, profileForm);
+      setUser(updatedUser);
+      setProfileForm({
+        displayName: updatedUser.displayName ?? "",
+        currentLevel: updatedUser.currentLevel ?? "beginner",
+        learningGoal: updatedUser.learningGoal ?? "daily",
+      });
+      saveCurrentUser(updatedUser);
+      setProfileMessage({ type: "success", text: "已保存" });
+    } catch (err) {
+      setProfileMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "保存失败",
+      });
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   const dailyGoal = summary?.dailyDictationGoal ?? 10;
@@ -112,6 +159,84 @@ export default function DashboardPage() {
             label="当前水平"
             value={levelLabel(user?.currentLevel ?? "beginner")}
           />
+        </section>
+
+        <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
+          <form
+            className="grid gap-4 lg:grid-cols-[1fr_180px_180px_auto] lg:items-end"
+            onSubmit={saveProfile}
+          >
+            <label className="grid gap-2 text-sm font-medium text-[#283330]">
+              昵称
+              <input
+                className="h-10 rounded-md border border-[#cfd8d3] px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    displayName: event.target.value,
+                  }))
+                }
+                value={profileForm.displayName}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-[#283330]">
+              当前水平
+              <select
+                className="h-10 rounded-md border border-[#cfd8d3] bg-white px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    currentLevel: event.target.value,
+                  }))
+                }
+                value={profileForm.currentLevel}
+              >
+                <option value="beginner">初级</option>
+                <option value="intermediate">中级</option>
+                <option value="advanced">高级</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-[#283330]">
+              学习目标
+              <select
+                className="h-10 rounded-md border border-[#cfd8d3] bg-white px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    learningGoal: event.target.value,
+                  }))
+                }
+                value={profileForm.learningGoal}
+              >
+                <option value="daily">日常交流</option>
+                <option value="campus">校园学习</option>
+                <option value="workplace">职场沟通</option>
+              </select>
+            </label>
+
+            <div className="flex items-center gap-3">
+              <button
+                className="h-10 rounded-md bg-[#1f6f64] px-4 text-sm font-semibold text-white transition hover:bg-[#18574f] disabled:cursor-not-allowed disabled:bg-[#9eb9b4]"
+                disabled={profileSaving}
+                type="submit"
+              >
+                {profileSaving ? "保存中..." : "保存"}
+              </button>
+              {profileMessage ? (
+                <span
+                  className={`text-sm font-medium ${
+                    profileMessage.type === "success"
+                      ? "text-[#1f6f64]"
+                      : "text-[#b24b2a]"
+                  }`}
+                >
+                  {profileMessage.text}
+                </span>
+              ) : null}
+            </div>
+          </form>
         </section>
 
         <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">

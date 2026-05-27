@@ -13,4 +13,9 @@ public interface IAuthService
     Task<ServiceResult<CurrentUserResponse>> GetCurrentUserAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<CurrentUserResponse>> UpdateCurrentUserAsync(
+        Guid userId,
+        UpdateCurrentUserRequest request,
+        CancellationToken cancellationToken = default);
 }

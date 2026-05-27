@@ -39,6 +39,20 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         return ToActionResult(result);
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateMe(
+        UpdateCurrentUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await authService.UpdateCurrentUserAsync(
+            User.GetRequiredUserId(),
+            request,
+            cancellationToken);
+
+        return ToActionResult(result);
+    }
+
     private ObjectResult ToActionResult<T>(ServiceResult<T> result)
     {
         if (result.Succeeded)
