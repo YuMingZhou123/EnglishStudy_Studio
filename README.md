@@ -57,6 +57,25 @@ dotnet run --project apps/api
 - Ready: `http://localhost:5180/health/ready`
 - Swagger: `http://localhost:5180/swagger`
 
+开发环境会自动写入少量种子数据：
+
+```text
+Learner: learner@example.com / Pass123$
+Admin: admin@example.com / Admin123$
+```
+
+已跑通的 MVP 后端接口：
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+GET  /api/dictation/next?mode=beginner|intermediate|advanced
+POST /api/dictation/submit
+GET  /api/dictation/history
+GET  /api/vocabulary/wrong-words
+```
+
 新增 EF Core migration：
 
 ```powershell

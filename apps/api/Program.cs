@@ -11,10 +11,22 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LocalFrontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+await app.SeedDevelopmentDataAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -25,6 +37,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("LocalFrontend");
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

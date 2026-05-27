@@ -1,88 +1,215 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authApi } from "@/lib/api";
+import { getToken, saveSession } from "@/lib/session";
+
+type AuthMode = "login" | "register";
+
 export default function Home() {
+  const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [email, setEmail] = useState("learner@example.com");
+  const [password, setPassword] = useState("Pass123$");
+  const [displayName, setDisplayName] = useState("Demo Learner");
+  const [currentLevel, setCurrentLevel] = useState("beginner");
+  const [learningGoal, setLearningGoal] = useState("daily");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      return;
+    }
+
+    authApi
+      .me(token)
+      .then(() => router.replace("/dashboard"))
+      .catch(() => {
+        window.localStorage.clear();
+      });
+  }, [router]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const auth =
+        mode === "login"
+          ? await authApi.login(email, password)
+          : await authApi.register({
+              email,
+              password,
+              displayName,
+              currentLevel,
+              learningGoal,
+            });
+
+      saveSession(auth);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "登录失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f8fb] text-[#172033]">
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">
-        <header className="flex flex-col gap-4 border-b border-[#d8dde8] pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-[#537188]">
+    <main className="min-h-screen bg-[#f4f7f5] text-[#18211f]">
+      <section className="mx-auto grid min-h-screen w-full max-w-6xl gap-8 px-5 py-6 md:grid-cols-[1fr_390px] md:items-center md:px-8">
+        <div className="flex flex-col gap-8">
+          <header>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#35766f]">
               EnglishStudy Studio
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-[#172033]">
-              语境听写学习工作台
+            <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-normal text-[#18211f] md:text-5xl">
+              语境听写学习台
             </h1>
-          </div>
-          <a
-            className="inline-flex h-11 items-center justify-center rounded-md bg-[#172033] px-4 text-sm font-medium text-white transition hover:bg-[#2d3a4f]"
-            href="/dashboard"
-          >
-            进入学习
-          </a>
-        </header>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5b6763]">
+              听一句真实语境英语，在关键词空位里输入答案。初级练核心词，中级练多个关键词，高级练整句听写。
+            </p>
+          </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {[
-            ["核心链路", "播放音频、填空判题、错词入库"],
-            ["本地服务", "ASP.NET Core + PostgreSQL + MinIO"],
-            ["下一步", "先跑通第一条语境听写题目"],
-          ].map(([title, description]) => (
-            <div
-              className="rounded-lg border border-[#d8dde8] bg-white p-5 shadow-sm"
-              key={title}
+          <section className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["初级", "核心关键词空位"],
+              ["中级", "多个关键词空位"],
+              ["高级", "整句听写输入"],
+            ].map(([title, description]) => (
+              <div
+                className="rounded-lg border border-[#d9e1dc] bg-white p-4 shadow-sm"
+                key={title}
+              >
+                <h2 className="text-sm font-semibold text-[#18211f]">
+                  {title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[#69736f]">
+                  {description}
+                </p>
+              </div>
+            ))}
+          </section>
+        </div>
+
+        <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
+          <div className="grid grid-cols-2 rounded-md bg-[#edf2ef] p-1 text-sm font-medium">
+            <button
+              className={`h-10 rounded-md transition ${
+                mode === "login"
+                  ? "bg-white text-[#18211f] shadow-sm"
+                  : "text-[#64706b]"
+              }`}
+              onClick={() => setMode("login")}
+              type="button"
             >
-              <h2 className="text-base font-semibold text-[#172033]">
-                {title}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-[#5b6472]">
-                {description}
+              登录
+            </button>
+            <button
+              className={`h-10 rounded-md transition ${
+                mode === "register"
+                  ? "bg-white text-[#18211f] shadow-sm"
+                  : "text-[#64706b]"
+              }`}
+              onClick={() => setMode("register")}
+              type="button"
+            >
+              注册
+            </button>
+          </div>
+
+          <form className="mt-5 grid gap-4" onSubmit={submit}>
+            <label className="grid gap-2 text-sm font-medium text-[#283330]">
+              邮箱
+              <input
+                className="h-11 rounded-md border border-[#cfd8d3] px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                value={email}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-[#283330]">
+              密码
+              <input
+                className="h-11 rounded-md border border-[#cfd8d3] px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                value={password}
+              />
+            </label>
+
+            {mode === "register" ? (
+              <>
+                <label className="grid gap-2 text-sm font-medium text-[#283330]">
+                  昵称
+                  <input
+                    className="h-11 rounded-md border border-[#cfd8d3] px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    value={displayName}
+                  />
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-medium text-[#283330]">
+                    当前水平
+                    <select
+                      className="h-11 rounded-md border border-[#cfd8d3] bg-white px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                      onChange={(event) => setCurrentLevel(event.target.value)}
+                      value={currentLevel}
+                    >
+                      <option value="beginner">初级</option>
+                      <option value="intermediate">中级</option>
+                      <option value="advanced">高级</option>
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm font-medium text-[#283330]">
+                    学习目标
+                    <select
+                      className="h-11 rounded-md border border-[#cfd8d3] bg-white px-3 text-sm outline-none transition focus:border-[#35766f] focus:ring-2 focus:ring-[#35766f]/15"
+                      onChange={(event) => setLearningGoal(event.target.value)}
+                      value={learningGoal}
+                    >
+                      <option value="daily">日常交流</option>
+                      <option value="campus">校园学习</option>
+                      <option value="workplace">职场沟通</option>
+                    </select>
+                  </label>
+                </div>
+              </>
+            ) : null}
+
+            {error ? (
+              <p className="rounded-md border border-[#f0c6b5] bg-[#fff5ef] px-3 py-2 text-sm text-[#9a4727]">
+                {error}
               </p>
-            </div>
-          ))}
-        </section>
+            ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="rounded-lg border border-[#d8dde8] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#172033]">
-              MVP 第一条核心链路
-            </h2>
-            <ol className="mt-4 grid gap-3 text-sm text-[#4a5566]">
-              {[
-                "管理员录入英文句子",
-                "Piper TTS 生成音频并上传 MinIO",
-                "用户获取题目并播放音频",
-                "用户按难度完成填空或听写",
-                "后端判题、保存记录、错词入库",
-              ].map((item, index) => (
-                <li className="flex gap-3" key={item}>
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#e8f0ee] text-xs font-semibold text-[#20615b]">
-                    {index + 1}
-                  </span>
-                  <span className="leading-6">{item}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
+            <button
+              className="h-11 rounded-md bg-[#1f6f64] px-4 text-sm font-semibold text-white transition hover:bg-[#18574f] disabled:cursor-not-allowed disabled:bg-[#9eb9b4]"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "处理中..." : mode === "login" ? "进入学习" : "创建账号"}
+            </button>
 
-          <div className="rounded-lg border border-[#d8dde8] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#172033]">
-              API 连接
-            </h2>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div>
-                <dt className="font-medium text-[#172033]">Base URL</dt>
-                <dd className="mt-1 break-all text-[#5b6472]">
-                  {process.env.NEXT_PUBLIC_API_BASE_URL ??
-                    "http://localhost:5180"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium text-[#172033]">Health</dt>
-                <dd className="mt-1 text-[#5b6472]">/health</dd>
-              </div>
-            </dl>
-          </div>
+            <button
+              className="h-10 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium text-[#40504b] transition hover:bg-[#f4f7f5]"
+              onClick={() => {
+                setEmail("learner@example.com");
+                setPassword("Pass123$");
+              }}
+              type="button"
+            >
+              使用本地演示账号
+            </button>
+          </form>
         </section>
       </section>
     </main>
   );
 }
-
