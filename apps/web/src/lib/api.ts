@@ -45,6 +45,7 @@ export type DictationQuestion = {
   slowAudioUrl?: string | null;
   displayParts: DisplayPart[];
   targetWords: TargetWord[];
+  reviewWordId?: string | null;
 };
 
 export type BlankAnswer = {
@@ -271,6 +272,7 @@ export const dictationApi = {
       durationMs: number;
       replayCount: number;
       hintCount: number;
+      reviewWordId?: string | null;
     },
   ) {
     return apiRequest<DictationSubmitResult>("/api/dictation/submit", {
@@ -295,6 +297,13 @@ export const dictationApi = {
 export const vocabularyApi = {
   wrongWords(token: string) {
     return apiRequest<WrongWord[]>("/api/vocabulary/wrong-words", { token });
+  },
+
+  reviewNext(token: string, mode: DictationMode) {
+    return apiRequest<DictationQuestion>(
+      `/api/vocabulary/review/next?mode=${mode}`,
+      { token },
+    );
   },
 };
 

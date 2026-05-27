@@ -8,6 +8,7 @@ import {
   DictationQuestion,
   DictationSubmitResult,
   dictationApi,
+  vocabularyApi,
 } from "@/lib/api";
 import { getToken } from "@/lib/session";
 
@@ -21,6 +22,11 @@ export default function DictationPage() {
     typeof window === "undefined"
       ? "beginner"
       : normalizeMode(new URLSearchParams(window.location.search).get("mode")),
+  );
+  const [isReviewMode] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : new URLSearchParams(window.location.search).get("review") === "wrong",
   );
   const [question, setQuestion] = useState<DictationQuestion | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -51,7 +57,9 @@ export default function DictationPage() {
       setStartedAt(Date.now());
 
       try {
-        const nextQuestion = await dictationApi.next(authToken, nextMode);
+        const nextQuestion = isReviewMode
+          ? await vocabularyApi.reviewNext(authToken, nextMode)
+          : await dictationApi.next(authToken, nextMode);
         setQuestion(nextQuestion);
       } catch (err) {
         setError(err instanceof Error ? err.message : "题目加载失败");
@@ -59,7 +67,7 @@ export default function DictationPage() {
         setLoading(false);
       }
     },
-    [mode, token],
+    [isReviewMode, mode, token],
   );
 
   useEffect(() => {
@@ -103,6 +111,7 @@ export default function DictationPage() {
         durationMs: Date.now() - startedAt,
         replayCount,
         hintCount: Number(showFirstLetters) + Number(showMeaning),
+        reviewWordId: question.reviewWordId ?? null,
       });
 
       setResult(submitResult);
@@ -171,7 +180,7 @@ export default function DictationPage() {
               返回学习台
             </Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-              {modeLabel(mode)}语境听写
+              {isReviewMode ? "错词复习" : `${modeLabel(mode)}语境听写`}
             </h1>
           </div>
           <div className="flex gap-2">
@@ -186,7 +195,11 @@ export default function DictationPage() {
                   key={item}
                   onClick={() => {
                     setMode(item);
-                    window.history.replaceState(null, "", `/dictation?mode=${item}`);
+                    window.history.replaceState(
+                      null,
+                      "",
+                      `/dictation?mode=${item}${isReviewMode ? "&review=wrong" : ""}`,
+                    );
                   }}
                   type="button"
                 >
@@ -211,7 +224,7 @@ export default function DictationPage() {
                   {question.sceneName}
                 </p>
                 <p className="mt-1 text-sm text-[#69736f]">
-                  {modeDescription(mode)}
+                  {isReviewMode ? "优先复习错词本里的到期单词" : modeDescription(mode)}
                 </p>
               </div>
 
@@ -338,7 +351,7 @@ export default function DictationPage() {
                 onClick={() => loadQuestion()}
                 type="button"
               >
-                换一题
+                {isReviewMode ? "换一个错词" : "换一题"}
               </button>
             </div>
           </section>
@@ -366,7 +379,7 @@ export default function DictationPage() {
                 onClick={() => loadQuestion()}
                 type="button"
               >
-                下一题
+                {isReviewMode ? "继续复习" : "下一题"}
               </button>
             </div>
 

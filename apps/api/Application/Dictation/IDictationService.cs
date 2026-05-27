@@ -9,6 +9,11 @@ public interface IDictationService
         string mode,
         CancellationToken cancellationToken = default);
 
+    Task<ServiceResult<DictationQuestionResponse>> GetReviewQuestionAsync(
+        Guid userId,
+        string mode,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<DictationSubmitResponse>> SubmitAsync(
         Guid userId,
         SubmitDictationRequest request,

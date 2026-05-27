@@ -11,7 +11,8 @@ public sealed record DictationQuestionResponse(
     string? AudioUrl,
     string? SlowAudioUrl,
     IReadOnlyCollection<DisplayPartResponse> DisplayParts,
-    IReadOnlyCollection<TargetWordResponse> TargetWords);
+    IReadOnlyCollection<TargetWordResponse> TargetWords,
+    Guid? ReviewWordId = null);
 
 public sealed record DisplayPartResponse(
     string Type,
@@ -34,7 +35,8 @@ public sealed record SubmitDictationRequest(
     string? UserAnswer,
     int DurationMs,
     int ReplayCount,
-    int HintCount);
+    int HintCount,
+    Guid? ReviewWordId = null);
 
 public sealed record BlankAnswerRequest(
     string BlankId,

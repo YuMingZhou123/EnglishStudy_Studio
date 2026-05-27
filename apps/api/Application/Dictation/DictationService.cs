@@ -53,6 +53,67 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         return ServiceResult<DictationQuestionResponse>.Success(BuildQuestion(sentence, mode));
     }
 
+    public async Task<ServiceResult<DictationQuestionResponse>> GetReviewQuestionAsync(
+        Guid userId,
+        string mode,
+        CancellationToken cancellationToken = default)
+    {
+        mode = NormalizeMode(mode);
+        if (!IsValidMode(mode))
+        {
+            return ServiceResult<DictationQuestionResponse>.Failure("Unsupported dictation mode.");
+        }
+
+        var dueWordIds = await GetReviewWordIdsAsync(
+            userId,
+            dueOnly: true,
+            cancellationToken);
+
+        if (dueWordIds.Count == 0)
+        {
+            dueWordIds = await GetReviewWordIdsAsync(
+                userId,
+                dueOnly: false,
+                cancellationToken);
+        }
+
+        if (dueWordIds.Count == 0)
+        {
+            return ServiceResult<DictationQuestionResponse>.Failure("No wrong word is available for review.");
+        }
+
+        foreach (var wordId in dueWordIds)
+        {
+            var sentence = await PublishedSentencesQuery()
+                .Where(item => item.Level == mode)
+                .Where(item => item.Keywords.Any(keyword => keyword.WordId == wordId))
+                .OrderBy(item => item.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sentence is not null)
+            {
+                return ServiceResult<DictationQuestionResponse>.Success(
+                    BuildReviewQuestion(sentence, mode, wordId));
+            }
+        }
+
+        foreach (var wordId in dueWordIds)
+        {
+            var sentence = await PublishedSentencesQuery()
+                .Where(item => item.Keywords.Any(keyword => keyword.WordId == wordId))
+                .OrderBy(item => item.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (sentence is not null)
+            {
+                return ServiceResult<DictationQuestionResponse>.Success(
+                    BuildReviewQuestion(sentence, mode, wordId));
+            }
+        }
+
+        return ServiceResult<DictationQuestionResponse>.Failure("No published sentence can be used for wrong word review.");
+    }
+
     public async Task<ServiceResult<DictationSubmitResponse>> SubmitAsync(
         Guid userId,
         SubmitDictationRequest request,
@@ -72,7 +133,14 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             return ServiceResult<DictationSubmitResponse>.Failure("Sentence was not found.");
         }
 
-        var selectedKeywords = SelectKeywords(sentence, mode).ToArray();
+        var selectedKeywords = request.ReviewWordId.HasValue
+            ? SelectKeywordsForReview(sentence, mode, request.ReviewWordId.Value)
+            : SelectKeywords(sentence, mode).ToArray();
+        if (selectedKeywords.Length == 0)
+        {
+            return ServiceResult<DictationSubmitResponse>.Failure("Review word does not appear in the sentence.");
+        }
+
         var targetWords = selectedKeywords.Select(MapTargetWord).ToArray();
         var blankResults = mode == Advanced
             ? GradeAdvanced(sentence, request.UserAnswer, selectedKeywords)
@@ -282,9 +350,50 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .Where(sentence => sentence.Status == "published");
     }
 
+    private async Task<IReadOnlyCollection<Guid>> GetReviewWordIdsAsync(
+        Guid userId,
+        bool dueOnly,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var query = dbContext.UserWordStates
+            .AsNoTracking()
+            .Where(state => state.UserId == userId && state.MistakeCount > 0);
+
+        if (dueOnly)
+        {
+            query = query.Where(state => state.NextReviewAt == null || state.NextReviewAt <= now);
+        }
+
+        return await query
+            .OrderBy(state => state.NextReviewAt ?? state.UpdatedAt)
+            .ThenByDescending(state => state.MistakeCount)
+            .Select(state => state.WordId)
+            .Take(30)
+            .ToListAsync(cancellationToken);
+    }
+
     private static DictationQuestionResponse BuildQuestion(Sentence sentence, string mode)
     {
         var selectedKeywords = SelectKeywords(sentence, mode).ToArray();
+        return BuildQuestion(sentence, mode, selectedKeywords, null);
+    }
+
+    private static DictationQuestionResponse BuildReviewQuestion(
+        Sentence sentence,
+        string mode,
+        Guid reviewWordId)
+    {
+        var selectedKeywords = SelectKeywordsForReview(sentence, mode, reviewWordId);
+        return BuildQuestion(sentence, mode, selectedKeywords, reviewWordId);
+    }
+
+    private static DictationQuestionResponse BuildQuestion(
+        Sentence sentence,
+        string mode,
+        IReadOnlyCollection<SentenceKeyword> selectedKeywords,
+        Guid? reviewWordId)
+    {
         return new DictationQuestionResponse(
             sentence.Id,
             sentence.Id,
@@ -296,7 +405,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             sentence.AudioUrl,
             sentence.SlowAudioUrl,
             BuildDisplayParts(sentence.Text, selectedKeywords, mode),
-            selectedKeywords.Select(MapTargetWord).ToArray());
+            selectedKeywords.Select(MapTargetWord).ToArray(),
+            reviewWordId);
     }
 
     private static IReadOnlyCollection<DisplayPartResponse> BuildDisplayParts(
@@ -366,6 +476,33 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         {
             Beginner => ordered.Take(1).ToArray(),
             Intermediate => ordered.Take(Math.Min(4, Math.Max(2, ordered.Length))).ToArray(),
+            Advanced => ordered,
+            _ => []
+        };
+    }
+
+    private static SentenceKeyword[] SelectKeywordsForReview(
+        Sentence sentence,
+        string mode,
+        Guid reviewWordId)
+    {
+        var ordered = sentence.Keywords
+            .OrderByDescending(keyword => keyword.Priority)
+            .ThenBy(keyword => keyword.StartIndex)
+            .ToArray();
+        var targetKeyword = ordered.FirstOrDefault(keyword => keyword.WordId == reviewWordId);
+        if (targetKeyword is null)
+        {
+            return [];
+        }
+
+        return mode switch
+        {
+            Beginner => [targetKeyword],
+            Intermediate => ordered
+                .Where(keyword => keyword.Id == targetKeyword.Id)
+                .Concat(ordered.Where(keyword => keyword.Id != targetKeyword.Id).Take(3))
+                .ToArray(),
             Advanced => ordered,
             _ => []
         };
@@ -479,7 +616,13 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             if (isCorrect)
             {
                 state.CorrectStreak += 1;
-                state.Status = state.CorrectStreak >= 3 ? "Mastered" : state.Status;
+                state.Status = state.CorrectStreak >= 3 ? "Mastered" : "Reviewing";
+                state.NextReviewAt = state.CorrectStreak switch
+                {
+                    1 => now.AddDays(1),
+                    2 => now.AddDays(3),
+                    _ => now.AddDays(7)
+                };
             }
             else
             {

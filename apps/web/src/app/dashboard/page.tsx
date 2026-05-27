@@ -131,7 +131,7 @@ export default function DashboardPage() {
               </Link>
               <Link
                 className="h-10 rounded-md border border-[#cfd8d3] px-4 py-2.5 text-sm font-medium text-[#40504b] transition hover:bg-[#f4f7f5]"
-                href="/vocabulary"
+                href={`/dictation?mode=${nextMode}&review=wrong`}
               >
                 复习错词
               </Link>
