@@ -10,11 +10,21 @@ public interface IContentAdminService
         UpsertSceneRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ServiceResult<SceneResponse>> UpdateSceneAsync(
+        Guid sceneId,
+        UpsertSceneRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<WordResponse>> GetWordsAsync(
         string? keyword = null,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<WordResponse>> CreateWordAsync(
+        UpsertWordRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<WordResponse>> UpdateWordAsync(
+        Guid wordId,
         UpsertWordRequest request,
         CancellationToken cancellationToken = default);
 

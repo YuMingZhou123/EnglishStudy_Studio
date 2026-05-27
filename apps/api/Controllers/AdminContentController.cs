@@ -25,6 +25,20 @@ public sealed class AdminContentController(IContentAdminService contentAdminServ
         return ToActionResult(result);
     }
 
+    [HttpPut("scenes/{sceneId:guid}")]
+    public async Task<IActionResult> UpdateScene(
+        Guid sceneId,
+        UpsertSceneRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await contentAdminService.UpdateSceneAsync(
+            sceneId,
+            request,
+            cancellationToken);
+
+        return ToActionResult(result);
+    }
+
     [HttpGet("words")]
     public async Task<IReadOnlyCollection<WordResponse>> Words(
         [FromQuery] string? keyword,
@@ -39,6 +53,20 @@ public sealed class AdminContentController(IContentAdminService contentAdminServ
         CancellationToken cancellationToken)
     {
         var result = await contentAdminService.CreateWordAsync(request, cancellationToken);
+        return ToActionResult(result);
+    }
+
+    [HttpPut("words/{wordId:guid}")]
+    public async Task<IActionResult> UpdateWord(
+        Guid wordId,
+        UpsertWordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await contentAdminService.UpdateWordAsync(
+            wordId,
+            request,
+            cancellationToken);
+
         return ToActionResult(result);
     }
 

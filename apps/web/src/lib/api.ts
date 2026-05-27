@@ -289,6 +289,18 @@ export const adminApi = {
     });
   },
 
+  updateScene(
+    token: string,
+    sceneId: string,
+    input: { code: string; name: string; description?: string; isEnabled: boolean },
+  ) {
+    return apiRequest<Scene>(`/api/admin/scenes/${sceneId}`, {
+      method: "PUT",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
   words(token: string, keyword = "") {
     const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
     return apiRequest<Word[]>(`/api/admin/words${query}`, { token });
@@ -313,6 +325,26 @@ export const adminApi = {
     });
   },
 
+  updateWord(
+    token: string,
+    wordId: string,
+    input: {
+      lemma: string;
+      phonetic?: string;
+      partOfSpeech?: string;
+      meaningCn: string;
+      cefrLevel?: string;
+      examTags?: string;
+      collocations?: string;
+    },
+  ) {
+    return apiRequest<Word>(`/api/admin/words/${wordId}`, {
+      method: "PUT",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
   sentences(token: string) {
     return apiRequest<Sentence[]>("/api/admin/sentences", { token });
   },
@@ -332,6 +364,27 @@ export const adminApi = {
   ) {
     return apiRequest<Sentence>("/api/admin/sentences", {
       method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+
+  updateSentence(
+    token: string,
+    sentenceId: string,
+    input: {
+      text: string;
+      translation: string;
+      level: DictationMode;
+      sceneId: string;
+      audioAssetId?: string | null;
+      audioUrl?: string | null;
+      keywords: SentenceKeywordInput[];
+      status: string;
+    },
+  ) {
+    return apiRequest<Sentence>(`/api/admin/sentences/${sentenceId}`, {
+      method: "PUT",
       token,
       body: JSON.stringify(input),
     });

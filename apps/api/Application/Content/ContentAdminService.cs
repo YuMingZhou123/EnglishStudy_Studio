@@ -63,6 +63,43 @@ public sealed partial class ContentAdminService(
         return ServiceResult<SceneResponse>.Success(MapScene(scene));
     }
 
+    public async Task<ServiceResult<SceneResponse>> UpdateSceneAsync(
+        Guid sceneId,
+        UpsertSceneRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var scene = await dbContext.Scenes
+            .FirstOrDefaultAsync(item => item.Id == sceneId, cancellationToken);
+
+        if (scene is null)
+        {
+            return ServiceResult<SceneResponse>.Failure("Scene was not found.");
+        }
+
+        var code = NormalizeCode(request.Code);
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return ServiceResult<SceneResponse>.Failure("Scene code and name are required.");
+        }
+
+        var exists = await dbContext.Scenes.AnyAsync(
+            item => item.Id != sceneId && item.Code == code,
+            cancellationToken);
+        if (exists)
+        {
+            return ServiceResult<SceneResponse>.Failure("Scene code already exists.");
+        }
+
+        scene.Code = code;
+        scene.Name = request.Name.Trim();
+        scene.Description = TrimToNull(request.Description);
+        scene.IsEnabled = request.IsEnabled;
+        scene.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ServiceResult<SceneResponse>.Success(MapScene(scene));
+    }
+
     public async Task<IReadOnlyCollection<WordResponse>> GetWordsAsync(
         string? keyword = null,
         CancellationToken cancellationToken = default)
@@ -117,6 +154,46 @@ public sealed partial class ContentAdminService(
         dbContext.Words.Add(word);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        return ServiceResult<WordResponse>.Success(MapWord(word));
+    }
+
+    public async Task<ServiceResult<WordResponse>> UpdateWordAsync(
+        Guid wordId,
+        UpsertWordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var word = await dbContext.Words
+            .FirstOrDefaultAsync(item => item.Id == wordId, cancellationToken);
+
+        if (word is null)
+        {
+            return ServiceResult<WordResponse>.Failure("Word was not found.");
+        }
+
+        var lemma = NormalizeWord(request.Lemma);
+        if (string.IsNullOrWhiteSpace(lemma) || string.IsNullOrWhiteSpace(request.MeaningCn))
+        {
+            return ServiceResult<WordResponse>.Failure("Word lemma and Chinese meaning are required.");
+        }
+
+        var exists = await dbContext.Words.AnyAsync(
+            item => item.Id != wordId && item.Lemma == lemma,
+            cancellationToken);
+        if (exists)
+        {
+            return ServiceResult<WordResponse>.Failure("Word already exists.");
+        }
+
+        word.Lemma = lemma;
+        word.Phonetic = TrimToNull(request.Phonetic);
+        word.PartOfSpeech = TrimToNull(request.PartOfSpeech);
+        word.MeaningCn = request.MeaningCn.Trim();
+        word.CefrLevel = TrimToNull(request.CefrLevel);
+        word.ExamTags = TrimToNull(request.ExamTags);
+        word.Collocations = TrimToNull(request.Collocations);
+        word.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
         return ServiceResult<WordResponse>.Success(MapWord(word));
     }
 
@@ -192,7 +269,6 @@ public sealed partial class ContentAdminService(
         CancellationToken cancellationToken = default)
     {
         var sentence = await dbContext.Sentences
-            .Include(item => item.Keywords)
             .FirstOrDefaultAsync(item => item.Id == sentenceId, cancellationToken);
 
         if (sentence is null)
@@ -220,7 +296,9 @@ public sealed partial class ContentAdminService(
         sentence.Status = NormalizeStatus(request.Status);
         sentence.UpdatedAt = DateTimeOffset.UtcNow;
 
-        dbContext.SentenceKeywords.RemoveRange(sentence.Keywords);
+        await dbContext.SentenceKeywords
+            .Where(keyword => keyword.SentenceId == sentence.Id)
+            .ExecuteDeleteAsync(cancellationToken);
         await AddKeywordsAsync(sentence, request.Keywords, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -398,7 +476,7 @@ public sealed partial class ContentAdminService(
         return ServiceResult<bool>.Success(true);
     }
 
-    private async Task AddKeywordsAsync(
+    private Task AddKeywordsAsync(
         Sentence sentence,
         IReadOnlyCollection<SentenceKeywordRequest> keywords,
         CancellationToken cancellationToken)
@@ -407,15 +485,12 @@ public sealed partial class ContentAdminService(
         {
             var surfaceText = request.SurfaceText.Trim();
             var startIndex = sentence.Text.IndexOf(surfaceText, StringComparison.OrdinalIgnoreCase);
-            var word = await dbContext.Words.FirstAsync(
-                item => item.Id == request.WordId,
-                cancellationToken);
 
-            sentence.Keywords.Add(new SentenceKeyword
+            dbContext.SentenceKeywords.Add(new SentenceKeyword
             {
+                SentenceId = sentence.Id,
                 Sentence = sentence,
-                WordId = word.Id,
-                Word = word,
+                WordId = request.WordId,
                 SurfaceText = surfaceText,
                 StartIndex = startIndex,
                 EndIndex = startIndex + surfaceText.Length,
@@ -423,6 +498,8 @@ public sealed partial class ContentAdminService(
                 Priority = request.Priority
             });
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task<ServiceResult<SentenceResponse>> GetSentenceResultAsync(

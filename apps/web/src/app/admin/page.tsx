@@ -27,11 +27,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
+  const [editingWordId, setEditingWordId] = useState<string | null>(null);
+  const [editingSentenceId, setEditingSentenceId] = useState<string | null>(null);
 
   const [sceneForm, setSceneForm] = useState({
     code: "",
     name: "",
     description: "",
+    isEnabled: true,
   });
   const [wordForm, setWordForm] = useState({
     lemma: "",
@@ -110,10 +114,16 @@ export default function AdminPage() {
     }
 
     await runAction(async () => {
-      await adminApi.createScene(token, { ...sceneForm, isEnabled: true });
-      setSceneForm({ code: "", name: "", description: "" });
+      if (editingSceneId) {
+        await adminApi.updateScene(token, editingSceneId, sceneForm);
+      } else {
+        await adminApi.createScene(token, sceneForm);
+      }
+
+      setSceneForm({ code: "", name: "", description: "", isEnabled: true });
+      setEditingSceneId(null);
       await refreshData(token);
-      setMessage("场景已创建");
+      setMessage(editingSceneId ? "场景已更新" : "场景已创建");
     });
   }
 
@@ -124,7 +134,9 @@ export default function AdminPage() {
     }
 
     await runAction(async () => {
-      const word = await adminApi.createWord(token, wordForm);
+      const word = editingWordId
+        ? await adminApi.updateWord(token, editingWordId, wordForm)
+        : await adminApi.createWord(token, wordForm);
       setWordForm({
         lemma: "",
         phonetic: "",
@@ -132,8 +144,13 @@ export default function AdminPage() {
         meaningCn: "",
         cefrLevel: "A2",
       });
-      setWords((current) => [word, ...current]);
-      setMessage("单词已创建");
+      setEditingWordId(null);
+      setWords((current) =>
+        editingWordId
+          ? current.map((item) => (item.id === editingWordId ? word : item))
+          : [word, ...current],
+      );
+      setMessage(editingWordId ? "单词已更新" : "单词已创建");
     });
   }
 
@@ -175,12 +192,19 @@ export default function AdminPage() {
       }));
 
     await runAction(async () => {
-      await adminApi.createSentence(token, {
+      const payload = {
         ...sentenceForm,
         audioAssetId: sentenceForm.audioAssetId || null,
         audioUrl: sentenceForm.audioUrl || null,
         keywords,
-      });
+      };
+
+      if (editingSentenceId) {
+        await adminApi.updateSentence(token, editingSentenceId, payload);
+      } else {
+        await adminApi.createSentence(token, payload);
+      }
+
       setSentenceForm((current) => ({
         ...current,
         text: "",
@@ -189,11 +213,12 @@ export default function AdminPage() {
         audioAssetId: "",
         status: "draft",
       }));
+      setEditingSentenceId(null);
       setKeywordDrafts([
         { key: crypto.randomUUID(), wordId: "", surfaceText: "", priority: 100 },
       ]);
       await refreshData(token);
-      setMessage("句子已创建");
+      setMessage(editingSentenceId ? "句子已更新" : "句子已创建");
     });
   }
 
@@ -232,6 +257,55 @@ export default function AdminPage() {
     });
   }
 
+  function editScene(scene: Scene) {
+    setEditingSceneId(scene.id);
+    setSceneForm({
+      code: scene.code,
+      name: scene.name,
+      description: scene.description ?? "",
+      isEnabled: scene.isEnabled,
+    });
+    setMessage("正在编辑场景");
+  }
+
+  function editWord(word: Word) {
+    setEditingWordId(word.id);
+    setWordForm({
+      lemma: word.lemma,
+      phonetic: word.phonetic ?? "",
+      partOfSpeech: word.partOfSpeech ?? "",
+      meaningCn: word.meaningCn,
+      cefrLevel: word.cefrLevel ?? "A2",
+    });
+    setMessage("正在编辑单词");
+  }
+
+  function editSentence(sentence: Sentence) {
+    setEditingSentenceId(sentence.id);
+    setSentenceForm({
+      text: sentence.text,
+      translation: sentence.translation,
+      level: sentence.level,
+      sceneId: sentence.sceneId,
+      audioAssetId: sentence.audioAssetId ?? "",
+      audioUrl: sentence.audioAssetId ? "" : sentence.audioUrl ?? "",
+      status: sentence.status,
+    });
+    setKeywordDrafts(
+      sentence.keywords.length === 0
+        ? [{ key: crypto.randomUUID(), wordId: "", surfaceText: "", priority: 100 }]
+        : sentence.keywords.map((keyword) => ({
+            key: crypto.randomUUID(),
+            wordId: keyword.wordId,
+            surfaceText: keyword.surfaceText,
+            priority: keyword.priority,
+            blankGroup: keyword.blankGroup,
+          })),
+    );
+    setMessage("正在编辑句子");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function runAction(action: () => Promise<void>) {
     setError(null);
     setMessage(null);
@@ -240,6 +314,17 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     }
+  }
+
+  const audioOptions = [
+    ["", "暂不绑定"],
+    ...mediaAssets.map((media) => [media.id, media.objectKey]),
+  ];
+  if (
+    sentenceForm.audioAssetId &&
+    !audioOptions.some(([value]) => value === sentenceForm.audioAssetId)
+  ) {
+    audioOptions.push([sentenceForm.audioAssetId, "当前已绑定音频"]);
   }
 
   if (loading) {
@@ -310,8 +395,34 @@ export default function AdminPage() {
                   }
                   value={sceneForm.description}
                 />
-                <SubmitButton label="创建场景" />
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    checked={sceneForm.isEnabled}
+                    onChange={(event) =>
+                      setSceneForm((current) => ({
+                        ...current,
+                        isEnabled: event.target.checked,
+                      }))
+                    }
+                    type="checkbox"
+                  />
+                  启用
+                </label>
+                <SubmitButton label={editingSceneId ? "保存场景" : "创建场景"} />
               </form>
+              <div className="mt-4 grid gap-2">
+                {scenes.slice(0, 8).map((scene) => (
+                  <button
+                    className="rounded-md border border-[#d9e1dc] px-3 py-2 text-left text-sm hover:bg-[#f4f7f5]"
+                    key={scene.id}
+                    onClick={() => editScene(scene)}
+                    type="button"
+                  >
+                    <span className="font-medium">{scene.name}</span>
+                    <span className="ml-2 text-xs text-[#69736f]">{scene.code}</span>
+                  </button>
+                ))}
+              </div>
             </AdminPanel>
 
             <AdminPanel title="新增单词">
@@ -346,8 +457,21 @@ export default function AdminPage() {
                     value={wordForm.partOfSpeech}
                   />
                 </div>
-                <SubmitButton label="创建单词" />
+                <SubmitButton label={editingWordId ? "保存单词" : "创建单词"} />
               </form>
+              <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto pr-1">
+                {words.slice(0, 30).map((word) => (
+                  <button
+                    className="rounded-md border border-[#d9e1dc] px-3 py-2 text-left text-sm hover:bg-[#f4f7f5]"
+                    key={word.id}
+                    onClick={() => editWord(word)}
+                    type="button"
+                  >
+                    <span className="font-medium">{word.lemma}</span>
+                    <span className="ml-2 text-xs text-[#69736f]">{word.meaningCn}</span>
+                  </button>
+                ))}
+              </div>
             </AdminPanel>
 
             <AdminPanel title="上传音频">
@@ -383,7 +507,7 @@ export default function AdminPage() {
           </div>
 
           <div className="grid gap-5">
-            <AdminPanel title="新增句子">
+            <AdminPanel title={editingSentenceId ? "编辑句子" : "新增句子"}>
               <form className="grid gap-4" onSubmit={createSentence}>
                 <label className="grid gap-2 text-sm font-medium">
                   英文句子
@@ -443,10 +567,7 @@ export default function AdminPage() {
                     onChange={(value) =>
                       setSentenceForm((current) => ({ ...current, audioAssetId: value }))
                     }
-                    options={[
-                      ["", "暂不绑定"],
-                      ...mediaAssets.map((media) => [media.id, media.objectKey]),
-                    ]}
+                    options={audioOptions}
                     value={sentenceForm.audioAssetId}
                   />
                 </div>
@@ -521,7 +642,36 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                <SubmitButton label="保存句子" />
+                <div className="flex flex-wrap gap-2">
+                  <SubmitButton label={editingSentenceId ? "更新句子" : "保存句子"} />
+                  {editingSentenceId ? (
+                    <button
+                      className="h-10 rounded-md border border-[#cfd8d3] px-4 text-sm font-medium text-[#40504b]"
+                      onClick={() => {
+                        setEditingSentenceId(null);
+                        setSentenceForm((current) => ({
+                          ...current,
+                          text: "",
+                          translation: "",
+                          audioUrl: "",
+                          audioAssetId: "",
+                          status: "draft",
+                        }));
+                        setKeywordDrafts([
+                          {
+                            key: crypto.randomUUID(),
+                            wordId: "",
+                            surfaceText: "",
+                            priority: 100,
+                          },
+                        ]);
+                      }}
+                      type="button"
+                    >
+                      取消编辑
+                    </button>
+                  ) : null}
+                </div>
               </form>
             </AdminPanel>
 
@@ -543,6 +693,13 @@ export default function AdminPage() {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        <button
+                          className="h-9 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium"
+                          onClick={() => editSentence(sentence)}
+                          type="button"
+                        >
+                          编辑
+                        </button>
                         <button
                           className="h-9 rounded-md border border-[#1f6f64] px-3 text-sm font-medium text-[#1f6f64]"
                           onClick={() => generateAudio(sentence.id)}
