@@ -116,15 +116,19 @@ LEFT JOIN roles r ON r."Id" = rp."RoleId";
     }
 }
 
-function Get-OptionalJsonScriptSummary($scriptName, $missingMessage) {
-    $scriptPath = Join-Path $PSScriptRoot $scriptName
+function Get-OptionalAcceptanceValidation($kind, [string]$sourcePath, $missingMessage) {
     try {
-        $output = & $scriptPath 2>&1 | Out-String
+        $scriptPath = Join-Path $PSScriptRoot "import-acceptance-csv.ps1"
+        $output = & $scriptPath -Kind $kind -SourcePath $sourcePath -ValidateOnly 2>&1 | Out-String
         return ($output | ConvertFrom-Json)
     }
     catch {
         return [pscustomobject]@{
-            missing = $true
+            kind = $kind
+            sourcePath = $sourcePath
+            validationOnly = $true
+            valid = $false
+            missing = -not (Test-Path -LiteralPath $sourcePath)
             message = $missingMessage
             error = $_.Exception.Message
         }
@@ -303,32 +307,54 @@ if ($IncludeBuild) {
 }
 
 $contentReviewPath = Join-Path $PSScriptRoot "..\content\mvp-content-review.csv"
-$contentReview = if (Test-Path -LiteralPath $contentReviewPath) {
-    Get-OptionalJsonScriptSummary "summarize-content-review.ps1" "Content review sheet is missing."
+$contentReviewValidation = if (Test-Path -LiteralPath $contentReviewPath) {
+    Get-OptionalAcceptanceValidation "content" $contentReviewPath "Content review sheet is invalid."
 }
 else {
     [pscustomobject]@{
+        kind = "content"
+        sourcePath = $contentReviewPath
+        validationOnly = $true
+        valid = $false
         missing = $true
         message = "Content review sheet is missing. Run .\scripts\export-content-review-sheet.ps1."
     }
 }
+$contentReview = if ([bool]$contentReviewValidation.valid) {
+    $contentReviewValidation.summary
+}
+else {
+    $contentReviewValidation
+}
 
 $betaFeedbackPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv"
-$betaFeedback = if (Test-Path -LiteralPath $betaFeedbackPath) {
-    Get-OptionalJsonScriptSummary "summarize-beta-feedback.ps1" "Beta feedback sheet is missing."
+$betaFeedbackValidation = if (Test-Path -LiteralPath $betaFeedbackPath) {
+    Get-OptionalAcceptanceValidation "beta" $betaFeedbackPath "Beta feedback sheet is invalid."
 }
 else {
     [pscustomobject]@{
+        kind = "beta"
+        sourcePath = $betaFeedbackPath
+        validationOnly = $true
+        valid = $false
         missing = $true
         message = "Beta feedback sheet is missing. Run .\scripts\export-beta-feedback-template.ps1."
     }
+}
+$betaFeedback = if ([bool]$betaFeedbackValidation.valid) {
+    $betaFeedbackValidation.summary
+}
+else {
+    $betaFeedbackValidation
 }
 
 $failedSteps = @($steps | Where-Object { -not $_.passed })
 $automatedReady = $failedSteps.Count -eq 0
 $productReviewReady =
+    [bool]$contentReviewValidation.valid -and
     ($contentReview.PSObject.Properties.Name -contains "passesMinimumGate") -and
     [bool]$contentReview.passesMinimumGate -and
+    [bool]$betaFeedbackValidation.valid -and
     ($betaFeedback.PSObject.Properties.Name -contains "passesMinimumGate") -and
     [bool]$betaFeedback.passesMinimumGate
 
@@ -338,10 +364,12 @@ $productReviewReady =
     productReviewReady = $productReviewReady
     firstVersionReady = $automatedReady -and $productReviewReady
     steps = $steps
+    contentReviewValidation = $contentReviewValidation
     contentReview = $contentReview
+    betaFeedbackValidation = $betaFeedbackValidation
     betaFeedback = $betaFeedback
     notes = @(
         "automatedReady covers local engineering and content infrastructure checks.",
-        "productReviewReady requires filled human content review and beta feedback sheets."
+        "productReviewReady requires valid, filled human content review and beta feedback sheets."
     )
 } | ConvertTo-Json -Depth 12
