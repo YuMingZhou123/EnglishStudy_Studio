@@ -423,7 +423,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .Include(sentence => sentence.Scene)
             .Include(sentence => sentence.Keywords)
             .ThenInclude(keyword => keyword.Word)
-            .Where(sentence => sentence.Status == "published");
+            .Where(sentence => sentence.Status == "published" && sentence.Scene.IsEnabled);
     }
 
     private async Task<IReadOnlyCollection<Guid>> GetReviewWordIdsAsync(
