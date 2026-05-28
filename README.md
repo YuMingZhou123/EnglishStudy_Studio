@@ -249,6 +249,7 @@ API 启动后导入内容包：
 .\scripts\import-beta-feedback-packets.ps1 -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
+.\scripts\export-mvp-fix-plan.ps1
 .\scripts\summarize-beta-feedback.ps1
 ```
 

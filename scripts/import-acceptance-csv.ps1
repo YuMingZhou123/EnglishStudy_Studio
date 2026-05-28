@@ -311,10 +311,12 @@ if ($RefreshArtifacts) {
     $packetSummary = Invoke-JsonScript -ScriptName $config.packetScript
     $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
     $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
+    $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $packetSummary.($config.packetPathProperty)
     $refreshed += $dashboardSummary.outputPath
     $refreshed += $tasksSummary.outputPath
+    $refreshed += $fixPlanSummary.outputPath
 }
 
 [pscustomobject]@{

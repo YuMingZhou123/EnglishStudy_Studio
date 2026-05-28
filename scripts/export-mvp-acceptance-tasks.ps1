@@ -21,6 +21,7 @@ $betaFeedbackPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\f
 $betaFeedbackHtmlPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"))
 $betaFeedbackPacketDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\beta-feedback-packets"))
 $dashboardPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-dashboard.html"))
+$fixPlanPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-fix-plan.md"))
 
 function ConvertTo-FileUri([string]$path) {
     return ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
@@ -153,6 +154,7 @@ $betaCompletedUsers = @($betaRows | Where-Object { (Get-Status $_.CompletedTest)
 $betaP0Issues = @($betaRows | Where-Object { (Get-Status $_.Priority) -eq "p0" })
 $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $dashboardLink = Get-MarkdownLink "Open dashboard" (ConvertTo-FileUri $dashboardPath)
+$fixPlanLink = Get-MarkdownLink "Open fix plan" (ConvertTo-FileUri $fixPlanPath)
 
 $contentTable = if ($contentBatches.Count -eq 0) {
     @('- Content review sheet is missing. Run `.\scripts\export-content-review-sheet.ps1` first.')
@@ -188,6 +190,8 @@ $lines = @(
     "",
     "Dashboard: $dashboardLink",
     "",
+    "Fix plan: $fixPlanLink",
+    "",
     "## Current Gates",
     "",
     "- Content review: $($contentPassRows.Count) pass, $($contentFixRows.Count) fix/remove, $($contentBlankRows.Count) blank, total $($contentRows.Count).",
@@ -208,6 +212,7 @@ $lines = @(
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
     '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
+    '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
