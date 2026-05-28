@@ -134,4 +134,10 @@ npm run dev
 .\scripts\smoke-test.ps1 -SkipWeb
 ```
 
-脚本会检查健康状态、Swagger、登录、初级/中级/高级听写提交、错词复习、学习记录、后台内容创建/发布/下架、媒体上传和读取。
+如果还要验证本地 TTS 生成并回读音频：
+
+```powershell
+.\scripts\smoke-test.ps1 -IncludeTts
+```
+
+脚本会检查健康状态、Swagger、登录、初级/中级/高级听写提交、错词复习、学习记录、后台内容创建/发布/下架、媒体上传和读取。`-IncludeTts` 会额外检查后台句子 TTS 生成、音频绑定和媒体回读。

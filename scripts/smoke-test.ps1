@@ -5,7 +5,8 @@ param(
     [string]$LearnerPassword = 'Pass123$',
     [string]$AdminEmail = "admin@example.com",
     [string]$AdminPassword = 'Admin123$',
-    [switch]$SkipWeb
+    [switch]$SkipWeb,
+    [switch]$IncludeTts
 )
 
 $ErrorActionPreference = "Stop"
@@ -238,6 +239,30 @@ $offline = Invoke-RestMethod `
 Assert-Condition ($published.status -eq "published") "Publishing sentence failed."
 Assert-Condition ($offline.status -eq "offline") "Taking sentence offline failed."
 
+$ttsMediaStatus = "Skipped"
+if ($IncludeTts) {
+    Write-Host "Checking TTS generation..."
+    $ttsSentence = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/admin/sentences/$($sentence.id)/generate-audio" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{
+            voice = "en-US"
+            speed = 1
+        })
+
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($ttsSentence.audioUrl)) "TTS generation did not bind an audio URL."
+    Assert-Condition (-not [string]::IsNullOrWhiteSpace($ttsSentence.audioAssetId)) "TTS generation did not bind an audio asset."
+
+    $ttsMedia = Invoke-WebRequest `
+        -Method Get `
+        -Uri $ttsSentence.audioUrl `
+        -UseBasicParsing
+    Assert-Condition ($ttsMedia.StatusCode -eq 200) "Generated TTS media could not be read back."
+    $ttsMediaStatus = "Healthy"
+}
+
 $client = [System.Net.Http.HttpClient]::new()
 $client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $adminToken)
 $multipart = [System.Net.Http.MultipartFormDataContent]::new()
@@ -278,6 +303,7 @@ $result = [pscustomobject]@{
     }
     createdSentenceStatusAfterPublish = $published.status
     createdSentenceStatusAfterOffline = $offline.status
+    tts = $ttsMediaStatus
     uploadedObjectKey = $media.objectKey
     mediaGetStatus = $mediaResponse.StatusCode
 }
