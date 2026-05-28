@@ -159,6 +159,12 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-mvp-readiness.ps1
 ```
 
+DDD 分层边界检查：
+
+```powershell
+.\scripts\check-ddd-boundaries.ps1
+```
+
 需要连同后端编译、前端 lint 和前端构建一起检查时：
 
 ```powershell

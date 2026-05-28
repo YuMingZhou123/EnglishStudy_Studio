@@ -231,7 +231,29 @@ Application/Auth/*          # 只依赖领域模型和认证抽象
 
 这些不是不要，而是等机构端、内容审核、支付、运营后台真正变复杂后再引入。
 
-## 9. 后续演进方向
+## 9. 自动化边界检查
+
+为了避免后续 AI 辅助开发时把代码写错层，仓库提供 DDD 边界检查脚本：
+
+```powershell
+.\scripts\check-ddd-boundaries.ps1
+```
+
+该脚本会检查：
+
+- `Domain` 不依赖 Application、Infrastructure、Controller、EF Core、MinIO、HTTP。
+- `Application` 不依赖 Infrastructure、Controller、MinIO、HTTP Controller 关注点。
+- `Infrastructure` 不依赖 Controller。
+- `Controllers` 不直接依赖 Infrastructure、EF Core、MinIO。
+
+当前第一版允许两个工程取舍：
+
+- `Domain/Identity` 可以使用 ASP.NET Core Identity。
+- `Application` 可以通过 `IAppDbContext` 使用 EF Core 查询扩展。
+
+`check-mvp-readiness.ps1` 已经把该脚本纳入自动化就绪检查。
+
+## 10. 后续演进方向
 
 当业务增长后，优先按以下顺序演进：
 

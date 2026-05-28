@@ -66,6 +66,12 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-mvp-readiness.ps1 -IncludeBuild
 ```
 
+DDD 分层边界检查：
+
+```powershell
+.\scripts\check-ddd-boundaries.ps1
+```
+
 导入 MVP 内容包：
 
 ```powershell

@@ -118,6 +118,16 @@ $steps.Add((Invoke-ReadinessStep "content-quality-audit" {
     $summary
 }))
 
+$steps.Add((Invoke-ReadinessStep "ddd-boundaries" {
+    $output = & (Join-Path $PSScriptRoot "check-ddd-boundaries.ps1") -JsonOnly
+    $summary = $output | ConvertFrom-Json
+    if (-not [bool]$summary.passed) {
+        throw "DDD boundary check did not pass."
+    }
+
+    $summary
+}))
+
 $steps.Add((Invoke-ReadinessStep "api-health" {
     Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/health"
 }))
