@@ -1,6 +1,6 @@
 # 第一版当前状态
 
-更新时间：2026-05-28 15:26  
+更新时间：2026-05-28 16:09
 分支：`develop`  
 当前结论：工程 MVP 已经基本跑通，可以进入人工内容审核和真实用户内测；但还不能宣布第一版完成。
 
@@ -16,6 +16,7 @@
 | 权限模型 | 第一版完整模型已建立，启用核心权限 | 已包含 `User`、`Role`、`Permission`、`UserRole`、`RolePermission`，后台内容接口已校验 `content:manage` |
 | MVP 内容包 | 已准备并通过结构与质量体检 | 120 条句子、5 个场景、335 个关键词配置项、324 个独立词形 |
 | 本地音频覆盖 | 已达标 | 本地已发布句子缺失音频为 0 |
+| 自动化验证 | 已通过完整本地检查 | `.\scripts\check-mvp-readiness.ps1 -IncludeBuild` 已通过 API smoke、UI smoke、领域规则、后端构建、前端 lint 和前端构建 |
 | 人工内容审核 | 未完成 | 审核表已生成，但 120 行均未填写审核结果 |
 | 真实用户内测反馈 | 未完成 | 反馈表已生成，但还没有真实内测用户记录 |
 
@@ -24,7 +25,7 @@
 运行命令：
 
 ```powershell
-.\scripts\check-mvp-readiness.ps1 -SkipSmoke -SkipUi
+.\scripts\check-mvp-readiness.ps1 -IncludeBuild
 ```
 
 关键结果：
@@ -34,6 +35,31 @@
 | `automatedReady` | `true` | 工程自动化、内容规模、权限、音频覆盖等检查已通过 |
 | `productReviewReady` | `false` | 人工内容审核和内测反馈还没达标 |
 | `firstVersionReady` | `false` | 第一版还不能宣布完成 |
+
+本轮完整检查已通过：
+
+- `content-pack`
+- `content-quality-audit`
+- `ddd-boundaries`
+- `domain-rules`
+- `api-health`
+- `api-ready`
+- `web-home`
+- `admin-content-counts`
+- `permission-policy`
+- `database-audio-coverage`
+- `api-smoke-tts`
+- `ui-smoke`
+- `dotnet-build`
+- `web-lint`
+- `web-build`
+
+人工验收 CSV 当前也已通过格式和可统计字段校验：
+
+| 校验项 | 当前值 | 说明 |
+| --- | --- | --- |
+| `contentReviewValidation.valid` | `true` | 内容审核表结构和状态字段合法 |
+| `betaFeedbackValidation.valid` | `true` | 内测反馈表结构和关键枚举字段合法 |
 
 内容审核门槛：
 
@@ -94,6 +120,7 @@
 - EF Core 迁移。
 - 本地健康检查和 ready 检查。
 - DDD 边界检查脚本。
+- 听写领域规则测试。
 - API smoke test。
 - 页面级 smoke test。
 - MVP readiness 汇总脚本。
