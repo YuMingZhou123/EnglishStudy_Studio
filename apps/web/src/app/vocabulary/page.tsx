@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { WrongWord, vocabularyApi } from "@/lib/api";
+import { DictationMode, WrongWord, vocabularyApi } from "@/lib/api";
 import { getToken } from "@/lib/session";
 
 export default function VocabularyPage() {
   const router = useRouter();
   const [words, setWords] = useState<WrongWord[]>([]);
+  const [reviewMode, setReviewMode] = useState<DictationMode>("beginner");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,19 +32,39 @@ export default function VocabularyPage() {
           <Link className="text-sm font-medium text-[#35766f]" href="/dashboard">
             返回学习台
           </Link>
-          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-semibold tracking-normal">词汇本</h1>
               <p className="mt-2 text-sm text-[#69736f]">
                 手动加入的生词和答错的目标词都会按复习时间重新进入语境听写。
               </p>
             </div>
-            <Link
-              className="h-10 rounded-md bg-[#1f6f64] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#18574f]"
-              href="/dictation?mode=beginner&review=wrong"
-            >
-              开始复习
-            </Link>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="grid grid-cols-3 rounded-md bg-[#edf2ef] p-1 text-sm font-medium">
+                {(["beginner", "intermediate", "advanced"] as DictationMode[]).map(
+                  (mode) => (
+                    <button
+                      className={`h-9 rounded-md px-3 transition ${
+                        reviewMode === mode
+                          ? "bg-white text-[#18211f] shadow-sm"
+                          : "text-[#64706b]"
+                      }`}
+                      key={mode}
+                      onClick={() => setReviewMode(mode)}
+                      type="button"
+                    >
+                      {modeLabel(mode)}
+                    </button>
+                  ),
+                )}
+              </div>
+              <Link
+                className="h-10 rounded-md bg-[#1f6f64] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#18574f]"
+                href={`/dictation?mode=${reviewMode}&review=wrong`}
+              >
+                开始复习
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -145,6 +166,14 @@ function sourceLabel(source: string) {
   };
 
   return labels[source] ?? source;
+}
+
+function modeLabel(mode: DictationMode) {
+  return {
+    beginner: "初级",
+    intermediate: "中级",
+    advanced: "高级",
+  }[mode];
 }
 
 function formatDateTime(value: string) {
