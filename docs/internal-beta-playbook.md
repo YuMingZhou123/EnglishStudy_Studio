@@ -49,6 +49,7 @@ node .\scripts\ui-smoke-test.mjs
 
 ```powershell
 .\scripts\prepare-mvp-acceptance.ps1
+.\scripts\prepare-local-beta-run.ps1
 ```
 
 默认输出：
