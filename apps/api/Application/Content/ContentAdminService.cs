@@ -12,6 +12,8 @@ public sealed partial class ContentAdminService(
     IFileStorageService fileStorageService,
     ITtsProvider ttsProvider) : IContentAdminService
 {
+    private const int AdminListLimit = 1_000;
+
     public async Task<IReadOnlyCollection<SceneResponse>> GetScenesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -116,7 +118,7 @@ public sealed partial class ContentAdminService(
 
         var words = await query
             .OrderBy(word => word.Lemma)
-            .Take(200)
+            .Take(AdminListLimit)
             .ToListAsync(cancellationToken);
 
         return words.Select(MapWord).ToArray();
@@ -219,7 +221,7 @@ public sealed partial class ContentAdminService(
 
         var sentences = await query
             .OrderByDescending(sentence => sentence.UpdatedAt)
-            .Take(200)
+            .Take(AdminListLimit)
             .ToListAsync(cancellationToken);
 
         return sentences.Select(MapSentence).ToArray();
