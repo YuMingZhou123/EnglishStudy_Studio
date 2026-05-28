@@ -242,6 +242,7 @@ API 启动后导入内容包：
 
 也可以直接运行 `.\scripts\prepare-mvp-acceptance.ps1`，它会保留已有 CSV，刷新内容审核台和内测反馈表，并输出第一版人工验收缺口。
 生成的 `acceptance/mvp-acceptance-dashboard.html` 会汇总第一版状态，并提供内容审核台和内测反馈表入口。
+生成的 `acceptance/mvp-acceptance-tasks.md` 会把内容审核拆成批次任务，并列出内测用户跟进任务。
 
 ## 第一版内测与审核
 
