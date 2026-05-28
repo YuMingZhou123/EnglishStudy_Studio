@@ -115,6 +115,11 @@ if ($null -ne $beta -and $beta.PSObject.Properties.Name -contains "p0Issues") {
     $p0Issues = [int]$beta.p0Issues
 }
 
+$betaNeedsTriage = 0
+if ($null -ne $fixPlan -and $fixPlan.PSObject.Properties.Name -contains "betaNeedsTriage") {
+    $betaNeedsTriage = [int]$fixPlan.betaNeedsTriage
+}
+
 $gates = @(
     (New-GateRow "Git worktree clean" (-not [bool]$git.dirty) "dirty files: $($git.dirtyCount)" "0 dirty files")
     (New-GateRow "Automated readiness" ([bool]$readiness.automatedReady) "automatedReady: $($readiness.automatedReady)" "true")
@@ -122,6 +127,7 @@ $gates = @(
     (New-GateRow "First version readiness" ([bool]$readiness.firstVersionReady) "firstVersionReady: $($readiness.firstVersionReady)" "true")
     (New-GateRow "Content review gate" ([bool]$content.passesMinimumGate) "pass: $($content.passRows), fix: $($content.fixRows), blank: $($content.blankRows)" ">=100 pass, 0 fix, 0 blank, scene/level minimums met")
     (New-GateRow "Beta feedback gate" ([bool]$beta.passesMinimumGate) "filled: $($beta.filledRows), completed: $($beta.completedUsers), independent: $($beta.independentUsers)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next")
+    (New-GateRow "No untriaged beta issue notes" ($betaNeedsTriage -eq 0) "needs triage: $betaNeedsTriage" "0")
     (New-GateRow "No P0 beta issues" ($p0Issues -eq 0) "P0 issues: $p0Issues" "0")
     (New-GateRow "No open release shortages" ([int]$fixPlan.openGateShortages -eq 0) "open shortages: $($fixPlan.openGateShortages)" "0")
 )
@@ -208,6 +214,7 @@ $result = [pscustomobject]@{
     firstVersionReady = [bool]$readiness.firstVersionReady
     contentBlankRows = $content.blankRows
     betaFilledRows = $beta.filledRows
+    betaNeedsTriage = $betaNeedsTriage
     openGateShortages = $fixPlan.openGateShortages
 }
 
