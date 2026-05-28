@@ -279,6 +279,7 @@ $html = @'
       <div class="toolbar">
         <select id="sceneFilter"></select>
         <select id="levelFilter"></select>
+        <select id="batchFilter"></select>
         <select id="statusFilter">
           <option value="">All statuses</option>
           <option value="blank">Not reviewed</option>
@@ -348,6 +349,8 @@ $html = @'
     function renderFilters() {
       const scenes = [...new Set(rows.map(row => row.SceneCode))].sort();
       const levels = ["beginner", "intermediate", "advanced"];
+      const batchSize = 20;
+      const batchCount = Math.ceil(rows.length / batchSize);
       document.getElementById("sceneFilter").innerHTML = [
         `<option value="">All scenes</option>`,
         ...scenes.map(scene => `<option value="${escapeHtml(scene)}">${escapeHtml(scene)}</option>`)
@@ -356,16 +359,30 @@ $html = @'
         `<option value="">All levels</option>`,
         ...levels.map(level => `<option value="${escapeHtml(level)}">${escapeHtml(level)}</option>`)
       ].join("");
+      document.getElementById("batchFilter").innerHTML = [
+        `<option value="">All batches</option>`,
+        ...Array.from({ length: batchCount }, (_, index) => {
+          const start = index * batchSize + 1;
+          const end = Math.min((index + 1) * batchSize, rows.length);
+          return `<option value="${start}-${end}">Rows ${start}-${end}</option>`;
+        })
+      ].join("");
     }
 
     function getFilteredRows() {
       const scene = document.getElementById("sceneFilter").value;
       const level = document.getElementById("levelFilter").value;
+      const batch = document.getElementById("batchFilter").value;
       const status = document.getElementById("statusFilter").value;
+      const [batchStart, batchEnd] = batch
+        ? batch.split("-").map(value => Number(value))
+        : [0, Number.MAX_SAFE_INTEGER];
       return rows.filter(row => {
         const rowStatus = valueOf(row, "ReviewStatus").trim();
         return (!scene || row.SceneCode === scene)
           && (!level || row.Level === level)
+          && row.RowNumber >= batchStart
+          && row.RowNumber <= batchEnd
           && (!status || (status === "blank" ? !rowStatus : rowStatus === status));
       });
     }
@@ -462,6 +479,7 @@ $html = @'
 
     document.getElementById("sceneFilter").addEventListener("change", renderCards);
     document.getElementById("levelFilter").addEventListener("change", renderCards);
+    document.getElementById("batchFilter").addEventListener("change", renderCards);
     document.getElementById("statusFilter").addEventListener("change", renderCards);
     document.getElementById("stopAudio").addEventListener("click", () => window.speechSynthesis?.cancel());
     document.getElementById("exportCsv").addEventListener("click", exportCsv);
