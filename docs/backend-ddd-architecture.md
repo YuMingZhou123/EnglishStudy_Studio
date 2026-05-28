@@ -1,163 +1,242 @@
 # 后端 DDD 架构约定
 
-版本：v0.1
-日期：2026-05-27
-状态：第一版后端架构约定
+版本：v0.2
+日期：2026-05-28
+状态：第一版后端架构基线
 
-## 1. 架构选择
+## 1. 架构定位
 
-本项目后端采用“DDD 风格的单体架构”。第一阶段不拆多个后端项目，也不拆微服务，先在 `apps/api` 一个 ASP.NET Core Web API 项目内按职责分层。
+本项目后端采用 DDD 风格的模块化单体架构。
 
-这样做的原因：
-
-- 个人开发者更容易理解、运行和调试。
-- 代码边界清晰，后续可以平滑拆分成多项目或微服务。
-- 适合 AI 辅助开发，单次改动范围更明确。
-- 不牺牲后续扩展能力，领域模型、应用服务、基础设施依赖从一开始就分开。
-
-## 2. 当前目录结构
+第一版不拆微服务，也不拆多个后端项目，先在 `apps/api` 一个 ASP.NET Core Web API 项目内保持清晰分层：
 
 ```text
 apps/api/
-  Domain/                 # 领域层：核心业务对象与业务规则
-    Identity/             # 用户、角色、权限
-    Content/              # 场景、句子、单词、关键词、媒体资源
-    Learning/             # 听写记录、用户词汇状态
-    Dictation/            # 听写模式、关键词选择、答案标准化、判分规则
-  Application/            # 应用层：用例编排、DTO、接口抽象
-    Common/Interfaces/    # 应用层依赖的抽象接口
-    DependencyInjection.cs
-  Infrastructure/         # 基础设施层：数据库、外部服务、存储、Provider 实现
-    Options/              # 配置对象
-    Persistence/          # EF Core DbContext 与 Migrations
-    DependencyInjection.cs
-  Controllers/            # API 入口层：HTTP 请求与响应
-  Program.cs              # 应用启动与模块组合
+  Domain/          # 领域层：业务对象、领域规则、状态流转
+  Application/     # 应用层：用例编排、DTO、抽象接口
+  Infrastructure/  # 基础设施层：数据库、存储、TTS、JWT 等技术实现
+  Controllers/     # API 层：HTTP 路由、鉴权入口、请求响应
+  Program.cs       # 应用启动和依赖注入组合
 ```
 
-## 3. 分层职责
+这样做的原因：
 
-### 3.1 Domain 领域层
+- 适合个人开发者和 AI 辅助开发，运行、调试、定位问题更直接。
+- 业务边界先清晰起来，后续可以平滑拆成多个项目或服务。
+- 避免第一版为了架构而架构，把时间花在接口、仓储、事件总线等过早复杂度上。
+- 仍然保留 DDD 的核心价值：领域规则不散落在 Controller 或数据库访问代码里。
 
-领域层放业务概念本身，不直接处理 HTTP、数据库、MinIO、TTS Provider 等外部细节。
+## 2. 依赖方向
 
-当前已启用的领域：
+目标依赖方向：
 
-- `Identity`：`ApplicationUser`、`ApplicationRole`、`Permission`、`ApplicationUserRole`、`RolePermission`
-- `Content`：`Scene`、`Word`、`Sentence`、`SentenceKeyword`、`MediaAsset`
-- `Learning`：`DictationAttempt`、`UserWordState`
-- `Dictation`：`DictationMode`、`DictationKeywordSelector`、`DictationGrader`、`DictationAnswerNormalizer`
+```text
+Controllers -> Application -> Domain
+Infrastructure -> Application / Domain
+Program.cs 负责组合依赖注入
+```
 
-听写规则、挖空策略、判分策略、错词状态流转，优先沉淀到领域层或领域服务中。应用层只负责调用这些规则并完成数据读取、保存和 DTO 转换。
+具体约束：
 
-### 3.2 Application 应用层
+- `Domain` 不主动依赖数据库、MinIO、TTS、JWT、HTTP 等外部技术。
+- `Application` 可以依赖 `Domain`，负责一次用户动作对应的业务流程。
+- `Application/Common/Interfaces` 定义外部能力抽象，例如数据库上下文、文件存储、TTS。
+- `Infrastructure` 实现这些抽象，例如 EF Core、MinIO、本地 TTS、JWT。
+- `Controllers` 只接收请求、做基础校验、调用应用服务、返回响应。
 
-应用层负责“一个用户动作对应的一段业务流程”。
+当前 MVP 为了开发效率，`Application` 允许通过 `IAppDbContext` 使用 EF Core 查询能力；当某个领域变复杂后，再逐步引入 Repository、Specification、领域事件或 CQRS。
 
-示例：
+## 3. 边界上下文
 
-- 注册用户
-- 登录并签发 Token
-- 获取下一道听写题
-- 提交听写答案
-- 将错误关键词写入错词状态
-- 查询学习首页数据
+第一版按以下边界上下文组织：
 
-应用层可以依赖领域层，也可以依赖抽象接口，例如 `IAppDbContext`、`IFileStorageService`、`ITtsProvider`，但不直接依赖具体的 EF Core、MinIO SDK 或第三方 AI SDK 实现。
+| 上下文 | 目录 | 主要职责 | MVP 状态 |
+| --- | --- | --- | --- |
+| Identity & Access | `Domain/Identity` | 用户、角色、权限、用户角色、角色权限 | 已建立模型 |
+| Content | `Domain/Content` | 场景、单词、句子、关键词、媒体资源 | MVP 核心 |
+| Dictation | `Domain/Dictation` | 听写模式、挖空策略、答案标准化、判分规则 | MVP 核心 |
+| Learning | `Domain/Learning` | 听写记录、错词状态、复习状态流转 | MVP 核心 |
+| Media / TTS | `Application + Infrastructure` | 文件存储、TTS 生成、音频绑定 | MVP 核心 |
 
-### 3.3 Infrastructure 基础设施层
+后续机构端、班级、会员、订单、支付、内容审核、AI 口语可以继续按新的边界上下文扩展。
 
-基础设施层负责技术实现细节。
+## 4. 分层职责
+
+### 4.1 Domain
+
+领域层放“业务本身”。
 
 当前包含：
 
-- `AppDbContext`
+- `Identity`
+  - `ApplicationUser`
+  - `ApplicationRole`
+  - `Permission`
+  - `ApplicationUserRole`
+  - `RolePermission`
+- `Content`
+  - `Scene`
+  - `Word`
+  - `Sentence`
+  - `SentenceKeyword`
+  - `MediaAsset`
+- `Dictation`
+  - `DictationMode`
+  - `DictationBlankId`
+  - `DictationAnswerNormalizer`
+  - `DictationKeywordSelector`
+  - `DictationGrader`
+- `Learning`
+  - `DictationAttempt`
+  - `UserWordState`
+
+适合放在 Domain 的代码：
+
+- 关键词如何选择。
+- 初级、中级、高级如何挖空。
+- 用户答案如何标准化。
+- 听写如何判分。
+- 错词状态如何从 `New`、`Reviewing` 流转到 `Mastered`。
+- 用户答错后下一次复习时间如何计算。
+
+### 4.2 Application
+
+应用层放“用例编排”。
+
+示例：
+
+- 注册用户。
+- 登录并签发 Token。
+- 获取下一道听写题。
+- 提交听写答案。
+- 更新错词状态。
+- 查询学习报告。
+- 管理员创建、发布、下架句子。
+- 管理员生成句子音频。
+
+应用层可以：
+
+- 调用领域对象和领域服务。
+- 通过抽象接口访问数据库、文件存储、TTS。
+- 组装请求和响应 DTO。
+
+应用层不应该：
+
+- 把复杂领域规则写成大量散落的 `if/else`。
+- 直接依赖 MinIO SDK、Piper 命令、第三方 AI SDK。
+
+### 4.3 Infrastructure
+
+基础设施层放技术实现。
+
+当前包含：
+
+- `Persistence/AppDbContext.cs`
 - EF Core migrations
 - PostgreSQL 持久化配置
 - ASP.NET Core Identity 持久化配置
-- `StorageOptions`
-- `JwtOptions`
+- `Storage/MinioFileStorageService.cs`
+- `Tts/LocalTtsProvider.cs`
+- `Auth/JwtTokenService.cs`
+- `Options/*`
 
-后续会继续放：
+后续可以继续放：
 
-- MinIO 文件存储实现
-- Piper TTS 本地生成实现
-- ASR / LLM / TTS Provider 实现
-- 邮件、短信、缓存、队列、日志等基础设施
+- Redis。
+- 邮件、短信。
+- 队列。
+- 付费 TTS / ASR / LLM Provider。
+- 监控、日志、审计实现。
 
-### 3.4 API 入口层
+### 4.4 Controllers
 
-Controller 只负责 HTTP 入口，不直接写复杂业务规则。
+Controller 是 HTTP 入口，不写核心业务规则。
 
 Controller 应该做：
 
-- 接收请求
-- 做基础模型校验
-- 调用 Application 用例
-- 返回响应
+- 接收请求参数。
+- 读取当前用户身份。
+- 做基础模型校验。
+- 调用 Application service。
+- 返回 HTTP 响应。
 
 Controller 不应该做：
 
-- 直接拼复杂查询
-- 直接操作多个聚合并写入业务规则
-- 直接调用 MinIO、TTS、LLM 等外部服务
+- 直接操作多个聚合并写业务规则。
+- 直接访问 MinIO、TTS、LLM。
+- 直接拼复杂查询并承载业务判断。
 
-## 4. 边界上下文规划
+## 5. Identity 的实现取舍
 
-第一版按以下边界推进：
+当前用户、角色、用户角色继承了 ASP.NET Core Identity 类型，这是第一版为了快速获得成熟登录、密码哈希、角色能力做出的工程取舍。
 
-| 边界上下文 | 主要职责 | MVP 状态 |
-| --- | --- | --- |
-| Identity & Access | 用户、角色、权限、登录认证 | 先建模型，逐步启用 |
-| Content | 场景、句子、单词、关键词、音频资源 | MVP 核心 |
-| Learning | 答题记录、错词状态、学习进度 | MVP 核心 |
-| Dictation | 出题、挖空、判分、反馈 | MVP 核心 |
-| Media | 文件元数据、音频存储、TTS 生成 | 第一版先接 MinIO 元数据 |
-| AI | LLM、ASR、TTS Provider 抽象 | 后续扩展 |
+这意味着 `Domain/Identity` 对 `Microsoft.AspNetCore.Identity` 有少量依赖。它不是最纯粹的 DDD，但对当前阶段是合理的：
 
-## 5. 开发规则
+- 可以快速获得可靠的密码安全能力。
+- 能减少个人开发者维护认证细节的成本。
+- RBAC 模型仍然保持清晰：`User`、`Role`、`Permission`、`UserRole`、`RolePermission`。
 
-- 新业务规则优先放在 `Domain` 或 `Application`，不要直接塞进 Controller。
-- 新外部依赖优先定义接口，再由 `Infrastructure` 实现。
-- 数据库表结构由 `Infrastructure/Persistence/AppDbContext.cs` 统一配置。
-- EF migration 统一放在 `Infrastructure/Persistence/Migrations`。
-- Controller 返回 DTO，不直接暴露 EF 实体。
-- 第一阶段保持单体架构，等业务稳定后再考虑拆分多个 `.csproj`。
+如果后续要追求更严格的领域隔离，可以演进为：
 
-## 6. MVP 后端开发顺序
+```text
+Domain/Identity/User        # 自定义纯领域模型
+Infrastructure/Identity/*   # 适配 ASP.NET Core Identity
+Application/Auth/*          # 只依赖领域模型和认证抽象
+```
 
-1. 用户注册、登录、JWT 鉴权。
-2. 内容基础数据：场景、单词、句子、关键词、音频资源。
-3. 听写出题：初级、中级、高级三种模式。
-4. 听写提交与判分。
-5. 答题记录保存。
-6. 错词状态写入与错词本查询。
-7. 管理端内容录入接口。
-8. MinIO 文件上传与音频资源管理。
-9. Piper TTS 生成音频。
+第一版暂不做这一步，避免过度设计。
 
-## 7. 当前落地状态
+## 6. 当前落地状态
 
 已经完成：
 
-- 后端代码按 DDD 单体结构重组。
+- 后端代码按 DDD 风格模块化单体组织。
 - 权限模型进入 `Domain/Identity`。
-- 听写核心模型进入 `Domain/Content` 与 `Domain/Learning`。
+- 内容模型进入 `Domain/Content`。
+- 听写模型和听写规则进入 `Domain/Dictation`。
+- 学习记录和错词状态进入 `Domain/Learning`。
 - EF Core 上下文进入 `Infrastructure/Persistence`。
-- 配置对象进入 `Infrastructure/Options`。
-- 应用层抽象 `IAppDbContext` 已建立。
-- 听写核心数据表 migration 已生成。
-- 听写模式、答案标准化、关键词选择和判分规则已沉淀到 `Domain/Dictation`。
-- `UserWordState` 已承载“手动加入词汇本”“听写正确/错误后的复习状态流转”规则。
-- `DictationService` 已调整为应用层编排：查询题目、调用领域规则、保存答题记录和词汇状态。
+- MinIO 文件存储进入 `Infrastructure/Storage`。
+- 本地 TTS Provider 进入 `Infrastructure/Tts`。
+- JWT 签发进入 `Infrastructure/Auth`。
+- Controller 通过 Application service 承载用例入口。
 
-## 8. 后续 DDD 编码准则
+当前自动检查结果：
 
-新增后端功能时按以下顺序判断代码应该放在哪里：
+- API smoke test 已覆盖登录、三种听写模式、错词复习、后台内容、媒体上传、TTS 音频绑定。
+- UI smoke test 已覆盖桌面和移动端核心页面。
+- MVP readiness 自动化项已可运行，但最终产品就绪仍需要真实内容审核和 5-10 位用户反馈。
 
-1. 如果是业务概念、状态流转、判定规则，优先放到 `Domain`。
-2. 如果是一个用户动作对应的流程编排，放到 `Application`。
-3. 如果是数据库、MinIO、TTS、JWT、第三方服务，放到 `Infrastructure`。
-4. 如果是 HTTP 路由、请求参数、鉴权入口、响应状态码，放到 `Controllers`。
+## 7. 新功能开发流程
 
-第一版不强行引入完整 Repository、领域事件、CQRS 或微服务。等某个上下文变复杂后，再按实际压力逐步引入，避免为了架构而架构。
+新增后端功能时按这个顺序判断代码放哪里：
+
+1. 如果是业务概念、状态、规则、判定，优先放 `Domain`。
+2. 如果是一个用户动作对应的流程编排，放 `Application`。
+3. 如果是数据库、MinIO、TTS、JWT、第三方服务，放 `Infrastructure`。
+4. 如果是 HTTP 路由、请求参数、鉴权入口、响应状态码，放 `Controllers`。
+5. 如果一个类同时做了两层以上的事情，优先拆开，而不是继续塞进去。
+
+## 8. 第一版暂不引入的复杂度
+
+第一版先不强制引入：
+
+- 完整 Repository 层。
+- 领域事件总线。
+- CQRS。
+- Event Sourcing。
+- 微服务。
+- 多数据库拆分。
+- 复杂组织权限、菜单权限、按钮权限、数据权限。
+
+这些不是不要，而是等机构端、内容审核、支付、运营后台真正变复杂后再引入。
+
+## 9. 后续演进方向
+
+当业务增长后，优先按以下顺序演进：
+
+1. 将 `Application` 中重复查询抽为 Query service 或 Repository。
+2. 将复杂状态流转沉淀为领域服务。
+3. 为内容发布、TTS 生成、审核流程引入领域事件。
+4. 为后台管理和学习端拆分更清晰的应用服务。
+5. 当单体边界稳定后，再考虑把 Identity、Content、Learning、AI 独立成多个项目或服务。
