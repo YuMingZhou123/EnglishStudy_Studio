@@ -290,6 +290,8 @@ $html = @'
           <option value="fix_audio">fix_audio</option>
           <option value="remove">remove</option>
         </select>
+        <button id="markVisiblePass">Mark visible pass</button>
+        <button id="clearVisibleStatus">Clear visible status</button>
         <button id="stopAudio">Stop audio</button>
       </div>
     </div>
@@ -491,6 +493,26 @@ $html = @'
       URL.revokeObjectURL(link.href);
     }
 
+    function setVisibleStatus(status) {
+      const filteredRows = getFilteredRows();
+      if (filteredRows.length === 0) {
+        alert("No visible rows match the current filters.");
+        return;
+      }
+
+      const label = status || "blank";
+      const confirmed = confirm(`Set ReviewStatus=${label} for ${filteredRows.length} visible row(s)?`);
+      if (!confirmed) return;
+
+      filteredRows.forEach(row => {
+        saved[row.RowNumber] ||= {};
+        saved[row.RowNumber].ReviewStatus = status;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+      renderCards();
+      renderSummary();
+    }
+
     renderFilters();
     applyQueryFilters();
     renderCards();
@@ -500,6 +522,8 @@ $html = @'
     document.getElementById("levelFilter").addEventListener("change", renderCards);
     document.getElementById("batchFilter").addEventListener("change", renderCards);
     document.getElementById("statusFilter").addEventListener("change", renderCards);
+    document.getElementById("markVisiblePass").addEventListener("click", () => setVisibleStatus("pass"));
+    document.getElementById("clearVisibleStatus").addEventListener("click", () => setVisibleStatus(""));
     document.getElementById("stopAudio").addEventListener("click", () => window.speechSynthesis?.cancel());
     document.getElementById("exportCsv").addEventListener("click", exportCsv);
     document.getElementById("cards").addEventListener("click", event => {
