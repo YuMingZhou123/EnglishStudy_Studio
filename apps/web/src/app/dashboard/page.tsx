@@ -375,7 +375,15 @@ export default function DashboardPage() {
         </section>
 
         <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">最近练习</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">最近练习</h2>
+            <Link
+              className="text-sm font-medium text-[#1f6f64]"
+              href="/reports"
+            >
+              查看全部
+            </Link>
+          </div>
           <div className="mt-4 grid gap-3">
             {history.map((item) => (
               <div
