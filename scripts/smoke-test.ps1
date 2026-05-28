@@ -27,6 +27,48 @@ function Assert-Condition([bool]$condition, [string]$message) {
     }
 }
 
+function New-SilentWavBytes {
+    param(
+        [int]$SampleRate = 8000,
+        [int]$DurationMs = 250
+    )
+
+    $channelCount = 1
+    $bitsPerSample = 16
+    $bytesPerSample = [int]($bitsPerSample / 8)
+    $sampleCount = [math]::Max(1, [int][math]::Floor($SampleRate * $DurationMs / 1000))
+    $byteRate = $SampleRate * $channelCount * $bytesPerSample
+    $blockAlign = $channelCount * $bytesPerSample
+    $dataSize = $sampleCount * $blockAlign
+    $encoding = [System.Text.Encoding]::ASCII
+    $stream = [System.IO.MemoryStream]::new()
+    $writer = [System.IO.BinaryWriter]::new($stream, $encoding, $true)
+
+    try {
+        $writer.Write($encoding.GetBytes("RIFF"))
+        $writer.Write([int](36 + $dataSize))
+        $writer.Write($encoding.GetBytes("WAVE"))
+        $writer.Write($encoding.GetBytes("fmt "))
+        $writer.Write([int]16)
+        $writer.Write([int16]1)
+        $writer.Write([int16]$channelCount)
+        $writer.Write([int]$SampleRate)
+        $writer.Write([int]$byteRate)
+        $writer.Write([int16]$blockAlign)
+        $writer.Write([int16]$bitsPerSample)
+        $writer.Write($encoding.GetBytes("data"))
+        $writer.Write([int]$dataSize)
+        $writer.Write([byte[]]::new($dataSize))
+        $writer.Flush()
+
+        return $stream.ToArray()
+    }
+    finally {
+        $writer.Dispose()
+        $stream.Dispose()
+    }
+}
+
 Write-Host "Checking API health..."
 $health = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/health"
 $ready = Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/health/ready"
@@ -319,11 +361,11 @@ if ($IncludeTts) {
 $client = [System.Net.Http.HttpClient]::new()
 $client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $adminToken)
 $multipart = [System.Net.Http.MultipartFormDataContent]::new()
-$fileBytes = [System.Text.Encoding]::UTF8.GetBytes("smoke audio placeholder")
+$fileBytes = New-SilentWavBytes
 $fileContent = [System.Net.Http.ByteArrayContent]::new($fileBytes)
-$fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("audio/mpeg")
+$fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("audio/wav")
 $mediaSuffix = "$(Get-Date -Format 'yyyyMMddHHmmss')$(([guid]::NewGuid().ToString('N')).Substring(0, 8))"
-$multipart.Add($fileContent, "file", "smoke-$mediaSuffix.mp3")
+$multipart.Add($fileContent, "file", "smoke-$mediaSuffix.wav")
 $multipart.Add([System.Net.Http.StringContent]::new("audio/smoke"), "folder")
 $uploadResponse = $client.PostAsync("$ApiBaseUrl/api/admin/media/upload", $multipart).GetAwaiter().GetResult()
 $uploadText = $uploadResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult()
@@ -332,11 +374,14 @@ if (-not $uploadResponse.IsSuccessStatusCode) {
 }
 
 $media = $uploadText | ConvertFrom-Json
+Assert-Condition ($media.contentType -eq "audio/wav") "Uploaded media content type was not preserved."
+Assert-Condition ([int64]$media.size -eq [int64]$fileBytes.Length) "Uploaded media size was not preserved."
 $mediaResponse = Invoke-WebRequest `
     -Method Get `
     -Uri "$ApiBaseUrl/api/media/objects/$($media.objectKey)" `
     -UseBasicParsing
 Assert-Condition ($mediaResponse.StatusCode -eq 200) "Uploaded media could not be read back."
+Assert-Condition ([string]$mediaResponse.Headers["Content-Type"] -like "audio/wav*") "Uploaded media readback content type was not audio/wav."
 
 $result = [pscustomobject]@{
     api = $health.status
