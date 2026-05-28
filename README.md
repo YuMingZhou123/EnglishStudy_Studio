@@ -246,6 +246,7 @@ API 启动后导入内容包：
 
 ## 第一版内测与审核
 
+- 当前第一版状态：`docs/first-version-status.md`
 - 内测执行手册：`docs/internal-beta-playbook.md`
 - 内容质量审核规范：`docs/content-quality-review.md`
 - MVP 验收清单：`docs/mvp-acceptance-checklist.md`
