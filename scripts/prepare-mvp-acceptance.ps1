@@ -78,6 +78,14 @@ $betaHtml = Invoke-JsonScript `
 $contentSummary = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
 $betaSummary = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
 
+$dashboardParams = @{}
+if ($SkipReadiness) {
+    $dashboardParams.SkipReadiness = $true
+}
+$dashboard = Invoke-JsonScript `
+    -ScriptName "export-mvp-acceptance-dashboard.ps1" `
+    -Parameters $dashboardParams
+
 $readiness = $null
 if (-not $SkipReadiness) {
     $readiness = Invoke-JsonScript `
@@ -86,6 +94,7 @@ if (-not $SkipReadiness) {
 }
 
 if ($Open) {
+    Start-Process -FilePath $dashboard.outputPath
     Start-Process -FilePath $contentReviewHtml
     Start-Process -FilePath $betaFeedbackHtml
 }
@@ -112,8 +121,10 @@ else {
         html = $betaHtml
         summary = $betaSummary
     }
+    dashboard = $dashboard
     readiness = $readinessSummary
     nextActions = @(
+        "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, and place it under content/.",
         "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, and place it under feedback/.",
         "Run .\scripts\check-mvp-readiness.ps1 -IncludeBuild before calling the first version complete."
