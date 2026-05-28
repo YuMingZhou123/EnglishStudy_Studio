@@ -119,3 +119,19 @@ npm run dev
 ## 环境变量
 
 参考根目录 `.env.example`。MVP 阶段优先使用本地 PostgreSQL 和 MinIO。
+
+## 第一版 smoke test
+
+本地启动 PostgreSQL、MinIO、API 和 Web 后，可以运行一轮 MVP 主链路验收：
+
+```powershell
+.\scripts\smoke-test.ps1
+```
+
+如果只验证 API、数据库和 MinIO，不检查 Web 页面是否可访问：
+
+```powershell
+.\scripts\smoke-test.ps1 -SkipWeb
+```
+
+脚本会检查健康状态、Swagger、登录、初级/中级/高级听写提交、错词复习、学习记录、后台内容创建/发布/下架、媒体上传和读取。
