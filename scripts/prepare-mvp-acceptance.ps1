@@ -106,6 +106,7 @@ if ($SkipReadiness) {
 $statusReport = Invoke-JsonScript -ScriptName "export-first-version-status.ps1" -Parameters $statusReportParams
 $handoff = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
 $handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
+$progress = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
 
 $readiness = $null
 if (-not $SkipReadiness) {
@@ -154,6 +155,7 @@ else {
     statusReport = $statusReport
     handoff = $handoff
     handoffValidation = $handoffValidation
+    progress = $progress
     readiness = $readinessSummary
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
@@ -163,6 +165,7 @@ else {
         "Open acceptance/first-version-status.md for the current release decision snapshot.",
         "Open acceptance/first-version-handoff.md for the next content batch and beta tester slot.",
         "Open acceptance/first-version-handoff-validation.md to confirm handoff files are shareable.",
+        "Open acceptance/first-version-progress.md for the compact progress brief.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",

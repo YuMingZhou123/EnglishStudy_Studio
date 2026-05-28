@@ -265,6 +265,7 @@ $lines = @(
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-handoff.ps1',
     '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
+    '.\scripts\export-first-version-progress.ps1',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
     '```'

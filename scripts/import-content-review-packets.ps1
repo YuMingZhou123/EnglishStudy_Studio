@@ -301,6 +301,7 @@ if (-not $ValidateOnly) {
         $statusReportSummary = Invoke-JsonScript -ScriptName "export-first-version-status.ps1"
         $handoffSummary = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
         $handoffValidationSummary = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
+        $progressSummary = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
 
         $refreshed += $htmlSummary.outputPath
         $refreshed += $packetSummary.indexPath
@@ -311,6 +312,7 @@ if (-not $ValidateOnly) {
         $refreshed += $statusReportSummary.outputPath
         $refreshed += $handoffSummary.outputPath
         $refreshed += $handoffValidationSummary.outputPath
+        $refreshed += $progressSummary.outputPath
     }
 }
 

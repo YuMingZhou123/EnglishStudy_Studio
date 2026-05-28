@@ -276,6 +276,7 @@ function Write-Runbook($summary) {
         "- Release gate: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-release-gate.md')))",
         "- First version handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-handoff.md')))",
         "- Handoff validation: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-handoff-validation.md')))",
+        "- First version progress: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-progress.md')))",
         "- First version status: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-status.md')))",
         "- Content review packets: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'content\review-packets\index.md')))",
         "- Beta feedback packets: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'feedback\beta-feedback-packets\index.md')))",
@@ -289,6 +290,7 @@ function Write-Runbook($summary) {
         '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
         '.\scripts\export-first-version-handoff.ps1',
         '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
+        '.\scripts\export-first-version-progress.ps1',
         '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
         '```'
     )
@@ -350,6 +352,7 @@ $releaseGate = Invoke-JsonScript -ScriptName "export-first-version-release-gate.
 $statusReport = Invoke-JsonScript -ScriptName "export-first-version-status.ps1" -Parameters @{ SkipReadiness = $true }
 $handoff = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
 $handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
+$progress = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
 
 $readiness = if ($SkipReadiness) {
     New-Skipped "SkipReadiness was set."
@@ -388,6 +391,7 @@ $summary = [pscustomobject]@{
         releaseGate = $releaseGate.outputPath
         handoff = $handoff.outputPath
         handoffValidation = $handoffValidation.outputPath
+        progress = $progress.outputPath
         statusReport = $statusReport.outputPath
         contentPackets = $acceptance.contentReview.packets.indexPath
         betaPackets = $acceptance.betaFeedback.packets.indexPath
