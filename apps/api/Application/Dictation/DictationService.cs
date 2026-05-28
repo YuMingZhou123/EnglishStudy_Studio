@@ -142,13 +142,24 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         }
 
         var targetWords = selectedKeywords.Select(MapTargetWord).ToArray();
-        var blankResults = mode == Advanced
-            ? GradeAdvanced(sentence, request.UserAnswer, selectedKeywords)
-            : GradeBlanks(selectedKeywords, request.Answers);
+        var blankResults = Array.Empty<BlankResultResponse>();
+        var wordStateResults = Array.Empty<BlankResultResponse>();
+        double score;
 
-        var score = blankResults.Length == 0
-            ? 0
-            : Math.Round(blankResults.Count(result => result.IsCorrect) * 100.0 / blankResults.Length, 2);
+        if (mode == Advanced)
+        {
+            var advancedGrade = GradeAdvanced(sentence, request.UserAnswer, selectedKeywords);
+            blankResults = advancedGrade.FeedbackResults;
+            wordStateResults = advancedGrade.KeywordResults;
+            score = advancedGrade.Score;
+        }
+        else
+        {
+            blankResults = GradeBlanks(selectedKeywords, request.Answers);
+            wordStateResults = blankResults;
+            score = CalculateBlankScore(blankResults);
+        }
+
         var isCorrect = score >= 99.99;
         var now = DateTimeOffset.UtcNow;
         var normalizedAnswer = mode == Advanced
@@ -180,7 +191,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             userId,
             sentence.Id,
             selectedKeywords,
-            blankResults,
+            wordStateResults,
             now,
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -604,26 +615,32 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .ToArray();
     }
 
-    private static BlankResultResponse[] GradeAdvanced(
+    private static AdvancedGradeResult GradeAdvanced(
         Sentence sentence,
         string? userAnswer,
         IReadOnlyCollection<SentenceKeyword> keywords)
     {
         var normalizedExpected = NormalizeAnswer(sentence.Text);
         var normalizedAnswer = NormalizeAnswer(userAnswer);
+        var expectedTokens = TokenizeNormalized(normalizedExpected);
+        var answerTokens = TokenizeNormalized(normalizedAnswer);
+        var distance = CalculateLevenshteinDistance(expectedTokens, answerTokens);
+        var denominator = Math.Max(expectedTokens.Length, 1);
+        var score = Math.Round(Math.Max(0, denominator - distance) * 100.0 / denominator, 2);
 
-        if (normalizedExpected == normalizedAnswer)
-        {
-            return
-            [
-                new BlankResultResponse("full_sentence", sentence.Text, userAnswer, true)
-            ];
-        }
+        var feedbackResults = expectedTokens
+            .Select((expected, index) =>
+            {
+                var answer = index < answerTokens.Length ? answerTokens[index] : null;
+                return new BlankResultResponse(
+                    $"word_{index + 1}",
+                    expected,
+                    answer,
+                    string.Equals(expected, answer, StringComparison.OrdinalIgnoreCase));
+            })
+            .ToArray();
 
-        var answerTokens = normalizedAnswer
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
+        var answerTokenSet = answerTokens.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var keywordResults = keywords
             .Select(keyword =>
             {
@@ -633,13 +650,11 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
                     BuildBlankId(keyword),
                     keyword.SurfaceText,
                     userAnswer,
-                    answerTokens.Contains(surface) || answerTokens.Contains(lemma));
+                    answerTokenSet.Contains(surface) || answerTokenSet.Contains(lemma));
             })
             .ToArray();
 
-        return keywordResults.Length == 0
-            ? [new BlankResultResponse("full_sentence", sentence.Text, userAnswer, false)]
-            : keywordResults;
+        return new AdvancedGradeResult(score, feedbackResults, keywordResults);
     }
 
     private async Task UpdateUserWordStatesAsync(
@@ -772,6 +787,58 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         return normalized.Trim();
     }
 
+    private static string[] TokenizeNormalized(string normalized)
+    {
+        return normalized.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static int CalculateLevenshteinDistance(
+        IReadOnlyList<string> expectedTokens,
+        IReadOnlyList<string> answerTokens)
+    {
+        var distances = new int[expectedTokens.Count + 1, answerTokens.Count + 1];
+
+        for (var i = 0; i <= expectedTokens.Count; i++)
+        {
+            distances[i, 0] = i;
+        }
+
+        for (var j = 0; j <= answerTokens.Count; j++)
+        {
+            distances[0, j] = j;
+        }
+
+        for (var i = 1; i <= expectedTokens.Count; i++)
+        {
+            for (var j = 1; j <= answerTokens.Count; j++)
+            {
+                var substitutionCost = string.Equals(
+                    expectedTokens[i - 1],
+                    answerTokens[j - 1],
+                    StringComparison.OrdinalIgnoreCase)
+                    ? 0
+                    : 1;
+
+                distances[i, j] = Math.Min(
+                    Math.Min(
+                        distances[i - 1, j] + 1,
+                        distances[i, j - 1] + 1),
+                    distances[i - 1, j - 1] + substitutionCost);
+            }
+        }
+
+        return distances[expectedTokens.Count, answerTokens.Count];
+    }
+
+    private static double CalculateBlankScore(IReadOnlyCollection<BlankResultResponse> results)
+    {
+        return results.Count == 0
+            ? 0
+            : Math.Round(results.Count(result => result.IsCorrect) * 100.0 / results.Count, 2);
+    }
+
     private static double CalculateAccuracy(int totalCount, int correctCount)
     {
         return totalCount == 0
@@ -784,4 +851,9 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
     [GeneratedRegex("\\s+", RegexOptions.Compiled)]
     private static partial Regex WhitespaceRegex();
+
+    private sealed record AdvancedGradeResult(
+        double Score,
+        BlankResultResponse[] FeedbackResults,
+        BlankResultResponse[] KeywordResults);
 }
