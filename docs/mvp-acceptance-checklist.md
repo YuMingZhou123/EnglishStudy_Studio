@@ -68,6 +68,7 @@ node .\scripts\ui-smoke-test.mjs
 
 ```powershell
 .\scripts\validate-mvp-content.ps1
+.\scripts\audit-mvp-content-quality.ps1
 .\scripts\import-mvp-content.ps1
 .\scripts\generate-missing-audio.ps1
 ```
@@ -137,6 +138,7 @@ npm run build
 | --- | --- | --- |
 | 第一批内容规模 100 到 300 句 | 已有可导入内容包 | `content/mvp-sentence-pack.json` 提供 120 条原创句子，运行 `.\scripts\import-mvp-content.ps1` 导入 |
 | 核心词 300 到 800 个 | 已达到 MVP 下限 | 内容包提供 335 个目标词配置项、324 个独立词形；内容质量仍需人工审核 |
+| 内容自动质量体检 | 已通过 | `.\scripts\audit-mvp-content-quality.ps1` 检查场景/难度分布、句长、关键词数量和词量门槛 |
 | 已发布句子音频覆盖 | 已补齐本地库 | `.\scripts\generate-missing-audio.ps1` 生成缺失音频；当前本地库已发布句子缺失音频为 0 |
 | 5 到 10 名真实用户内测 | 已有执行手册和反馈汇总脚本，待真实用户完成 | 按 `docs/internal-beta-playbook.md` 安排用户试用；用 `.\scripts\summarize-beta-feedback.ps1` 汇总 |
 | 前端真实听音体验 | 自动化已覆盖按钮，待真人听感确认 | `node .\scripts\ui-smoke-test.mjs` 覆盖播放入口；真人按内测手册确认音量、清晰度和慢速体验 |
@@ -165,6 +167,7 @@ npm run build
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
 - `node .\scripts\ui-smoke-test.mjs` 通过。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
+- `.\scripts\audit-mvp-content-quality.ps1` 可以通过内容质量体检。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
 - `.\scripts\generate-missing-audio.ps1` 可以为已发布句子生成缺失音频。
 - `.\scripts\export-content-review-sheet.ps1` 可以导出人工审核表。

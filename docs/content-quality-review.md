@@ -148,6 +148,7 @@ content/mvp-content-review.csv
 
 ```powershell
 .\scripts\validate-mvp-content.ps1
+.\scripts\audit-mvp-content-quality.ps1
 ```
 
 2. 导出审核表：
@@ -173,6 +174,7 @@ content/mvp-content-review.csv
 内容可以进入内测的最低标准：
 
 - 120 条内容全部通过结构校验。
+- `.\scripts\audit-mvp-content-quality.ps1` 通过自动内容质量体检。
 - 至少 100 条句子人工审核为 `pass`。
 - 每个场景至少 15 条可用句子。
 - 初级、中级、高级都至少有 15 条可用句子。

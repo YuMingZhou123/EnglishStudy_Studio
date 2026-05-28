@@ -108,6 +108,16 @@ $steps.Add((Invoke-ReadinessStep "content-pack" {
     Get-ContentPackSummary
 }))
 
+$steps.Add((Invoke-ReadinessStep "content-quality-audit" {
+    $output = & (Join-Path $PSScriptRoot "audit-mvp-content-quality.ps1") -JsonOnly
+    $summary = $output | ConvertFrom-Json
+    if (-not [bool]$summary.passesMinimumGate) {
+        throw "Content quality audit did not pass."
+    }
+
+    $summary
+}))
+
 $steps.Add((Invoke-ReadinessStep "api-health" {
     Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/health"
 }))

@@ -198,6 +198,7 @@ API 启动后导入内容包：
 
 ```powershell
 .\scripts\validate-mvp-content.ps1
+.\scripts\audit-mvp-content-quality.ps1
 ```
 
 导出人工内容审核表：
