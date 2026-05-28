@@ -114,6 +114,14 @@ content/mvp-content-review.csv
 - 后台生成并绑定的 TTS 音频。
 - 浏览器 `speechSynthesis` fallback。
 
+导入内容后，优先运行：
+
+```powershell
+.\scripts\generate-missing-audio.ps1
+```
+
+这样可以把已发布句子绑定到 MinIO 中的 TTS 音频，减少不同浏览器 fallback 造成的听感差异。
+
 人工听音时检查：
 
 - 原速可以听清。
