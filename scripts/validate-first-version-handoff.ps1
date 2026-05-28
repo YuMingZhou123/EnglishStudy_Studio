@@ -57,6 +57,7 @@ $paths = [ordered]@{
     handoff = Join-Path $RepoRoot "acceptance\first-version-handoff.md"
     status = Join-Path $RepoRoot "acceptance\first-version-status.md"
     localBetaRun = Join-Path $RepoRoot "acceptance\local-beta-run.md"
+    localBetaReadiness = Join-Path $RepoRoot "acceptance\local-beta-readiness.md"
     contentReviewCsv = Join-Path $RepoRoot "content\mvp-content-review.csv"
     contentReviewHtml = Join-Path $RepoRoot "content\mvp-content-review.html"
     contentPacketIndex = Join-Path $RepoRoot "content\review-packets\index.md"
@@ -109,6 +110,7 @@ $handoffText = Get-FileText $paths.handoff
 $tasksText = Get-FileText $paths.tasks
 $statusText = Get-FileText $paths.status
 $localBetaText = Get-FileText $paths.localBetaRun
+$localBetaReadinessText = Get-FileText $paths.localBetaReadiness
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
@@ -120,7 +122,11 @@ $checks.Add((New-Check "handoff packet links resolved" (-not $handoffText.Contai
 $checks.Add((Test-TextContains "tasks link handoff" $tasksText "first-version-handoff.md" "acceptance tasks link handoff"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
+$checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
+$checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))
+$checks.Add((Test-TextContains "local beta readiness preserves content gate" $localBetaReadinessText "Content ready for beta testers" "readiness report checks content gate before beta"))
 $checks.Add((Test-TextContains "readme mentions handoff" $readmeText "export-first-version-handoff.ps1" "README lists handoff command"))
+$checks.Add((Test-TextContains "readme mentions local beta readiness" $readmeText "check-local-beta-readiness.ps1" "README lists local beta readiness command"))
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
 $passedChecks = @($checks | Where-Object { [bool]$_.passed })
