@@ -51,6 +51,12 @@ npm run dev
 .\scripts\smoke-test.ps1 -IncludeTts
 ```
 
+页面级 smoke test：
+
+```powershell
+node .\scripts\ui-smoke-test.mjs
+```
+
 导入 MVP 内容包：
 
 ```powershell
@@ -138,6 +144,7 @@ npm run build
 工程第一版可以认为“可内测”的条件：
 
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
+- `node .\scripts\ui-smoke-test.mjs` 通过。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。

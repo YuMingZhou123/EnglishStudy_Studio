@@ -142,6 +142,14 @@ npm run dev
 
 脚本会检查健康状态、Swagger、登录、初级/中级/高级听写提交、错词复习、学习记录、后台内容创建/发布/下架、媒体上传和读取。`-IncludeTts` 会额外检查后台句子 TTS 生成、音频绑定和媒体回读。
 
+页面级 smoke test：
+
+```powershell
+node .\scripts\ui-smoke-test.mjs
+```
+
+脚本会使用本机 Edge 或 Chrome 的 headless 模式检查登录、学习台、初级听写、词汇本、学习记录和内容后台页面。
+
 ## MVP 内容包
 
 仓库内置一份原创 MVP 句子包：
