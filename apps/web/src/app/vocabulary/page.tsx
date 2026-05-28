@@ -74,11 +74,28 @@ export default function VocabularyPage() {
                   <p className="mt-2 text-sm leading-6 text-[#69736f]">
                     {word.meaningCn}
                   </p>
+                  {word.sourceSentenceText ? (
+                    <div className="mt-3 rounded-md bg-[#fbfcfb] px-3 py-2 text-sm">
+                      <p className="font-medium leading-6 text-[#40504b]">
+                        {word.sourceSentenceText}
+                      </p>
+                      {word.sourceSentenceTranslation ? (
+                        <p className="mt-1 leading-6 text-[#69736f]">
+                          {word.sourceSentenceTranslation}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <p className="mt-2 text-xs text-[#87908c]">
                     {word.nextReviewAt
                       ? `下次复习：${formatDateTime(word.nextReviewAt)}`
                       : "现在可以复习"}
                   </p>
+                  {word.lastMistakeAt ? (
+                    <p className="mt-1 text-xs text-[#87908c]">
+                      最近错误：{formatDateTime(word.lastMistakeAt)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="grid content-start gap-2 sm:justify-items-end">
                   <div className="flex items-center gap-2">

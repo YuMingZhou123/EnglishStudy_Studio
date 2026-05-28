@@ -262,6 +262,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(state => state.WordId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
+
+            entity.HasOne(state => state.LastMistakeSentence)
+                .WithMany()
+                .HasForeignKey(state => state.LastMistakeSentenceId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

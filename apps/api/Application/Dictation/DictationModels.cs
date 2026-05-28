@@ -100,4 +100,7 @@ public sealed record WrongWordResponse(
     int MistakeCount,
     int CorrectStreak,
     DateTimeOffset? NextReviewAt,
-    DateTimeOffset? LastReviewedAt);
+    DateTimeOffset? LastReviewedAt,
+    DateTimeOffset? LastMistakeAt,
+    string? SourceSentenceText,
+    string? SourceSentenceTranslation);

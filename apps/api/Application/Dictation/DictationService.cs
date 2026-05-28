@@ -176,7 +176,13 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         };
 
         dbContext.DictationAttempts.Add(attempt);
-        await UpdateUserWordStatesAsync(userId, selectedKeywords, blankResults, now, cancellationToken);
+        await UpdateUserWordStatesAsync(
+            userId,
+            sentence.Id,
+            selectedKeywords,
+            blankResults,
+            now,
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ServiceResult<DictationSubmitResponse>.Success(new DictationSubmitResponse(
@@ -224,6 +230,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .AsNoTracking()
             .Where(state => state.UserId == userId && state.MistakeCount > 0)
             .Include(state => state.Word)
+            .Include(state => state.LastMistakeSentence)
             .OrderByDescending(state => state.UpdatedAt)
             .Select(state => new WrongWordResponse(
                 state.WordId,
@@ -234,7 +241,10 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
                 state.MistakeCount,
                 state.CorrectStreak,
                 state.NextReviewAt,
-                state.LastReviewedAt))
+                state.LastReviewedAt,
+                state.LastMistakeAt,
+                state.LastMistakeSentence == null ? null : state.LastMistakeSentence.Text,
+                state.LastMistakeSentence == null ? null : state.LastMistakeSentence.Translation))
             .ToListAsync(cancellationToken);
     }
 
@@ -577,6 +587,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
     private async Task UpdateUserWordStatesAsync(
         Guid userId,
+        Guid sentenceId,
         IReadOnlyCollection<SentenceKeyword> keywords,
         IReadOnlyCollection<BlankResultResponse> results,
         DateTimeOffset now,
@@ -630,6 +641,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
                 state.CorrectStreak = 0;
                 state.Status = "Reviewing";
                 state.NextReviewAt = now.AddDays(1);
+                state.LastMistakeAt = now;
+                state.LastMistakeSentenceId = sentenceId;
             }
 
             state.LastReviewedAt = now;

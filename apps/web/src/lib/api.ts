@@ -117,6 +117,9 @@ export type WrongWord = {
   correctStreak: number;
   nextReviewAt?: string | null;
   lastReviewedAt?: string | null;
+  lastMistakeAt?: string | null;
+  sourceSentenceText?: string | null;
+  sourceSentenceTranslation?: string | null;
 };
 
 export type DictationMode = "beginner" | "intermediate" | "advanced";

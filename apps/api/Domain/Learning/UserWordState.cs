@@ -23,6 +23,10 @@ public sealed class UserWordState
 
     public DateTimeOffset? LastReviewedAt { get; set; }
 
+    public DateTimeOffset? LastMistakeAt { get; set; }
+
+    public Guid? LastMistakeSentenceId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -30,4 +34,6 @@ public sealed class UserWordState
     public ApplicationUser User { get; set; } = null!;
 
     public Word Word { get; set; } = null!;
+
+    public Sentence? LastMistakeSentence { get; set; }
 }
