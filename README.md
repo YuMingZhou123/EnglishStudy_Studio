@@ -234,6 +234,7 @@ API 启动后导入内容包：
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\export-content-review-packets.ps1
+.\scripts\import-content-review-packets.ps1 -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 .\scripts\summarize-content-review.ps1

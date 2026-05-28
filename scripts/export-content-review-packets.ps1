@@ -91,7 +91,7 @@ for ($index = 0; $index -lt $batchCount; $index++) {
         "- Review sentence text, translation, target keywords, and obvious audio concerns.",
         '- Use one status per row: `pass`, `fix_sentence`, `fix_translation`, `fix_keyword`, `fix_audio`, or `remove`.',
         '- Leave a note whenever the status is not `pass`.',
-        '- Return row number, status, and notes to the project owner, who will enter them into `content/mvp-content-review.html`.',
+        '- Edit only the `Status` and `Notes` columns, then run `.\scripts\import-content-review-packets.ps1 -ValidateOnly` before importing.',
         "",
         "## Batch Summary",
         "",
