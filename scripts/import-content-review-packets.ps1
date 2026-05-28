@@ -297,12 +297,14 @@ if (-not $ValidateOnly) {
         $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
         $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
         $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
+        $statusReportSummary = Invoke-JsonScript -ScriptName "export-first-version-status.ps1"
 
         $refreshed += $htmlSummary.outputPath
         $refreshed += $packetSummary.indexPath
         $refreshed += $dashboardSummary.outputPath
         $refreshed += $tasksSummary.outputPath
         $refreshed += $fixPlanSummary.outputPath
+        $refreshed += $statusReportSummary.outputPath
     }
 }
 

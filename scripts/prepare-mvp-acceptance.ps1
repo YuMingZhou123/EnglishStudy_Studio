@@ -98,6 +98,11 @@ $dashboard = Invoke-JsonScript `
     -Parameters $dashboardParams
 $tasks = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
+$statusReportParams = @{}
+if ($SkipReadiness) {
+    $statusReportParams.SkipReadiness = $true
+}
+$statusReport = Invoke-JsonScript -ScriptName "export-first-version-status.ps1" -Parameters $statusReportParams
 
 $readiness = $null
 if (-not $SkipReadiness) {
@@ -142,11 +147,13 @@ else {
     dashboard = $dashboard
     tasks = $tasks
     fixPlan = $fixPlan
+    statusReport = $statusReport
     readiness = $readinessSummary
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
         "Open acceptance/mvp-acceptance-tasks.md for batch-by-batch content review and tester follow-up tasks.",
         "Open acceptance/mvp-fix-plan.md after content review or beta feedback is filled to see what must be fixed before release.",
+        "Open acceptance/first-version-status.md for the current release decision snapshot.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
