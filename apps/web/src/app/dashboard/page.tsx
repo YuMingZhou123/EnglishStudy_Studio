@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [history, setHistory] = useState<DictationHistoryItem[]>([]);
-  const [wrongWords, setWrongWords] = useState<WrongWord[]>([]);
+  const [vocabularyWords, setVocabularyWords] = useState<WrongWord[]>([]);
   const [summary, setSummary] = useState<LearningSummary | null>(null);
   const [profileForm, setProfileForm] = useState({
     displayName: "",
@@ -42,7 +42,7 @@ export default function DashboardPage() {
     Promise.all([
       authApi.me(token),
       dictationApi.history(token, 6),
-      vocabularyApi.wrongWords(token),
+      vocabularyApi.words(token),
       dictationApi.summary(token),
     ])
       .then(([currentUser, historyItems, words, learningSummary]) => {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           learningGoal: currentUser.learningGoal ?? "daily",
         });
         setHistory(historyItems);
-        setWrongWords(words);
+        setVocabularyWords(words);
         setSummary(learningSummary);
       })
       .catch(() => {
@@ -153,7 +153,7 @@ export default function DashboardPage() {
           />
           <SummaryCard
             label="待复习词"
-            value={`${summary?.dueReviewCount ?? wrongWords.length} 个`}
+            value={`${summary?.dueReviewCount ?? vocabularyWords.length} 个`}
           />
           <SummaryCard
             label="当前水平"
@@ -345,7 +345,7 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="mt-4 grid gap-3">
-              {wrongWords.slice(0, 5).map((word) => (
+              {vocabularyWords.slice(0, 5).map((word) => (
                 <div
                   className="flex items-center justify-between gap-3 border-b border-[#eef2ef] pb-3 last:border-b-0 last:pb-0"
                   key={word.wordId}
@@ -356,12 +356,18 @@ export default function DashboardPage() {
                       {word.meaningCn}
                     </p>
                   </div>
-                  <span className="rounded-md bg-[#fff3df] px-2 py-1 text-xs font-semibold text-[#8a5a00]">
-                    错 {word.mistakeCount}
+                  <span
+                    className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                      word.mistakeCount > 0
+                        ? "bg-[#fff3df] text-[#8a5a00]"
+                        : "bg-[#eef7f4] text-[#1f6f64]"
+                    }`}
+                  >
+                    {word.mistakeCount > 0 ? `错 ${word.mistakeCount}` : sourceLabel(word.source)}
                   </span>
                 </div>
               ))}
-              {wrongWords.length === 0 ? (
+              {vocabularyWords.length === 0 ? (
                 <p className="text-sm text-[#69736f]">还没有词汇记录。</p>
               ) : null}
             </div>
@@ -426,4 +432,13 @@ function formatDay(value: string) {
   }
 
   return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function sourceLabel(source: string) {
+  const labels: Record<string, string> = {
+    manual: "生词",
+    dictation: "听写",
+  };
+
+  return labels[source] ?? source;
 }
