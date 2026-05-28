@@ -1,18 +1,15 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Api.Application.Auth;
 using Api.Application.Common.Interfaces;
 using Api.Domain.Content;
+using Api.Domain.Dictation;
 using Api.Domain.Learning;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Application.Dictation;
 
-public sealed partial class DictationService(IAppDbContext dbContext) : IDictationService
+public sealed class DictationService(IAppDbContext dbContext) : IDictationService
 {
-    private const string Beginner = "beginner";
-    private const string Intermediate = "intermediate";
-    private const string Advanced = "advanced";
     private const int DailyDictationGoal = 10;
 
     public async Task<ServiceResult<DictationQuestionResponse>> GetNextQuestionAsync(
@@ -20,8 +17,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         string mode,
         CancellationToken cancellationToken = default)
     {
-        mode = NormalizeMode(mode);
-        if (!IsValidMode(mode))
+        mode = DictationMode.Normalize(mode);
+        if (!DictationMode.IsSupported(mode))
         {
             return ServiceResult<DictationQuestionResponse>.Failure("Unsupported dictation mode.");
         }
@@ -58,8 +55,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         string mode,
         CancellationToken cancellationToken = default)
     {
-        mode = NormalizeMode(mode);
-        if (!IsValidMode(mode))
+        mode = DictationMode.Normalize(mode);
+        if (!DictationMode.IsSupported(mode))
         {
             return ServiceResult<DictationQuestionResponse>.Failure("Unsupported dictation mode.");
         }
@@ -119,8 +116,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         SubmitDictationRequest request,
         CancellationToken cancellationToken = default)
     {
-        var mode = NormalizeMode(request.Mode);
-        if (!IsValidMode(mode))
+        var mode = DictationMode.Normalize(request.Mode);
+        if (!DictationMode.IsSupported(mode))
         {
             return ServiceResult<DictationSubmitResponse>.Failure("Unsupported dictation mode.");
         }
@@ -134,8 +131,8 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         }
 
         var selectedKeywords = request.ReviewWordId.HasValue
-            ? SelectKeywordsForReview(sentence, mode, request.ReviewWordId.Value)
-            : SelectKeywords(sentence, mode).ToArray();
+            ? DictationKeywordSelector.SelectForReview(sentence, mode, request.ReviewWordId.Value)
+            : DictationKeywordSelector.Select(sentence, mode);
         if (selectedKeywords.Length == 0)
         {
             return ServiceResult<DictationSubmitResponse>.Failure("Review word does not appear in the sentence.");
@@ -143,28 +140,30 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
         var targetWords = selectedKeywords.Select(MapTargetWord).ToArray();
         var blankResults = Array.Empty<BlankResultResponse>();
-        var wordStateResults = Array.Empty<BlankResultResponse>();
+        IReadOnlyCollection<DictationBlankResult> wordStateResults = Array.Empty<DictationBlankResult>();
         double score;
 
-        if (mode == Advanced)
+        if (mode == DictationMode.Advanced)
         {
-            var advancedGrade = GradeAdvanced(sentence, request.UserAnswer, selectedKeywords);
-            blankResults = advancedGrade.FeedbackResults;
+            var advancedGrade = DictationGrader.GradeAdvanced(sentence, request.UserAnswer, selectedKeywords);
+            blankResults = MapBlankResults(advancedGrade.FeedbackResults);
             wordStateResults = advancedGrade.KeywordResults;
             score = advancedGrade.Score;
         }
         else
         {
-            blankResults = GradeBlanks(selectedKeywords, request.Answers);
-            wordStateResults = blankResults;
-            score = CalculateBlankScore(blankResults);
+            wordStateResults = DictationGrader.GradeBlanks(
+                selectedKeywords,
+                BuildAnswerMap(request.Answers));
+            blankResults = MapBlankResults(wordStateResults);
+            score = DictationGrader.CalculateBlankScore(wordStateResults);
         }
 
         var isCorrect = score >= 99.99;
         var now = DateTimeOffset.UtcNow;
-        var normalizedAnswer = mode == Advanced
-            ? NormalizeAnswer(request.UserAnswer)
-            : NormalizeAnswer(string.Join(
+        var normalizedAnswer = mode == DictationMode.Advanced
+            ? DictationAnswerNormalizer.Normalize(request.UserAnswer)
+            : DictationAnswerNormalizer.Normalize(string.Join(
                 " ",
                 request.Answers?.OrderBy(answer => answer.BlankId).Select(answer => answer.Value) ?? Array.Empty<string>()));
 
@@ -173,7 +172,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             UserId = userId,
             SentenceId = sentence.Id,
             Mode = mode,
-            UserAnswer = mode == Advanced
+            UserAnswer = mode == DictationMode.Advanced
                 ? request.UserAnswer ?? string.Empty
                 : JsonSerializer.Serialize(request.Answers ?? Array.Empty<BlankAnswerRequest>()),
             NormalizedAnswer = normalizedAnswer,
@@ -286,28 +285,14 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
         if (state is null)
         {
-            state = new UserWordState
-            {
-                UserId = userId,
-                WordId = request.WordId,
-                Word = word,
-                Status = "New",
-                Source = "manual",
-                NextReviewAt = now,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+            state = UserWordState.CreateManual(userId, request.WordId, now);
+            state.Word = word;
 
             dbContext.UserWordStates.Add(state);
         }
         else
         {
-            state.Source = string.Equals(state.Source, "dictation", StringComparison.OrdinalIgnoreCase)
-                ? state.Source
-                : "manual";
-            state.Status = state.MistakeCount > 0 ? state.Status : "New";
-            state.NextReviewAt ??= now;
-            state.UpdatedAt = now;
+            state.MarkManualAdded(now);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -363,7 +348,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .CountAsync(
                 state =>
                     state.UserId == userId &&
-                    (state.MistakeCount > 0 || state.Source == "manual") &&
+                    (state.MistakeCount > 0 || state.Source == UserWordState.SourceManual) &&
                     (state.NextReviewAt == null || state.NextReviewAt <= now),
                 cancellationToken);
 
@@ -436,7 +421,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .AsNoTracking()
             .Where(state =>
                 state.UserId == userId &&
-                (state.MistakeCount > 0 || state.Source == "manual"));
+                (state.MistakeCount > 0 || state.Source == UserWordState.SourceManual));
 
         if (dueOnly)
         {
@@ -453,7 +438,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
     private static DictationQuestionResponse BuildQuestion(Sentence sentence, string mode)
     {
-        var selectedKeywords = SelectKeywords(sentence, mode).ToArray();
+        var selectedKeywords = DictationKeywordSelector.Select(sentence, mode);
         return BuildQuestion(sentence, mode, selectedKeywords, null);
     }
 
@@ -462,7 +447,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         string mode,
         Guid reviewWordId)
     {
-        var selectedKeywords = SelectKeywordsForReview(sentence, mode, reviewWordId);
+        var selectedKeywords = DictationKeywordSelector.SelectForReview(sentence, mode, reviewWordId);
         return BuildQuestion(sentence, mode, selectedKeywords, reviewWordId);
     }
 
@@ -492,11 +477,11 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         IReadOnlyCollection<SentenceKeyword> keywords,
         string mode)
     {
-        if (mode == Advanced)
+        if (mode == DictationMode.Advanced)
         {
             return
             [
-                new DisplayPartResponse("blank", null, "full_sentence", sentenceText.Length)
+                new DisplayPartResponse("blank", null, DictationBlankId.FullSentence, sentenceText.Length)
             ];
         }
 
@@ -525,7 +510,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             parts.Add(new DisplayPartResponse(
                 "blank",
                 null,
-                BuildBlankId(keyword),
+                DictationBlankId.ForKeyword(keyword),
                 Math.Max(1, end - start)));
 
             cursor = end;
@@ -543,125 +528,11 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         return parts;
     }
 
-    private static SentenceKeyword[] SelectKeywords(Sentence sentence, string mode)
-    {
-        var ordered = sentence.Keywords
-            .OrderByDescending(keyword => keyword.Priority)
-            .ThenBy(keyword => keyword.StartIndex)
-            .ToArray();
-
-        return mode switch
-        {
-            Beginner => ordered.Take(1).ToArray(),
-            Intermediate => ordered.Take(Math.Min(4, Math.Max(2, ordered.Length))).ToArray(),
-            Advanced => ordered,
-            _ => []
-        };
-    }
-
-    private static SentenceKeyword[] SelectKeywordsForReview(
-        Sentence sentence,
-        string mode,
-        Guid reviewWordId)
-    {
-        var ordered = sentence.Keywords
-            .OrderByDescending(keyword => keyword.Priority)
-            .ThenBy(keyword => keyword.StartIndex)
-            .ToArray();
-        var targetKeyword = ordered.FirstOrDefault(keyword => keyword.WordId == reviewWordId);
-        if (targetKeyword is null)
-        {
-            return [];
-        }
-
-        return mode switch
-        {
-            Beginner => [targetKeyword],
-            Intermediate => ordered
-                .Where(keyword => keyword.Id == targetKeyword.Id)
-                .Concat(ordered.Where(keyword => keyword.Id != targetKeyword.Id).Take(3))
-                .ToArray(),
-            Advanced => ordered,
-            _ => []
-        };
-    }
-
-    private static BlankResultResponse[] GradeBlanks(
-        IReadOnlyCollection<SentenceKeyword> keywords,
-        IReadOnlyCollection<BlankAnswerRequest>? answers)
-    {
-        var answerMap = (answers ?? Array.Empty<BlankAnswerRequest>())
-            .GroupBy(answer => answer.BlankId)
-            .ToDictionary(group => group.Key, group => group.Last().Value);
-
-        return keywords
-            .Select(keyword =>
-            {
-                var blankId = BuildBlankId(keyword);
-                answerMap.TryGetValue(blankId, out var answer);
-                var normalizedAnswer = NormalizeAnswer(answer);
-                var expectedValues = new[]
-                {
-                    NormalizeAnswer(keyword.SurfaceText),
-                    NormalizeAnswer(keyword.Word.Lemma)
-                };
-
-                return new BlankResultResponse(
-                    blankId,
-                    keyword.SurfaceText,
-                    answer,
-                    expectedValues.Contains(normalizedAnswer));
-            })
-            .ToArray();
-    }
-
-    private static AdvancedGradeResult GradeAdvanced(
-        Sentence sentence,
-        string? userAnswer,
-        IReadOnlyCollection<SentenceKeyword> keywords)
-    {
-        var normalizedExpected = NormalizeAnswer(sentence.Text);
-        var normalizedAnswer = NormalizeAnswer(userAnswer);
-        var expectedTokens = TokenizeNormalized(normalizedExpected);
-        var answerTokens = TokenizeNormalized(normalizedAnswer);
-        var distance = CalculateLevenshteinDistance(expectedTokens, answerTokens);
-        var denominator = Math.Max(expectedTokens.Length, 1);
-        var score = Math.Round(Math.Max(0, denominator - distance) * 100.0 / denominator, 2);
-
-        var feedbackResults = expectedTokens
-            .Select((expected, index) =>
-            {
-                var answer = index < answerTokens.Length ? answerTokens[index] : null;
-                return new BlankResultResponse(
-                    $"word_{index + 1}",
-                    expected,
-                    answer,
-                    string.Equals(expected, answer, StringComparison.OrdinalIgnoreCase));
-            })
-            .ToArray();
-
-        var answerTokenSet = answerTokens.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var keywordResults = keywords
-            .Select(keyword =>
-            {
-                var surface = NormalizeAnswer(keyword.SurfaceText);
-                var lemma = NormalizeAnswer(keyword.Word.Lemma);
-                return new BlankResultResponse(
-                    BuildBlankId(keyword),
-                    keyword.SurfaceText,
-                    userAnswer,
-                    answerTokenSet.Contains(surface) || answerTokenSet.Contains(lemma));
-            })
-            .ToArray();
-
-        return new AdvancedGradeResult(score, feedbackResults, keywordResults);
-    }
-
     private async Task UpdateUserWordStatesAsync(
         Guid userId,
         Guid sentenceId,
         IReadOnlyCollection<SentenceKeyword> keywords,
-        IReadOnlyCollection<BlankResultResponse> results,
+        IReadOnlyCollection<DictationBlankResult> results,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -669,7 +540,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
         foreach (var keyword in keywords)
         {
-            var blankId = BuildBlankId(keyword);
+            var blankId = DictationBlankId.ForKeyword(keyword);
             var isCorrect = resultMap.TryGetValue(blankId, out var resultCorrect) && resultCorrect;
 
             var state = await dbContext.UserWordStates
@@ -684,48 +555,18 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
 
             if (state is null)
             {
-                state = new UserWordState
-                {
-                    UserId = userId,
-                    WordId = keyword.WordId,
-                    Status = "Reviewing",
-                    Source = "dictation",
-                    CreatedAt = now
-                };
-
+                state = UserWordState.CreateFromDictation(userId, keyword.WordId, now);
                 dbContext.UserWordStates.Add(state);
             }
 
-            if (isCorrect)
-            {
-                state.CorrectStreak += 1;
-                state.Status = state.CorrectStreak >= 3 ? "Mastered" : "Reviewing";
-                state.NextReviewAt = state.CorrectStreak switch
-                {
-                    1 => now.AddDays(1),
-                    2 => now.AddDays(3),
-                    _ => now.AddDays(7)
-                };
-            }
-            else
-            {
-                state.MistakeCount += 1;
-                state.CorrectStreak = 0;
-                state.Status = "Reviewing";
-                state.NextReviewAt = now.AddDays(1);
-                state.LastMistakeAt = now;
-                state.LastMistakeSentenceId = sentenceId;
-            }
-
-            state.LastReviewedAt = now;
-            state.UpdatedAt = now;
+            state.ApplyDictationResult(isCorrect, sentenceId, now);
         }
     }
 
     private static TargetWordResponse MapTargetWord(SentenceKeyword keyword)
     {
         return new TargetWordResponse(
-            BuildBlankId(keyword),
+            DictationBlankId.ForKeyword(keyword),
             keyword.WordId,
             keyword.SurfaceText,
             keyword.Word.Lemma,
@@ -757,86 +598,24 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             state.LastMistakeSentence?.Translation);
     }
 
-    private static string BuildBlankId(SentenceKeyword keyword)
+    private static IReadOnlyDictionary<string, string> BuildAnswerMap(
+        IReadOnlyCollection<BlankAnswerRequest>? answers)
     {
-        return $"kw_{keyword.Id:N}";
+        return (answers ?? Array.Empty<BlankAnswerRequest>())
+            .GroupBy(answer => answer.BlankId)
+            .ToDictionary(group => group.Key, group => group.Last().Value);
     }
 
-    private static string NormalizeMode(string? mode)
+    private static BlankResultResponse[] MapBlankResults(
+        IReadOnlyCollection<DictationBlankResult> results)
     {
-        return string.IsNullOrWhiteSpace(mode)
-            ? Beginner
-            : mode.Trim().ToLowerInvariant();
-    }
-
-    private static bool IsValidMode(string mode)
-    {
-        return mode is Beginner or Intermediate or Advanced;
-    }
-
-    private static string NormalizeAnswer(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        var normalized = value.Trim().ToLowerInvariant();
-        normalized = NonAnswerCharactersRegex().Replace(normalized, " ");
-        normalized = WhitespaceRegex().Replace(normalized, " ");
-        return normalized.Trim();
-    }
-
-    private static string[] TokenizeNormalized(string normalized)
-    {
-        return normalized.Split(
-            ' ',
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
-
-    private static int CalculateLevenshteinDistance(
-        IReadOnlyList<string> expectedTokens,
-        IReadOnlyList<string> answerTokens)
-    {
-        var distances = new int[expectedTokens.Count + 1, answerTokens.Count + 1];
-
-        for (var i = 0; i <= expectedTokens.Count; i++)
-        {
-            distances[i, 0] = i;
-        }
-
-        for (var j = 0; j <= answerTokens.Count; j++)
-        {
-            distances[0, j] = j;
-        }
-
-        for (var i = 1; i <= expectedTokens.Count; i++)
-        {
-            for (var j = 1; j <= answerTokens.Count; j++)
-            {
-                var substitutionCost = string.Equals(
-                    expectedTokens[i - 1],
-                    answerTokens[j - 1],
-                    StringComparison.OrdinalIgnoreCase)
-                    ? 0
-                    : 1;
-
-                distances[i, j] = Math.Min(
-                    Math.Min(
-                        distances[i - 1, j] + 1,
-                        distances[i, j - 1] + 1),
-                    distances[i - 1, j - 1] + substitutionCost);
-            }
-        }
-
-        return distances[expectedTokens.Count, answerTokens.Count];
-    }
-
-    private static double CalculateBlankScore(IReadOnlyCollection<BlankResultResponse> results)
-    {
-        return results.Count == 0
-            ? 0
-            : Math.Round(results.Count(result => result.IsCorrect) * 100.0 / results.Count, 2);
+        return results
+            .Select(result => new BlankResultResponse(
+                result.BlankId,
+                result.Expected,
+                result.Answer,
+                result.IsCorrect))
+            .ToArray();
     }
 
     private static double CalculateAccuracy(int totalCount, int correctCount)
@@ -845,15 +624,4 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             ? 0
             : Math.Round(correctCount * 100.0 / totalCount, 2);
     }
-
-    [GeneratedRegex("[^a-z0-9'\\s]+", RegexOptions.Compiled)]
-    private static partial Regex NonAnswerCharactersRegex();
-
-    [GeneratedRegex("\\s+", RegexOptions.Compiled)]
-    private static partial Regex WhitespaceRegex();
-
-    private sealed record AdvancedGradeResult(
-        double Score,
-        BlankResultResponse[] FeedbackResults,
-        BlankResultResponse[] KeywordResults);
 }

@@ -1,4 +1,5 @@
 using Api.Application.Common.Interfaces;
+using Api.Domain.Dictation;
 using Api.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 
@@ -177,14 +178,6 @@ public sealed class AuthService(
 
     private static string NormalizeLevel(string? level)
     {
-        if (string.IsNullOrWhiteSpace(level))
-        {
-            return "beginner";
-        }
-
-        var normalized = level.Trim().ToLowerInvariant();
-        return normalized is "beginner" or "intermediate" or "advanced"
-            ? normalized
-            : "beginner";
+        return DictationMode.NormalizeOrDefault(level);
     }
 }

@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Api.Application.Auth;
 using Api.Application.Common.Interfaces;
 using Api.Domain.Content;
+using Api.Domain.Dictation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Application.Content;
@@ -973,10 +974,7 @@ public sealed partial class ContentAdminService(
 
     private static string NormalizeLevel(string value)
     {
-        var normalized = value.Trim().ToLowerInvariant();
-        return normalized is "beginner" or "intermediate" or "advanced"
-            ? normalized
-            : "beginner";
+        return DictationMode.NormalizeOrDefault(value);
     }
 
     private static string NormalizeStatus(string value)

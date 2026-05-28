@@ -149,6 +149,7 @@ apps/api/
     Identity/          # 用户、角色、权限
     Content/           # 场景、单词、句子、音频素材
     Learning/          # 听写记录、错词状态
+    Dictation/         # 听写模式、挖空策略、答案标准化、判分规则
   Application/         # 应用层：用例服务、DTO、接口定义
     Auth/
     Content/
@@ -176,6 +177,7 @@ Program.cs 负责组合依赖注入
 
 - `Domain` 不依赖 EF Core、HTTP、MinIO、TTS、JWT 等外部技术。
 - `Application` 编排业务用例，例如注册登录、出题、提交判题、内容管理。
+- 听写的关键词选择、答案标准化、判分、错词状态流转优先放在 `Domain`，避免 Controller 或应用服务堆业务规则。
 - `Application/Common/Interfaces` 定义外部能力接口，例如数据库上下文、文件存储、TTS。
 - `Infrastructure` 实现这些接口，例如 `AppDbContext`、`MinioFileStorageService`、`LocalTtsProvider`。
 - `Controllers` 不直接写业务逻辑，也不直接访问数据库。

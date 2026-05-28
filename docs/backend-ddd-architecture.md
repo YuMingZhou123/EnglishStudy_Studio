@@ -23,6 +23,7 @@ apps/api/
     Identity/             # 用户、角色、权限
     Content/              # 场景、句子、单词、关键词、媒体资源
     Learning/             # 听写记录、用户词汇状态
+    Dictation/            # 听写模式、关键词选择、答案标准化、判分规则
   Application/            # 应用层：用例编排、DTO、接口抽象
     Common/Interfaces/    # 应用层依赖的抽象接口
     DependencyInjection.cs
@@ -45,8 +46,9 @@ apps/api/
 - `Identity`：`ApplicationUser`、`ApplicationRole`、`Permission`、`ApplicationUserRole`、`RolePermission`
 - `Content`：`Scene`、`Word`、`Sentence`、`SentenceKeyword`、`MediaAsset`
 - `Learning`：`DictationAttempt`、`UserWordState`
+- `Dictation`：`DictationMode`、`DictationKeywordSelector`、`DictationGrader`、`DictationAnswerNormalizer`
 
-后续听写规则、挖空策略、判分策略、错词状态流转，优先沉淀到领域层或领域服务中。
+听写规则、挖空策略、判分策略、错词状态流转，优先沉淀到领域层或领域服务中。应用层只负责调用这些规则并完成数据读取、保存和 DTO 转换。
 
 ### 3.2 Application 应用层
 
@@ -145,3 +147,17 @@ Controller 不应该做：
 - 配置对象进入 `Infrastructure/Options`。
 - 应用层抽象 `IAppDbContext` 已建立。
 - 听写核心数据表 migration 已生成。
+- 听写模式、答案标准化、关键词选择和判分规则已沉淀到 `Domain/Dictation`。
+- `UserWordState` 已承载“手动加入词汇本”“听写正确/错误后的复习状态流转”规则。
+- `DictationService` 已调整为应用层编排：查询题目、调用领域规则、保存答题记录和词汇状态。
+
+## 8. 后续 DDD 编码准则
+
+新增后端功能时按以下顺序判断代码应该放在哪里：
+
+1. 如果是业务概念、状态流转、判定规则，优先放到 `Domain`。
+2. 如果是一个用户动作对应的流程编排，放到 `Application`。
+3. 如果是数据库、MinIO、TTS、JWT、第三方服务，放到 `Infrastructure`。
+4. 如果是 HTTP 路由、请求参数、鉴权入口、响应状态码，放到 `Controllers`。
+
+第一版不强行引入完整 Repository、领域事件、CQRS 或微服务。等某个上下文变复杂后，再按实际压力逐步引入，避免为了架构而架构。
