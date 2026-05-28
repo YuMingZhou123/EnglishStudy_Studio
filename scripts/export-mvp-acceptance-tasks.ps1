@@ -19,6 +19,7 @@ $contentReviewPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\
 $contentReviewHtmlPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\content\mvp-content-review.html"))
 $betaFeedbackPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv"))
 $betaFeedbackHtmlPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"))
+$betaFeedbackPacketDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\beta-feedback-packets"))
 $dashboardPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-dashboard.html"))
 
 function ConvertTo-FileUri([string]$path) {
@@ -112,6 +113,8 @@ if ($contentRows.Count -gt 0) {
 $betaTasks = @()
 foreach ($row in $betaRows) {
     $userId = if ([string]::IsNullOrWhiteSpace([string]$row.UserId)) { "unknown" } else { [string]$row.UserId }
+    $safeUserId = ($userId -replace "[^A-Za-z0-9_-]", "-")
+    $packetPath = Join-Path $betaFeedbackPacketDirectory ("beta-feedback-{0}.md" -f $safeUserId)
     $filled = Test-BetaFilled $row
     $completed = (Get-Status $row.CompletedTest) -eq "yes"
     $status = if (-not $filled) {
@@ -135,6 +138,7 @@ foreach ($row in $betaRows) {
         independentCompletion = [string]$row.IndependentCompletion
         priority = [string]$row.Priority
         link = ConvertTo-FileUriWithQuery $betaFeedbackHtmlPath $query
+        packetLink = if (Test-Path -LiteralPath $packetPath) { ConvertTo-FileUri $packetPath } else { "" }
     }
 }
 
@@ -168,11 +172,12 @@ $betaTable = if ($betaTasks.Count -eq 0) {
 }
 else {
     @(
-        "| User | Status | Completed | Independent | Priority | Action |",
-        "| --- | --- | --- | --- | --- | --- |"
+        "| User | Status | Completed | Independent | Priority | Action | Packet |",
+        "| --- | --- | --- | --- | --- | --- | --- |"
     ) + @($betaTasks | ForEach-Object {
         $link = Get-MarkdownLink "Open" $_.link
-        "| $($_.userId) | $($_.status) | $($_.completedTest) | $($_.independentCompletion) | $($_.priority) | $link |"
+        $packetLink = if ([string]::IsNullOrWhiteSpace([string]$_.packetLink)) { "" } else { Get-MarkdownLink "Packet" $_.packetLink }
+        "| $($_.userId) | $($_.status) | $($_.completedTest) | $($_.independentCompletion) | $($_.priority) | $link | $packetLink |"
     })
 }
 
@@ -201,6 +206,8 @@ $lines = @(
     '```powershell',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
+    '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
+    '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',

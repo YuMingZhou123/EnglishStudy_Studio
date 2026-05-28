@@ -82,6 +82,9 @@ $contentPackets = Invoke-JsonScript -ScriptName "export-content-review-packets.p
 $betaHtml = Invoke-JsonScript `
     -ScriptName "export-beta-feedback-html.ps1" `
     -Parameters @{ UserCount = $BetaUserCount }
+$betaPackets = Invoke-JsonScript `
+    -ScriptName "export-beta-feedback-packets.ps1" `
+    -Parameters @{ UserCount = $BetaUserCount }
 
 $contentSummary = $contentValidation.summary
 $betaSummary = $betaValidation.summary
@@ -132,6 +135,7 @@ else {
         csv = $betaTemplate
         validation = $betaValidation
         html = $betaHtml
+        packets = $betaPackets
         summary = $betaSummary
     }
     dashboard = $dashboard
@@ -144,6 +148,8 @@ else {
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
         "If the content CSV validates, run .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts.",
+        "Use feedback/beta-feedback-packets/index.md if you want one feedback packet per beta tester.",
+        "After beta packets are returned, run .\scripts\import-beta-feedback-packets.ps1 -ValidateOnly, then .\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts.",
         "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly before importing.",
         "If the beta CSV validates, run .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts.",
         "Run .\scripts\check-mvp-readiness.ps1 -IncludeBuild before calling the first version complete."

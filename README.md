@@ -245,6 +245,8 @@ API 启动后导入内容包：
 ```powershell
 .\scripts\export-beta-feedback-template.ps1
 .\scripts\export-beta-feedback-html.ps1
+.\scripts\export-beta-feedback-packets.ps1
+.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\summarize-beta-feedback.ps1

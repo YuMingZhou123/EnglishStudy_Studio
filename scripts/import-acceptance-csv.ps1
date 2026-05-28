@@ -25,6 +25,8 @@ function Get-Config([string]$kind) {
             summaryScript = "summarize-content-review.ps1"
             summaryPathParameter = "ReviewPath"
             htmlScript = "export-content-review-html.ps1"
+            packetScript = "export-content-review-packets.ps1"
+            packetPathProperty = "indexPath"
             requiredColumns = @(
                 "RowNumber",
                 "SceneCode",
@@ -51,6 +53,8 @@ function Get-Config([string]$kind) {
         summaryScript = "summarize-beta-feedback.ps1"
         summaryPathParameter = "FeedbackPath"
         htmlScript = "export-beta-feedback-html.ps1"
+        packetScript = "export-beta-feedback-packets.ps1"
+        packetPathProperty = "indexPath"
         requiredColumns = @(
             "UserId",
             "UserType",
@@ -304,9 +308,11 @@ $summary = Invoke-JsonScript -ScriptName $config.summaryScript
 $refreshed = @()
 if ($RefreshArtifacts) {
     $htmlSummary = Invoke-JsonScript -ScriptName $config.htmlScript
+    $packetSummary = Invoke-JsonScript -ScriptName $config.packetScript
     $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
     $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
     $refreshed += $htmlSummary.outputPath
+    $refreshed += $packetSummary.($config.packetPathProperty)
     $refreshed += $dashboardSummary.outputPath
     $refreshed += $tasksSummary.outputPath
 }

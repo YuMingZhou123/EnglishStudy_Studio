@@ -42,6 +42,7 @@ node .\scripts\ui-smoke-test.mjs
 ```powershell
 .\scripts\export-beta-feedback-template.ps1
 .\scripts\export-beta-feedback-html.ps1
+.\scripts\export-beta-feedback-packets.ps1
 ```
 
 如果需要同时准备内容审核台、内测反馈表和当前门禁汇总，可以运行：
@@ -55,7 +56,17 @@ node .\scripts\ui-smoke-test.mjs
 ```text
 feedback/internal-beta-feedback.csv
 feedback/internal-beta-feedback.html
+feedback/beta-feedback-packets/index.md
 ```
+
+如果想给每个内测用户单独准备一份记录表，可以使用 `feedback/beta-feedback-packets/index.md`。每个用户一份 Markdown 文件，完成后先预检再导回主反馈表：
+
+```powershell
+.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly
+.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts
+```
+
+导入规则：只导入已填写的用户包；空白用户包会跳过；同一个用户如果有多份已填写包会报错，避免覆盖真实反馈。
 
 可以从 `acceptance/mvp-acceptance-dashboard.html` 直接打开下一位待记录的测试用户，也可以打开 `feedback/internal-beta-feedback.html` 按用户或填写状态筛选。逐位记录内测结果后，导出 `internal-beta-feedback.csv`，最后导入并汇总：
 
