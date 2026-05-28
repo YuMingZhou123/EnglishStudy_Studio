@@ -273,6 +273,7 @@ function Write-Runbook($summary) {
         "- Dashboard: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-acceptance-dashboard.html')))",
         "- Task list: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-acceptance-tasks.md')))",
         "- Fix plan: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-fix-plan.md')))",
+        "- Release gate: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-release-gate.md')))",
         "- First version status: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-status.md')))",
         "- Content review packets: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'content\review-packets\index.md')))",
         "- Beta feedback packets: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'feedback\beta-feedback-packets\index.md')))",
@@ -341,6 +342,7 @@ else {
 }
 
 $acceptance = Invoke-JsonScript -ScriptName "prepare-mvp-acceptance.ps1" -Parameters @{ SkipReadiness = $true }
+$releaseGate = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
 $statusReport = Invoke-JsonScript -ScriptName "export-first-version-status.ps1" -Parameters @{ SkipReadiness = $true }
 
 $readiness = if ($SkipReadiness) {
@@ -377,6 +379,7 @@ $summary = [pscustomobject]@{
         dashboard = $acceptance.dashboard.outputPath
         tasks = $acceptance.tasks.outputPath
         fixPlan = $acceptance.fixPlan.outputPath
+        releaseGate = $releaseGate.outputPath
         statusReport = $statusReport.outputPath
         contentPackets = $acceptance.contentReview.packets.indexPath
         betaPackets = $acceptance.betaFeedback.packets.indexPath

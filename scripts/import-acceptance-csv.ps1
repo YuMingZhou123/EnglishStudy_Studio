@@ -312,12 +312,14 @@ if ($RefreshArtifacts) {
     $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
     $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
     $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
+    $releaseGateSummary = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
     $statusReportSummary = Invoke-JsonScript -ScriptName "export-first-version-status.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $packetSummary.($config.packetPathProperty)
     $refreshed += $dashboardSummary.outputPath
     $refreshed += $tasksSummary.outputPath
     $refreshed += $fixPlanSummary.outputPath
+    $refreshed += $releaseGateSummary.outputPath
     $refreshed += $statusReportSummary.outputPath
 }
 

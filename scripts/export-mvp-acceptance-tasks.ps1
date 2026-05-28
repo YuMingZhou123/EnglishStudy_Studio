@@ -23,6 +23,7 @@ $betaFeedbackPacketDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScrip
 $dashboardPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-dashboard.html"))
 $fixPlanPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-fix-plan.md"))
 $statusReportPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-status.md"))
+$releaseGatePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-release-gate.md"))
 
 function ConvertTo-FileUri([string]$path) {
     return ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
@@ -157,6 +158,7 @@ $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $dashboardLink = Get-MarkdownLink "Open dashboard" (ConvertTo-FileUri $dashboardPath)
 $fixPlanLink = Get-MarkdownLink "Open fix plan" (ConvertTo-FileUri $fixPlanPath)
 $statusReportLink = Get-MarkdownLink "Open status" (ConvertTo-FileUri $statusReportPath)
+$releaseGateLink = Get-MarkdownLink "Open release gate" (ConvertTo-FileUri $releaseGatePath)
 
 $contentTable = if ($contentBatches.Count -eq 0) {
     @('- Content review sheet is missing. Run `.\scripts\export-content-review-sheet.ps1` first.')
@@ -196,6 +198,8 @@ $lines = @(
     "",
     "First version status: $statusReportLink",
     "",
+    "Release gate: $releaseGateLink",
+    "",
     "## Current Gates",
     "",
     "- Content review: $($contentPassRows.Count) pass, $($contentFixRows.Count) fix/remove, $($contentBlankRows.Count) blank, total $($contentRows.Count).",
@@ -218,6 +222,7 @@ $lines = @(
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-status.ps1',
+    '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',

@@ -252,6 +252,7 @@ API 启动后导入内容包：
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\export-mvp-fix-plan.ps1
 .\scripts\export-first-version-status.ps1
+.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady
 .\scripts\summarize-beta-feedback.ps1
 ```
 
