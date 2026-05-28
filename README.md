@@ -192,6 +192,14 @@ API 启动后导入内容包：
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\summarize-content-review.ps1
+```
+
+导出内测反馈表并汇总结果：
+
+```powershell
+.\scripts\export-beta-feedback-template.ps1
+.\scripts\summarize-beta-feedback.ps1
 ```
 
 ## 第一版内测与审核

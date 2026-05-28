@@ -20,6 +20,7 @@
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\summarize-content-review.ps1
 ```
 
 默认输出：
@@ -36,6 +37,14 @@ content/mvp-content-review.csv
 - `fix_keyword`
 - `fix_audio`
 - `remove`
+
+审核完成后再次运行：
+
+```powershell
+.\scripts\summarize-content-review.ps1
+```
+
+`passesMinimumGate` 为 `true` 时，说明内容审核结果达到第一版最低标准。
 
 ## 3. 句子审核标准
 

@@ -37,6 +37,18 @@ node .\scripts\ui-smoke-test.mjs
 
 通过后再发给用户试用。
 
+导出内测反馈表：
+
+```powershell
+.\scripts\export-beta-feedback-template.ps1
+```
+
+默认输出：
+
+```text
+feedback/internal-beta-feedback.csv
+```
+
 ## 3. 参与用户
 
 建议第一轮找 5 到 10 人：
@@ -167,3 +179,11 @@ P2：
 - 后置：不影响第一版验证的扩展功能。
 
 不要在第一轮内测后立刻扩展支付、小程序、机构端、复杂报告。先把语境听写闭环打磨顺。
+
+汇总内测结果：
+
+```powershell
+.\scripts\summarize-beta-feedback.ps1
+```
+
+`passesMinimumGate` 为 `true` 时，说明内测结果达到本文档的最低通过标准。
