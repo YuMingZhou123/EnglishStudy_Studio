@@ -231,13 +231,26 @@ if ($null -eq $word) {
 }
 
 $sentenceText = "Please remember $wordLemma during practice."
+$sentence = $sentences | Where-Object { $_.text -eq $sentenceText } | Select-Object -First 1
+$existingAudioAssetId = if ($null -ne $sentence -and -not [string]::IsNullOrWhiteSpace($sentence.audioAssetId)) {
+    $sentence.audioAssetId
+}
+else {
+    $null
+}
+$existingAudioUrl = if ($null -ne $sentence -and -not [string]::IsNullOrWhiteSpace($sentence.audioUrl)) {
+    $sentence.audioUrl
+}
+else {
+    ""
+}
 $sentencePayload = @{
     text = $sentenceText
     translation = "Remember this smoke test word during practice."
     level = "beginner"
     sceneId = $scene.id
-    audioAssetId = $null
-    audioUrl = ""
+    audioAssetId = $existingAudioAssetId
+    audioUrl = $existingAudioUrl
     status = "draft"
     keywords = @(@{
         wordId = $word.id
@@ -246,7 +259,6 @@ $sentencePayload = @{
         blankGroup = $null
     })
 }
-$sentence = $sentences | Where-Object { $_.text -eq $sentenceText } | Select-Object -First 1
 if ($null -eq $sentence) {
     $sentence = Invoke-RestMethod `
         -Method Post `
@@ -277,16 +289,21 @@ Assert-Condition ($offline.status -eq "offline") "Taking sentence offline failed
 
 $ttsMediaStatus = "Skipped"
 if ($IncludeTts) {
-    Write-Host "Checking TTS generation..."
-    $ttsSentence = Invoke-RestMethod `
-        -Method Post `
-        -Uri "$ApiBaseUrl/api/admin/sentences/$($sentence.id)/generate-audio" `
-        -Headers (New-AuthHeaders $adminToken) `
-        -ContentType "application/json" `
-        -Body (ConvertTo-JsonBody @{
-            voice = "en-US"
-            speed = 1
-        })
+    Write-Host "Checking TTS media..."
+    if ([string]::IsNullOrWhiteSpace($offline.audioUrl) -or [string]::IsNullOrWhiteSpace($offline.audioAssetId)) {
+        $ttsSentence = Invoke-RestMethod `
+            -Method Post `
+            -Uri "$ApiBaseUrl/api/admin/sentences/$($sentence.id)/generate-audio" `
+            -Headers (New-AuthHeaders $adminToken) `
+            -ContentType "application/json" `
+            -Body (ConvertTo-JsonBody @{
+                voice = "en-US"
+                speed = 1
+            })
+    }
+    else {
+        $ttsSentence = $offline
+    }
 
     Assert-Condition (-not [string]::IsNullOrWhiteSpace($ttsSentence.audioUrl)) "TTS generation did not bind an audio URL."
     Assert-Condition (-not [string]::IsNullOrWhiteSpace($ttsSentence.audioAssetId)) "TTS generation did not bind an audio asset."

@@ -45,7 +45,7 @@ npm run dev
 .\scripts\smoke-test.ps1
 ```
 
-说明：smoke test 会复用固定的 smoke 场景、单词和句子，避免重复执行时持续污染内容库。
+说明：smoke test 会复用固定的 smoke 场景、单词和句子，避免重复执行时持续污染内容库。固定 smoke 句子已有音频时，`-IncludeTts` 会复用并回读该音频，避免重复生成 TTS 资产。
 
 包含 TTS 的完整 smoke test：
 
