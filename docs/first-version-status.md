@@ -129,12 +129,14 @@ feedback/internal-beta-feedback.html
 内容审核完成后：
 
 ```powershell
+.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 ```
 
 每轮内测反馈完成后：
 
 ```powershell
+.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 ```
 

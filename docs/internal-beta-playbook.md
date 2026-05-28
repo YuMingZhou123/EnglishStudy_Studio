@@ -60,11 +60,24 @@ feedback/internal-beta-feedback.html
 可以从 `acceptance/mvp-acceptance-dashboard.html` 直接打开下一位待记录的测试用户，也可以打开 `feedback/internal-beta-feedback.html` 按用户或填写状态筛选。逐位记录内测结果后，导出 `internal-beta-feedback.csv`，最后导入并汇总：
 
 ```powershell
+.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\summarize-beta-feedback.ps1
 ```
 
 说明：如果 HTML 反馈表导出的 `internal-beta-feedback.csv` 在浏览器下载目录，`import-acceptance-csv.ps1` 会自动找下载目录中的最新同名文件；如果文件在其他位置，使用 `-SourcePath` 指定。
+`-ValidateOnly` 只检查 CSV 格式和可统计字段，不会覆盖当前反馈表。
+
+建议优先使用 HTML 反馈表下拉选项，手写 CSV 时保持以下值：
+
+| 字段 | 可填写值 |
+| --- | --- |
+| `CompletedTest` | 空白、`yes`、`no` |
+| `IndependentCompletion` | 空白、`yes`、`no` |
+| `UnderstandsDifficulty` | 空白、`yes`、`partial`、`no` |
+| `WillingNext` | 空白、`yes`、`average`、`no` |
+| `PerceivedUseful` | 空白、`yes`、`partial`、`no` |
+| `Priority` | 空白、`P0`、`P1`、`P2` |
 
 ## 3. 参与用户
 

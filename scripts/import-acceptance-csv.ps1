@@ -5,6 +5,7 @@ param(
 
     [string]$SourcePath = "",
     [string]$DownloadsDirectory = "",
+    [switch]$ValidateOnly,
     [switch]$NoBackup,
     [switch]$RefreshArtifacts
 )
@@ -249,6 +250,22 @@ $source = Resolve-SourcePath $config
 $source = Get-FullPath $source
 $destination = $config.destinationPath
 $rows = Validate-Rows $config $source
+
+if ($ValidateOnly) {
+    [pscustomobject]@{
+        kind = $Kind
+        sourcePath = $source
+        destinationPath = $destination
+        validationOnly = $true
+        valid = $true
+        imported = $false
+        rowCount = $rows.Count
+        backupPath = $null
+        refreshedArtifacts = @()
+    } | ConvertTo-Json -Depth 5
+
+    exit 0
+}
 
 $destinationDirectory = Split-Path -Parent $destination
 if (-not (Test-Path -LiteralPath $destinationDirectory)) {

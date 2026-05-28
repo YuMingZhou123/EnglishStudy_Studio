@@ -45,11 +45,24 @@ HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过
 审核完成后再次运行：
 
 ```powershell
+.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 .\scripts\summarize-content-review.ps1
 ```
 
 说明：如果 HTML 审核台导出的 `mvp-content-review.csv` 在浏览器下载目录，`import-acceptance-csv.ps1` 会自动找下载目录中的最新同名文件；如果文件在其他位置，使用 `-SourcePath` 指定。
+`-ValidateOnly` 只检查 CSV 格式和可统计字段，不会覆盖当前审核表。
+
+`ReviewStatus` 只允许以下值或空白：
+
+```text
+pass
+fix_sentence
+fix_translation
+fix_keyword
+fix_audio
+remove
+```
 
 `passesMinimumGate` 为 `true` 时，说明内容审核结果达到第一版最低标准。
 
