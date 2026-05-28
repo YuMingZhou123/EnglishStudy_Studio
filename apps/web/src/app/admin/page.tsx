@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   DictationMode,
   GenerateMissingAudioResult,
@@ -66,6 +66,12 @@ export default function AdminPage() {
     status: "published",
     speed: "1",
     includeExternalAudio: false,
+  });
+  const [sentenceFilters, setSentenceFilters] = useState({
+    keyword: "",
+    sceneId: "all",
+    level: "all",
+    status: "all",
   });
 
   const [sceneForm, setSceneForm] = useState({
@@ -426,6 +432,35 @@ export default function AdminPage() {
   ) {
     audioOptions.push([sentenceForm.audioAssetId, "当前已绑定音频"]);
   }
+
+  const filteredSentences = useMemo(() => {
+    const keyword = sentenceFilters.keyword.trim().toLowerCase();
+
+    return sentences.filter((sentence) => {
+      const matchesKeyword =
+        !keyword ||
+        sentence.text.toLowerCase().includes(keyword) ||
+        sentence.translation.includes(keyword) ||
+        sentence.sceneName.toLowerCase().includes(keyword) ||
+        sentence.keywords.some(
+          (item) =>
+            item.surfaceText.toLowerCase().includes(keyword) ||
+            item.word.lemma.toLowerCase().includes(keyword) ||
+            item.word.meaningCn.includes(keyword),
+        );
+      const matchesScene =
+        sentenceFilters.sceneId === "all" ||
+        sentence.sceneId === sentenceFilters.sceneId;
+      const matchesLevel =
+        sentenceFilters.level === "all" ||
+        sentence.level === sentenceFilters.level;
+      const matchesStatus =
+        sentenceFilters.status === "all" ||
+        sentence.status === sentenceFilters.status;
+
+      return matchesKeyword && matchesScene && matchesLevel && matchesStatus;
+    });
+  }, [sentenceFilters, sentences]);
 
   if (loading) {
     return (
@@ -911,8 +946,70 @@ export default function AdminPage() {
             </AdminPanel>
 
             <AdminPanel title="句子列表">
+              <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_160px_140px_140px]">
+                <AdminInput
+                  label="搜索"
+                  onChange={(value) =>
+                    setSentenceFilters((current) => ({
+                      ...current,
+                      keyword: value,
+                    }))
+                  }
+                  placeholder="句子、翻译、关键词"
+                  value={sentenceFilters.keyword}
+                />
+                <AdminSelect
+                  label="场景"
+                  onChange={(value) =>
+                    setSentenceFilters((current) => ({
+                      ...current,
+                      sceneId: value,
+                    }))
+                  }
+                  options={[
+                    ["all", "全部场景"],
+                    ...scenes.map((scene) => [scene.id, scene.name]),
+                  ]}
+                  value={sentenceFilters.sceneId}
+                />
+                <AdminSelect
+                  label="难度"
+                  onChange={(value) =>
+                    setSentenceFilters((current) => ({
+                      ...current,
+                      level: value,
+                    }))
+                  }
+                  options={[
+                    ["all", "全部难度"],
+                    ["beginner", "初级"],
+                    ["intermediate", "中级"],
+                    ["advanced", "高级"],
+                  ]}
+                  value={sentenceFilters.level}
+                />
+                <AdminSelect
+                  label="状态"
+                  onChange={(value) =>
+                    setSentenceFilters((current) => ({
+                      ...current,
+                      status: value,
+                    }))
+                  }
+                  options={[
+                    ["all", "全部状态"],
+                    ["draft", "草稿"],
+                    ["published", "已发布"],
+                    ["offline", "已下架"],
+                  ]}
+                  value={sentenceFilters.status}
+                />
+              </div>
+              <p className="mb-3 text-sm text-[#69736f]">
+                显示 {filteredSentences.length} / {sentences.length} 条
+              </p>
               <div className="grid gap-3">
-                {sentences.map((sentence) => (
+                {filteredSentences.map((sentence) => (
                   <div
                     className="rounded-lg border border-[#e3e8e5] p-4"
                     key={sentence.id}
