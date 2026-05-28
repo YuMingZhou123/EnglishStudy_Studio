@@ -57,6 +57,13 @@ npm run dev
 node .\scripts\ui-smoke-test.mjs
 ```
 
+第一版自动化就绪汇总：
+
+```powershell
+.\scripts\check-mvp-readiness.ps1
+.\scripts\check-mvp-readiness.ps1 -IncludeBuild
+```
+
 导入 MVP 内容包：
 
 ```powershell
@@ -154,6 +161,7 @@ npm run build
 
 工程第一版可以认为“可内测”的条件：
 
+- `.\scripts\check-mvp-readiness.ps1` 输出 `automatedReady: true`。
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
 - `node .\scripts\ui-smoke-test.mjs` 通过。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。

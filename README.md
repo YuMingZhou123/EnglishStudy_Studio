@@ -150,6 +150,18 @@ node .\scripts\ui-smoke-test.mjs
 
 脚本会使用本机 Edge 或 Chrome 的 headless 模式检查登录、学习台、初级听写、词汇本、学习记录和内容后台页面。
 
+汇总第一版自动化就绪状态：
+
+```powershell
+.\scripts\check-mvp-readiness.ps1
+```
+
+需要连同后端编译、前端 lint 和前端构建一起检查时：
+
+```powershell
+.\scripts\check-mvp-readiness.ps1 -IncludeBuild
+```
+
 ## MVP 内容包
 
 仓库内置一份原创 MVP 句子包：
