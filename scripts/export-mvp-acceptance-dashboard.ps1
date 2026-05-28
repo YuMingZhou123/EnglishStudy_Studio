@@ -154,6 +154,60 @@ function Get-NextContentReviewBatch([string]$ReviewPath, [int]$BatchSize = 20) {
     }
 }
 
+function Get-NextBetaFeedbackUser([string]$FeedbackPath) {
+    if (-not (Test-Path -LiteralPath $FeedbackPath)) {
+        return [pscustomobject]@{
+            user = "U01"
+            status = "blank"
+            label = "Record tester U01"
+        }
+    }
+
+    $rows = @(Import-Csv -LiteralPath $FeedbackPath -Encoding UTF8)
+    if ($rows.Count -eq 0) {
+        return [pscustomobject]@{
+            user = "U01"
+            status = "blank"
+            label = "Record tester U01"
+        }
+    }
+
+    foreach ($row in $rows) {
+        $completed = [string]$row.CompletedTest
+        $independent = [string]$row.IndependentCompletion
+        $notes = [string]$row.Notes
+        if ([string]::IsNullOrWhiteSpace($completed) -and
+            [string]::IsNullOrWhiteSpace($independent) -and
+            [string]::IsNullOrWhiteSpace($notes)) {
+            $userId = if ([string]::IsNullOrWhiteSpace([string]$row.UserId)) { "U01" } else { [string]$row.UserId }
+            return [pscustomobject]@{
+                user = $userId
+                status = "blank"
+                label = "Record tester $userId"
+            }
+        }
+    }
+
+    foreach ($row in $rows) {
+        $completed = ([string]$row.CompletedTest).Trim().ToLowerInvariant()
+        if ($completed -ne "yes") {
+            $userId = if ([string]::IsNullOrWhiteSpace([string]$row.UserId)) { "U01" } else { [string]$row.UserId }
+            return [pscustomobject]@{
+                user = $userId
+                status = ""
+                label = "Follow up $userId"
+            }
+        }
+    }
+
+    $firstUser = if ([string]::IsNullOrWhiteSpace([string]$rows[0].UserId)) { "U01" } else { [string]$rows[0].UserId }
+    return [pscustomobject]@{
+        user = $firstUser
+        status = ""
+        label = "Open tester $firstUser"
+    }
+}
+
 function New-MetricHtml([string]$label, $value, [string]$className = "") {
     return @"
         <div class="metric $className">
@@ -230,6 +284,7 @@ else {
 $contentReviewHtmlPath = Join-Path $PSScriptRoot "..\content\mvp-content-review.html"
 $contentReviewCsvPath = Get-ObjectProperty $contentReview "reviewPath" (Join-Path $PSScriptRoot "..\content\mvp-content-review.csv")
 $betaFeedbackHtmlPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"
+$betaFeedbackCsvPath = Get-ObjectProperty $betaFeedback "feedbackPath" (Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv")
 $contentReviewDocPath = Join-Path $PSScriptRoot "..\docs\content-quality-review.md"
 $betaPlaybookPath = Join-Path $PSScriptRoot "..\docs\internal-beta-playbook.md"
 $acceptanceChecklistPath = Join-Path $PSScriptRoot "..\docs\mvp-acceptance-checklist.md"
@@ -259,6 +314,12 @@ if (-not [string]::IsNullOrWhiteSpace([string]$nextContentBatch.status)) {
     $nextContentBatchQuery.status = $nextContentBatch.status
 }
 $nextContentBatchUri = ConvertTo-FileUriWithQuery $contentReviewHtmlPath $nextContentBatchQuery
+$nextBetaUser = Get-NextBetaFeedbackUser $betaFeedbackCsvPath
+$nextBetaUserQuery = @{ user = $nextBetaUser.user }
+if (-not [string]::IsNullOrWhiteSpace([string]$nextBetaUser.status)) {
+    $nextBetaUserQuery.status = $nextBetaUser.status
+}
+$nextBetaUserUri = ConvertTo-FileUriWithQuery $betaFeedbackHtmlPath $nextBetaUserQuery
 
 $contentMetrics = @(
     New-MetricHtml "Total rows" $contentTotalRows
@@ -447,7 +508,8 @@ $contentMetrics
 $betaMetrics
       </div>
       <div class="links">
-        <a class="button primary" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaFeedbackHtmlPath))">Open feedback form</a>
+        <a class="button primary" href="$(ConvertTo-HtmlText $nextBetaUserUri)">$(ConvertTo-HtmlText $nextBetaUser.label)</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaFeedbackHtmlPath))">Open feedback form</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaPlaybookPath))">Beta playbook</a>
       </div>
     </section>

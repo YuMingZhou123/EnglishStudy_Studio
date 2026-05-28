@@ -145,6 +145,13 @@ $html = @'
       font-size: 13px;
     }
 
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 0 14px;
+    }
+
     button, select, input, textarea {
       font: inherit;
     }
@@ -265,6 +272,14 @@ $html = @'
         </div>
         <button class="primary" id="exportCsv">Export CSV</button>
       </div>
+      <div class="toolbar">
+        <select id="userFilter"></select>
+        <select id="statusFilter">
+          <option value="">All rows</option>
+          <option value="blank">Blank rows</option>
+          <option value="filled">Filled rows</option>
+        </select>
+      </div>
     </div>
   </header>
   <main class="wrap">
@@ -327,6 +342,39 @@ $html = @'
       return ["CompletedTest", "IndependentCompletion", "Notes"].some(field => valueOf(row, field).trim());
     }
 
+    function renderFilters() {
+      document.getElementById("userFilter").innerHTML = [
+        `<option value="">All testers</option>`,
+        ...rows.map(row => `<option value="${escapeHtml(row.UserId)}">${escapeHtml(row.UserId)}</option>`)
+      ].join("");
+    }
+
+    function setFilterFromQuery(filterId, queryName) {
+      const value = new URLSearchParams(location.search).get(queryName);
+      if (!value) return;
+
+      const filter = document.getElementById(filterId);
+      const hasOption = Array.from(filter.options).some(option => option.value === value);
+      if (hasOption) {
+        filter.value = value;
+      }
+    }
+
+    function applyQueryFilters() {
+      setFilterFromQuery("userFilter", "user");
+      setFilterFromQuery("statusFilter", "status");
+    }
+
+    function getFilteredRows() {
+      const user = document.getElementById("userFilter").value;
+      const status = document.getElementById("statusFilter").value;
+      return rows.filter(row => {
+        const filled = isFilled(row);
+        return (!user || row.UserId === user)
+          && (!status || (status === "filled" ? filled : !filled));
+      });
+    }
+
     function renderField(row, field) {
       const id = row.UserId;
       const current = valueOf(row, field);
@@ -356,7 +404,8 @@ $html = @'
     }
 
     function renderCards() {
-      document.getElementById("cards").innerHTML = rows.map(row => `
+      const filteredRows = getFilteredRows();
+      document.getElementById("cards").innerHTML = filteredRows.map(row => `
         <article class="card">
           <div class="row">
             ${fields.map(field => renderField(row, field)).join("")}
@@ -408,9 +457,13 @@ $html = @'
       URL.revokeObjectURL(link.href);
     }
 
+    renderFilters();
+    applyQueryFilters();
     renderCards();
     renderSummary();
 
+    document.getElementById("userFilter").addEventListener("change", renderCards);
+    document.getElementById("statusFilter").addEventListener("change", renderCards);
     document.getElementById("exportCsv").addEventListener("click", exportCsv);
     document.getElementById("cards").addEventListener("input", event => {
       const element = event.target.closest("[data-user][data-field]");

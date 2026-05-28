@@ -57,7 +57,7 @@ feedback/internal-beta-feedback.csv
 feedback/internal-beta-feedback.html
 ```
 
-可以打开 `feedback/internal-beta-feedback.html` 逐位记录内测结果，再导出 `internal-beta-feedback.csv`，最后导入并汇总：
+可以从 `acceptance/mvp-acceptance-dashboard.html` 直接打开下一位待记录的测试用户，也可以打开 `feedback/internal-beta-feedback.html` 按用户或填写状态筛选。逐位记录内测结果后，导出 `internal-beta-feedback.csv`，最后导入并汇总：
 
 ```powershell
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
