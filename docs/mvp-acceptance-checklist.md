@@ -64,6 +64,12 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\import-mvp-content.ps1
 ```
 
+导出内容审核表：
+
+```powershell
+.\scripts\export-content-review-sheet.ps1
+```
+
 构建检查：
 
 ```powershell
@@ -120,9 +126,9 @@ npm run build
 | --- | --- | --- |
 | 第一批内容规模 100 到 300 句 | 已有可导入内容包 | `content/mvp-sentence-pack.json` 提供 120 条原创句子，运行 `.\scripts\import-mvp-content.ps1` 导入 |
 | 核心词 300 到 800 个 | 已达到 MVP 下限 | 内容包提供 335 个目标词配置项、324 个独立词形；内容质量仍需人工审核 |
-| 5 到 10 名真实用户内测 | 未完成 | 用 smoke test 确认环境后，安排用户按清单试用并收集反馈 |
-| 前端真实听音体验 | 待人工验收 | 浏览器中手工播放上传音频和 TTS 音频，确认音量、加载、慢速体验 |
-| 内容质量审核 | 待完善 | 为每条句子检查英文自然度、中文翻译、关键词位置、音频质量 |
+| 5 到 10 名真实用户内测 | 已有执行手册，待真实用户完成 | 按 `docs/internal-beta-playbook.md` 安排用户试用并收集反馈 |
+| 前端真实听音体验 | 自动化已覆盖按钮，待真人听感确认 | `node .\scripts\ui-smoke-test.mjs` 覆盖播放入口；真人按内测手册确认音量、清晰度和慢速体验 |
+| 内容质量审核 | 已有规范和导出脚本，待人工逐条审核 | 按 `docs/content-quality-review.md`，运行 `.\scripts\export-content-review-sheet.ps1` 导出审核表 |
 
 ## 6. 内测手工验收流程
 
@@ -147,6 +153,7 @@ npm run build
 - `node .\scripts\ui-smoke-test.mjs` 通过。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
+- `.\scripts\export-content-review-sheet.ps1` 可以导出人工审核表。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。
 - `npm run lint` 和 `npm run build` 通过。
 - 浏览器手工走完内测流程，无阻断问题。
