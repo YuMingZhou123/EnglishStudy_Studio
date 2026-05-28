@@ -178,55 +178,91 @@ Assert-Condition (@($scenes).Count -gt 0) "Admin scenes list is empty."
 Assert-Condition (@($adminWords).Count -gt 0) "Admin words list is empty."
 Assert-Condition (@($sentences).Count -gt 0) "Admin sentences list is empty."
 
-$suffix = "$(Get-Date -Format 'yyyyMMddHHmmss')$(([guid]::NewGuid().ToString('N')).Substring(0, 8))"
-$scene = Invoke-RestMethod `
-    -Method Post `
-    -Uri "$ApiBaseUrl/api/admin/scenes" `
-    -Headers (New-AuthHeaders $adminToken) `
-    -ContentType "application/json" `
-    -Body (ConvertTo-JsonBody @{
-        code = "smoke-$suffix"
-        name = "Smoke $suffix"
-        description = "Smoke test scene"
-        isEnabled = $true
-    })
-
-$wordLemma = "smokeword$suffix"
-$word = Invoke-RestMethod `
-    -Method Post `
-    -Uri "$ApiBaseUrl/api/admin/words" `
-    -Headers (New-AuthHeaders $adminToken) `
-    -ContentType "application/json" `
-    -Body (ConvertTo-JsonBody @{
-        lemma = $wordLemma
-        phonetic = "/smok/"
-        partOfSpeech = "noun"
-        meaningCn = "smoke test word"
-        cefrLevel = "A1"
-        examTags = "smoke"
-        collocations = "smoke test"
-    })
-
-$sentence = Invoke-RestMethod `
-    -Method Post `
-    -Uri "$ApiBaseUrl/api/admin/sentences" `
-    -Headers (New-AuthHeaders $adminToken) `
-    -ContentType "application/json" `
-    -Body (ConvertTo-JsonBody @{
-        text = "Please remember $wordLemma during practice."
-        translation = "Remember this smoke test word during practice."
-        level = "beginner"
-        sceneId = $scene.id
-        audioAssetId = $null
-        audioUrl = ""
-        status = "draft"
-        keywords = @(@{
-            wordId = $word.id
-            surfaceText = $wordLemma
-            priority = 100
-            blankGroup = $null
+$smokeSceneCode = "smoke-test"
+$scene = $scenes | Where-Object { $_.code -eq $smokeSceneCode } | Select-Object -First 1
+if ($null -eq $scene) {
+    $scene = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/admin/scenes" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{
+            code = $smokeSceneCode
+            name = "Smoke Test"
+            description = "Reusable smoke test scene"
+            isEnabled = $true
         })
+}
+elseif (-not $scene.isEnabled) {
+    $scene = Invoke-RestMethod `
+        -Method Put `
+        -Uri "$ApiBaseUrl/api/admin/scenes/$($scene.id)" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{
+            code = $smokeSceneCode
+            name = $scene.name
+            description = $scene.description
+            isEnabled = $true
+        })
+}
+
+$wordLemma = "smokeword"
+$smokeWords = Invoke-RestMethod `
+    -Method Get `
+    -Uri "$ApiBaseUrl/api/admin/words?keyword=$wordLemma" `
+    -Headers (New-AuthHeaders $adminToken)
+$word = $smokeWords | Where-Object { $_.lemma -eq $wordLemma } | Select-Object -First 1
+if ($null -eq $word) {
+    $word = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/admin/words" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{
+            lemma = $wordLemma
+            phonetic = "/smok/"
+            partOfSpeech = "noun"
+            meaningCn = "smoke test word"
+            cefrLevel = "A1"
+            examTags = "smoke"
+            collocations = "smoke test"
+        })
+}
+
+$sentenceText = "Please remember $wordLemma during practice."
+$sentencePayload = @{
+    text = $sentenceText
+    translation = "Remember this smoke test word during practice."
+    level = "beginner"
+    sceneId = $scene.id
+    audioAssetId = $null
+    audioUrl = ""
+    status = "draft"
+    keywords = @(@{
+        wordId = $word.id
+        surfaceText = $wordLemma
+        priority = 100
+        blankGroup = $null
     })
+}
+$sentence = $sentences | Where-Object { $_.text -eq $sentenceText } | Select-Object -First 1
+if ($null -eq $sentence) {
+    $sentence = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/admin/sentences" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody $sentencePayload)
+}
+else {
+    $sentence = Invoke-RestMethod `
+        -Method Put `
+        -Uri "$ApiBaseUrl/api/admin/sentences/$($sentence.id)" `
+        -Headers (New-AuthHeaders $adminToken) `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody $sentencePayload)
+}
 
 $published = Invoke-RestMethod `
     -Method Post `
@@ -269,7 +305,8 @@ $multipart = [System.Net.Http.MultipartFormDataContent]::new()
 $fileBytes = [System.Text.Encoding]::UTF8.GetBytes("smoke audio placeholder")
 $fileContent = [System.Net.Http.ByteArrayContent]::new($fileBytes)
 $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("audio/mpeg")
-$multipart.Add($fileContent, "file", "smoke-$suffix.mp3")
+$mediaSuffix = "$(Get-Date -Format 'yyyyMMddHHmmss')$(([guid]::NewGuid().ToString('N')).Substring(0, 8))"
+$multipart.Add($fileContent, "file", "smoke-$mediaSuffix.mp3")
 $multipart.Add([System.Net.Http.StringContent]::new("audio/smoke"), "folder")
 $uploadResponse = $client.PostAsync("$ApiBaseUrl/api/admin/media/upload", $multipart).GetAwaiter().GetResult()
 $uploadText = $uploadResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult()
