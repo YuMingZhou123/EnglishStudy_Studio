@@ -317,6 +317,7 @@ if ($RefreshArtifacts) {
     $handoffSummary = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
     $handoffValidationSummary = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
     $progressSummary = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
+    $localBetaReadinessSummary = Invoke-JsonScript -ScriptName "check-local-beta-readiness.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $packetSummary.($config.packetPathProperty)
     $refreshed += $dashboardSummary.outputPath
@@ -327,6 +328,7 @@ if ($RefreshArtifacts) {
     $refreshed += $handoffSummary.outputPath
     $refreshed += $handoffValidationSummary.outputPath
     $refreshed += $progressSummary.outputPath
+    $refreshed += $localBetaReadinessSummary.outputPath
 }
 
 [pscustomobject]@{

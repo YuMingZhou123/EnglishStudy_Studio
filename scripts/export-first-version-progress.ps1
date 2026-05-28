@@ -176,6 +176,7 @@ $lines = @(
     "",
     "- Handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff.md")))",
     "- Handoff validation: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff-validation.md")))",
+    "- Local beta readiness: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\local-beta-readiness.md")))",
     "- Release gate: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-release-gate.md")))",
     "- Fix plan: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\mvp-fix-plan.md")))",
     "- Content review packets: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "content\review-packets\index.md")))",
@@ -185,6 +186,7 @@ $lines = @(
     "",
     '```powershell',
     '.\scripts\export-first-version-progress.ps1',
+    '.\scripts\check-local-beta-readiness.ps1',
     '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '```'

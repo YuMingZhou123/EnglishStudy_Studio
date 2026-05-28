@@ -42,6 +42,7 @@ acceptance/mvp-acceptance-dashboard.html
 acceptance/mvp-acceptance-tasks.md
 acceptance/mvp-fix-plan.md
 acceptance/local-beta-run.md
+acceptance/local-beta-readiness.md
 acceptance/first-version-status.md
 acceptance/first-version-release-gate.md
 acceptance/first-version-handoff.md

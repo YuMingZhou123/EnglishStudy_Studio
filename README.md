@@ -167,6 +167,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\export-first-version-handoff.ps1
 .\scripts\validate-first-version-handoff.ps1 -AssertValid
 .\scripts\export-first-version-progress.ps1
+.\scripts\check-local-beta-readiness.ps1
 ```
 
 默认会生成本地验收总览：
@@ -258,6 +259,7 @@ API 启动后导入内容包：
 .\scripts\export-first-version-handoff.ps1
 .\scripts\validate-first-version-handoff.ps1 -AssertValid
 .\scripts\export-first-version-progress.ps1
+.\scripts\check-local-beta-readiness.ps1
 .\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady
 .\scripts\summarize-beta-feedback.ps1
 ```

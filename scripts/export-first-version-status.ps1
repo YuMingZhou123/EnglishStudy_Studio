@@ -166,6 +166,7 @@ $artifactLines = @(
     (New-LinkLine "First version handoff" (Join-Path $RepoRoot "acceptance\first-version-handoff.md"))
     (New-LinkLine "Handoff validation" (Join-Path $RepoRoot "acceptance\first-version-handoff-validation.md"))
     (New-LinkLine "First version progress" (Join-Path $RepoRoot "acceptance\first-version-progress.md"))
+    (New-LinkLine "Local beta readiness" (Join-Path $RepoRoot "acceptance\local-beta-readiness.md"))
     (New-LinkLine "Local beta runbook" (Join-Path $RepoRoot "acceptance\local-beta-run.md"))
     (New-LinkLine "Content review desk" (Join-Path $RepoRoot "content\mvp-content-review.html"))
     (New-LinkLine "Content review packets" (Join-Path $RepoRoot "content\review-packets\index.md"))
@@ -248,6 +249,7 @@ $lines = @(
     '- Use `.\scripts\export-first-version-handoff.ps1` to refresh the review and beta handoff queue.',
     '- Run `.\scripts\validate-first-version-handoff.ps1 -AssertValid` before sharing handoff files.',
     '- Run `.\scripts\export-first-version-progress.ps1` to refresh the compact progress brief.',
+    '- Run `.\scripts\check-local-beta-readiness.ps1` before inviting a real beta tester.',
     '- Run `.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady` as the final release gate.',
     '- Run `.\scripts\check-mvp-readiness.ps1 -IncludeBuild` before declaring the first version complete.'
 )
