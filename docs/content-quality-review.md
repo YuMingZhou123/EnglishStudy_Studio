@@ -51,7 +51,7 @@ HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过
 ```
 
 说明：如果 HTML 审核台导出的 `mvp-content-review.csv` 在浏览器下载目录，`import-acceptance-csv.ps1` 会自动找下载目录中的最新同名文件；如果文件在其他位置，使用 `-SourcePath` 指定。
-`-ValidateOnly` 只检查 CSV 格式和可统计字段，不会覆盖当前审核表。
+`-ValidateOnly` 会检查 CSV 格式和可统计字段，并返回这份待导入 CSV 的审核汇总，不会覆盖当前审核表。
 
 `ReviewStatus` 只允许以下值或空白：
 

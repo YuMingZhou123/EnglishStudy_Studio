@@ -199,7 +199,9 @@ $lines = @(
     "## Finish Commands",
     "",
     '```powershell',
+    '.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
+    '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
     '```'

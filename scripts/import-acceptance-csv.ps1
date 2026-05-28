@@ -23,6 +23,7 @@ function Get-Config([string]$kind) {
             expectedFileName = "mvp-content-review.csv"
             destinationPath = Get-FullPath (Join-Path $PSScriptRoot "..\content\mvp-content-review.csv")
             summaryScript = "summarize-content-review.ps1"
+            summaryPathParameter = "ReviewPath"
             htmlScript = "export-content-review-html.ps1"
             requiredColumns = @(
                 "RowNumber",
@@ -48,6 +49,7 @@ function Get-Config([string]$kind) {
         expectedFileName = "internal-beta-feedback.csv"
         destinationPath = Get-FullPath (Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv")
         summaryScript = "summarize-beta-feedback.ps1"
+        summaryPathParameter = "FeedbackPath"
         htmlScript = "export-beta-feedback-html.ps1"
         requiredColumns = @(
             "UserId",
@@ -239,9 +241,14 @@ function Backup-Destination([string]$destination) {
     return $backupPath
 }
 
-function Invoke-JsonScript([string]$scriptName) {
+function Invoke-JsonScript {
+    param(
+        [string]$ScriptName,
+        [hashtable]$Parameters = @{}
+    )
+
     $scriptPath = Join-Path $PSScriptRoot $scriptName
-    $output = & $scriptPath
+    $output = & $scriptPath @Parameters
     return ($output | Out-String) | ConvertFrom-Json
 }
 
@@ -252,6 +259,10 @@ $destination = $config.destinationPath
 $rows = Validate-Rows $config $source
 
 if ($ValidateOnly) {
+    $summaryParams = @{}
+    $summaryParams[$config.summaryPathParameter] = $source
+    $summary = Invoke-JsonScript -ScriptName $config.summaryScript -Parameters $summaryParams
+
     [pscustomobject]@{
         kind = $Kind
         sourcePath = $source
@@ -261,8 +272,9 @@ if ($ValidateOnly) {
         imported = $false
         rowCount = $rows.Count
         backupPath = $null
+        summary = $summary
         refreshedArtifacts = @()
-    } | ConvertTo-Json -Depth 5
+    } | ConvertTo-Json -Depth 12
 
     exit 0
 }
@@ -288,12 +300,12 @@ if (-not $sameFile) {
     Copy-Item -LiteralPath $source -Destination $destination -Force
 }
 
-$summary = Invoke-JsonScript $config.summaryScript
+$summary = Invoke-JsonScript -ScriptName $config.summaryScript
 $refreshed = @()
 if ($RefreshArtifacts) {
-    $htmlSummary = Invoke-JsonScript $config.htmlScript
-    $dashboardSummary = Invoke-JsonScript "export-mvp-acceptance-dashboard.ps1"
-    $tasksSummary = Invoke-JsonScript "export-mvp-acceptance-tasks.ps1"
+    $htmlSummary = Invoke-JsonScript -ScriptName $config.htmlScript
+    $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
+    $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $dashboardSummary.outputPath
     $refreshed += $tasksSummary.outputPath

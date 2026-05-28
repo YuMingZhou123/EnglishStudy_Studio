@@ -129,8 +129,10 @@ else {
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
         "Open acceptance/mvp-acceptance-tasks.md for batch-by-batch content review and tester follow-up tasks.",
-        "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts.",
-        "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts.",
+        "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
+        "If the content CSV validates, run .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts.",
+        "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly before importing.",
+        "If the beta CSV validates, run .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts.",
         "Run .\scripts\check-mvp-readiness.ps1 -IncludeBuild before calling the first version complete."
     )
 } | ConvertTo-Json -Depth 12
