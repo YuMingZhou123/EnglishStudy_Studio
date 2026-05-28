@@ -80,6 +80,8 @@ export default function AdminPage() {
     partOfSpeech: "",
     meaningCn: "",
     cefrLevel: "A2",
+    examTags: "",
+    collocations: "",
   });
   const [sentenceForm, setSentenceForm] = useState({
     text: "",
@@ -180,6 +182,8 @@ export default function AdminPage() {
         partOfSpeech: "",
         meaningCn: "",
         cefrLevel: "A2",
+        examTags: "",
+        collocations: "",
       });
       setEditingWordId(null);
       setWords((current) =>
@@ -370,6 +374,8 @@ export default function AdminPage() {
       partOfSpeech: word.partOfSpeech ?? "",
       meaningCn: word.meaningCn,
       cefrLevel: word.cefrLevel ?? "A2",
+      examTags: word.examTags ?? "",
+      collocations: word.collocations ?? "",
     });
     setMessage("正在编辑单词");
   }
@@ -551,6 +557,22 @@ export default function AdminPage() {
                     value={wordForm.partOfSpeech}
                   />
                 </div>
+                <AdminInput
+                  label="考试/场景标签"
+                  onChange={(value) =>
+                    setWordForm((current) => ({ ...current, examTags: value }))
+                  }
+                  placeholder="CET4, workplace"
+                  value={wordForm.examTags}
+                />
+                <AdminInput
+                  label="常见搭配"
+                  onChange={(value) =>
+                    setWordForm((current) => ({ ...current, collocations: value }))
+                  }
+                  placeholder="schedule a meeting"
+                  value={wordForm.collocations}
+                />
                 <SubmitButton label={editingWordId ? "保存单词" : "创建单词"} />
               </form>
               <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto pr-1">
