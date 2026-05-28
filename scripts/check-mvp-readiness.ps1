@@ -260,8 +260,17 @@ if (-not $SkipUi) {
 
 if ($IncludeBuild) {
     $steps.Add((Invoke-ReadinessStep "dotnet-build" {
-        dotnet build (Join-Path $PSScriptRoot "..\EnglishStudy.Studio.slnx") -p:UseAppHost=false *> $null
-        [pscustomobject]@{ completed = $true }
+        $apiProject = Join-Path $PSScriptRoot "..\apps\api\api.csproj"
+        $outputPath = Join-Path `
+            ([System.IO.Path]::GetTempPath()) `
+            "EnglishStudyStudio-api-build-$([guid]::NewGuid().ToString('N'))"
+
+        dotnet build $apiProject -o $outputPath -p:UseAppHost=false *> $null
+
+        [pscustomobject]@{
+            completed = $true
+            outputPath = $outputPath
+        }
     }))
 
     $steps.Add((Invoke-ReadinessStep "web-lint" {
