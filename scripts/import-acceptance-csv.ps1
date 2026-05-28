@@ -200,8 +200,10 @@ $refreshed = @()
 if ($RefreshArtifacts) {
     $htmlSummary = Invoke-JsonScript $config.htmlScript
     $dashboardSummary = Invoke-JsonScript "export-mvp-acceptance-dashboard.ps1"
+    $tasksSummary = Invoke-JsonScript "export-mvp-acceptance-tasks.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $dashboardSummary.outputPath
+    $refreshed += $tasksSummary.outputPath
 }
 
 [pscustomobject]@{
