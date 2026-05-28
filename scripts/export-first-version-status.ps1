@@ -164,6 +164,7 @@ $artifactLines = @(
     (New-LinkLine "Fix plan" (Join-Path $RepoRoot "acceptance\mvp-fix-plan.md"))
     (New-LinkLine "Release gate" (Join-Path $RepoRoot "acceptance\first-version-release-gate.md"))
     (New-LinkLine "First version handoff" (Join-Path $RepoRoot "acceptance\first-version-handoff.md"))
+    (New-LinkLine "Handoff validation" (Join-Path $RepoRoot "acceptance\first-version-handoff-validation.md"))
     (New-LinkLine "Local beta runbook" (Join-Path $RepoRoot "acceptance\local-beta-run.md"))
     (New-LinkLine "Content review desk" (Join-Path $RepoRoot "content\mvp-content-review.html"))
     (New-LinkLine "Content review packets" (Join-Path $RepoRoot "content\review-packets\index.md"))
@@ -244,6 +245,7 @@ $lines = @(
     '- Complete beta feedback and import it with `.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts` or `.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts`.',
     '- Use `.\scripts\export-mvp-fix-plan.ps1` after each import to review remaining fixes.',
     '- Use `.\scripts\export-first-version-handoff.ps1` to refresh the review and beta handoff queue.',
+    '- Run `.\scripts\validate-first-version-handoff.ps1 -AssertValid` before sharing handoff files.',
     '- Run `.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady` as the final release gate.',
     '- Run `.\scripts\check-mvp-readiness.ps1 -IncludeBuild` before declaring the first version complete.'
 )

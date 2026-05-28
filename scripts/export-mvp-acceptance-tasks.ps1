@@ -25,6 +25,7 @@ $fixPlanPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\accept
 $statusReportPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-status.md"))
 $releaseGatePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-release-gate.md"))
 $handoffPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-handoff.md"))
+$handoffValidationPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-handoff-validation.md"))
 
 function ConvertTo-FileUri([string]$path) {
     return ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
@@ -161,6 +162,7 @@ $fixPlanLink = Get-MarkdownLink "Open fix plan" (ConvertTo-FileUri $fixPlanPath)
 $statusReportLink = Get-MarkdownLink "Open status" (ConvertTo-FileUri $statusReportPath)
 $releaseGateLink = Get-MarkdownLink "Open release gate" (ConvertTo-FileUri $releaseGatePath)
 $handoffLink = Get-MarkdownLink "Open handoff" (ConvertTo-FileUri $handoffPath)
+$handoffValidationLink = Get-MarkdownLink "Open handoff validation" (ConvertTo-FileUri $handoffValidationPath)
 
 $contentTable = if ($contentBatches.Count -eq 0) {
     @('- Content review sheet is missing. Run `.\scripts\export-content-review-sheet.ps1` first.')
@@ -204,6 +206,8 @@ $lines = @(
     "",
     "First version handoff: $handoffLink",
     "",
+    "Handoff validation: $handoffValidationLink",
+    "",
     "## Current Gates",
     "",
     "- Content review: $($contentPassRows.Count) pass, $($contentFixRows.Count) fix/remove, $($contentBlankRows.Count) blank, total $($contentRows.Count).",
@@ -227,6 +231,7 @@ $lines = @(
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-status.ps1',
     '.\scripts\export-first-version-handoff.ps1',
+    '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',

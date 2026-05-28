@@ -109,6 +109,7 @@ $readiness = Invoke-JsonScript -ScriptName "check-mvp-readiness.ps1" -Parameters
 $content = $readiness.contentReview
 $beta = $readiness.betaFeedback
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
+$handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
 
 $p0Issues = 0
 if ($null -ne $beta -and $beta.PSObject.Properties.Name -contains "p0Issues") {
@@ -128,6 +129,7 @@ $gates = @(
     (New-GateRow "Content review gate" ([bool]$content.passesMinimumGate) "pass: $($content.passRows), fix: $($content.fixRows), blank: $($content.blankRows)" ">=100 pass, 0 fix, 0 blank, scene/level minimums met")
     (New-GateRow "Beta feedback gate" ([bool]$beta.passesMinimumGate) "filled: $($beta.filledRows), completed: $($beta.completedUsers), independent: $($beta.independentUsers)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next")
     (New-GateRow "No untriaged beta issue notes" ($betaNeedsTriage -eq 0) "needs triage: $betaNeedsTriage" "0")
+    (New-GateRow "Handoff artifacts valid" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "all handoff files and links valid")
     (New-GateRow "No P0 beta issues" ($p0Issues -eq 0) "P0 issues: $p0Issues" "0")
     (New-GateRow "No open release shortages" ([int]$fixPlan.openGateShortages -eq 0) "open shortages: $($fixPlan.openGateShortages)" "0")
 )
@@ -215,6 +217,7 @@ $result = [pscustomobject]@{
     contentBlankRows = $content.blankRows
     betaFilledRows = $beta.filledRows
     betaNeedsTriage = $betaNeedsTriage
+    handoffValid = [bool]$handoffValidation.valid
     openGateShortages = $fixPlan.openGateShortages
 }
 

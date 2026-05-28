@@ -165,6 +165,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\prepare-mvp-acceptance.ps1
 .\scripts\prepare-local-beta-run.ps1
 .\scripts\export-first-version-handoff.ps1
+.\scripts\validate-first-version-handoff.ps1 -AssertValid
 ```
 
 默认会生成本地验收总览：
@@ -254,6 +255,7 @@ API 启动后导入内容包：
 .\scripts\export-mvp-fix-plan.ps1
 .\scripts\export-first-version-status.ps1
 .\scripts\export-first-version-handoff.ps1
+.\scripts\validate-first-version-handoff.ps1 -AssertValid
 .\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady
 .\scripts\summarize-beta-feedback.ps1
 ```

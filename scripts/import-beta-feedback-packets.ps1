@@ -355,6 +355,7 @@ if (-not $ValidateOnly) {
         $releaseGateSummary = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
         $statusReportSummary = Invoke-JsonScript -ScriptName "export-first-version-status.ps1"
         $handoffSummary = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
+        $handoffValidationSummary = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
 
         $refreshed += $htmlSummary.outputPath
         $refreshed += $packetSummary.indexPath
@@ -364,6 +365,7 @@ if (-not $ValidateOnly) {
         $refreshed += $releaseGateSummary.outputPath
         $refreshed += $statusReportSummary.outputPath
         $refreshed += $handoffSummary.outputPath
+        $refreshed += $handoffValidationSummary.outputPath
     }
 }
 

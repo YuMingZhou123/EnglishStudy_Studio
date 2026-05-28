@@ -308,6 +308,7 @@ $lines = @(
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-handoff.ps1',
+    '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '```',
     "",
