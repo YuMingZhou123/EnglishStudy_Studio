@@ -49,7 +49,7 @@ export default function VocabularyPage() {
 
         <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
           {loading ? (
-            <p className="text-sm text-[#69736f]">正在加载错词...</p>
+            <p className="text-sm text-[#69736f]">正在加载词汇...</p>
           ) : null}
 
           {!loading && words.length === 0 ? (

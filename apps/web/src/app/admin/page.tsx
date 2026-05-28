@@ -73,6 +73,7 @@ export default function AdminPage() {
     level: "all",
     status: "all",
   });
+  const [wordListKeyword, setWordListKeyword] = useState("");
 
   const [sceneForm, setSceneForm] = useState({
     code: "",
@@ -462,6 +463,21 @@ export default function AdminPage() {
     });
   }, [sentenceFilters, sentences]);
 
+  const filteredWords = useMemo(() => {
+    const keyword = wordListKeyword.trim().toLowerCase();
+    if (!keyword) {
+      return words;
+    }
+
+    return words.filter((word) =>
+      word.lemma.toLowerCase().includes(keyword) ||
+      word.meaningCn.includes(keyword) ||
+      word.partOfSpeech?.toLowerCase().includes(keyword) ||
+      word.examTags?.toLowerCase().includes(keyword) ||
+      word.collocations?.toLowerCase().includes(keyword),
+    );
+  }, [wordListKeyword, words]);
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f4f7f5] text-[#40504b]">
@@ -610,8 +626,19 @@ export default function AdminPage() {
                 />
                 <SubmitButton label={editingWordId ? "保存单词" : "创建单词"} />
               </form>
+              <div className="mt-4">
+                <AdminInput
+                  label="搜索单词"
+                  onChange={setWordListKeyword}
+                  placeholder="单词、释义、标签、搭配"
+                  value={wordListKeyword}
+                />
+              </div>
+              <p className="mt-3 text-sm text-[#69736f]">
+                显示 {filteredWords.length} / {words.length} 个
+              </p>
               <div className="mt-4 grid max-h-72 gap-2 overflow-y-auto pr-1">
-                {words.slice(0, 30).map((word) => (
+                {filteredWords.slice(0, 50).map((word) => (
                   <button
                     className="rounded-md border border-[#d9e1dc] px-3 py-2 text-left text-sm hover:bg-[#f4f7f5]"
                     key={word.id}
@@ -622,6 +649,9 @@ export default function AdminPage() {
                     <span className="ml-2 text-xs text-[#69736f]">{word.meaningCn}</span>
                   </button>
                 ))}
+                {filteredWords.length === 0 ? (
+                  <p className="text-sm text-[#69736f]">没有匹配的单词。</p>
+                ) : null}
               </div>
             </AdminPanel>
 

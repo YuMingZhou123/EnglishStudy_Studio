@@ -205,7 +205,7 @@ export default function DictationPage() {
               返回学习台
             </Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-              {isReviewMode ? "错词复习" : `${modeLabel(mode)}语境听写`}
+              {isReviewMode ? "词汇复习" : `${modeLabel(mode)}语境听写`}
             </h1>
           </div>
           <div className="flex gap-2">
@@ -249,7 +249,7 @@ export default function DictationPage() {
                   {question.sceneName}
                 </p>
                 <p className="mt-1 text-sm text-[#69736f]">
-                  {isReviewMode ? "优先复习错词本里的到期单词" : modeDescription(mode)}
+                  {isReviewMode ? "优先复习词汇本里的到期单词" : modeDescription(mode)}
                 </p>
               </div>
 
@@ -376,7 +376,7 @@ export default function DictationPage() {
                 onClick={() => loadQuestion()}
                 type="button"
               >
-                {isReviewMode ? "换一个错词" : "换一题"}
+                {isReviewMode ? "换一个词" : "换一题"}
               </button>
             </div>
           </section>

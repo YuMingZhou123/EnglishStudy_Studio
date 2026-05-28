@@ -72,17 +72,27 @@ TTS 默认配置为 `Tts__Provider=auto`。本地未安装 Piper 时会使用 Wi
 POST /api/auth/register
 POST /api/auth/login
 GET  /api/auth/me
+PUT  /api/auth/me
 GET  /api/dictation/next?mode=beginner|intermediate|advanced
 POST /api/dictation/submit
 GET  /api/dictation/history
+GET  /api/dictation/summary
+GET  /api/vocabulary/words
+POST /api/vocabulary/words
 GET  /api/vocabulary/wrong-words
+GET  /api/vocabulary/review/next?mode=beginner|intermediate|advanced
 GET  /api/admin/scenes
 POST /api/admin/scenes
+PUT  /api/admin/scenes/{sceneId}
 GET  /api/admin/words
 POST /api/admin/words
+PUT  /api/admin/words/{wordId}
 GET  /api/admin/sentences
 POST /api/admin/sentences
+PUT  /api/admin/sentences/{sentenceId}
+POST /api/admin/sentences/import
 POST /api/admin/sentences/{sentenceId}/generate-audio
+POST /api/admin/sentences/generate-missing-audio
 POST /api/admin/media/upload
 GET  /api/media/objects/{objectKey}
 ```

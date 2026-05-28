@@ -258,7 +258,7 @@ export default function DashboardPage() {
                 className="h-10 rounded-md border border-[#cfd8d3] px-4 py-2.5 text-sm font-medium text-[#40504b] transition hover:bg-[#f4f7f5]"
                 href={`/dictation?mode=${nextMode}&review=wrong`}
               >
-                复习错词
+                词汇复习
               </Link>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function DashboardPage() {
 
           <div className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">错词本</h2>
+              <h2 className="text-lg font-semibold">词汇本</h2>
               <Link
                 className="text-sm font-medium text-[#1f6f64]"
                 href="/vocabulary"
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {wrongWords.length === 0 ? (
-                <p className="text-sm text-[#69736f]">还没有错词记录。</p>
+                <p className="text-sm text-[#69736f]">还没有词汇记录。</p>
               ) : null}
             </div>
           </div>
