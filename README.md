@@ -214,6 +214,7 @@ API 启动后导入内容包：
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\export-content-review-html.ps1
 .\scripts\summarize-content-review.ps1
 ```
 

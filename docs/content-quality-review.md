@@ -20,6 +20,7 @@
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\export-content-review-html.ps1
 .\scripts\summarize-content-review.ps1
 ```
 
@@ -27,9 +28,10 @@
 
 ```text
 content/mvp-content-review.csv
+content/mvp-content-review.html
 ```
 
-审核时在 CSV 中填写 `ReviewStatus` 和各类备注。建议状态：
+审核时可以直接在 CSV 中填写 `ReviewStatus` 和各类备注；也可以打开 HTML 审核台，逐条选择状态、填写备注，再导出新的 CSV。建议状态：
 
 - `pass`
 - `fix_sentence`
@@ -155,9 +157,10 @@ content/mvp-content-review.csv
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\export-content-review-html.ps1
 ```
 
-3. 人工逐行审核句子、翻译、关键词。
+3. 人工逐行审核句子、翻译、关键词；也可以打开 `content/mvp-content-review.html` 使用审核台并导出 CSV。
 4. 标记需要修改的行。
 5. 回到 `content/mvp-sentence-pack.json` 修正。
 6. 再次运行结构校验。
