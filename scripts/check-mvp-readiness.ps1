@@ -158,6 +158,12 @@ $steps.Add((Invoke-ReadinessStep "ddd-boundaries" {
     $summary
 }))
 
+$steps.Add((Invoke-ReadinessStep "domain-rules" {
+    $testProject = Join-Path $PSScriptRoot "..\apps\api.tests\api.tests.csproj"
+    dotnet run --project $testProject *> $null
+    [pscustomobject]@{ completed = $true }
+}))
+
 $steps.Add((Invoke-ReadinessStep "api-health" {
     Invoke-RestMethod -Method Get -Uri "$ApiBaseUrl/health"
 }))

@@ -75,6 +75,12 @@ DDD 分层边界检查：
 .\scripts\check-ddd-boundaries.ps1
 ```
 
+听写领域规则测试：
+
+```powershell
+dotnet run --project apps/api.tests/api.tests.csproj
+```
+
 导入 MVP 内容包：
 
 ```powershell
@@ -182,6 +188,7 @@ npm run build
 - `.\scripts\check-mvp-readiness.ps1` 输出 `automatedReady: true`。
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
 - `node .\scripts\ui-smoke-test.mjs` 通过桌面和移动端视口检查。
+- `dotnet run --project apps/api.tests/api.tests.csproj` 通过听写领域规则测试。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
 - `.\scripts\audit-mvp-content-quality.ps1` 可以通过内容质量体检。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。

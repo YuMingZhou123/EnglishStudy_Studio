@@ -177,6 +177,12 @@ DDD 分层边界检查：
 .\scripts\check-ddd-boundaries.ps1
 ```
 
+领域规则测试：
+
+```powershell
+dotnet run --project apps/api.tests/api.tests.csproj
+```
+
 需要连同后端编译、前端 lint 和前端构建一起检查时：
 
 ```powershell
