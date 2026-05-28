@@ -7,6 +7,8 @@ import path from "node:path";
 
 const text = {
   beginnerDictation: "\u521d\u7ea7\u8bed\u5883\u542c\u5199",
+  normalSpeed: "\u539f\u901f\u6717\u8bfb",
+  slowSpeed: "\u6162\u901f\u6717\u8bfb",
   firstLetter: "\u9996\u5b57\u6bcd",
   meaningHint: "\u4e2d\u6587\u63d0\u793a",
   submitAnswer: "\u63d0\u4ea4\u7b54\u6848",
@@ -301,6 +303,8 @@ async function main() {
         ),
       "blank inputs",
     );
+    await clickText(text.normalSpeed);
+    await clickText(text.slowSpeed);
     await clickText(text.firstLetter);
     await clickText(text.meaningHint);
     await evalJs(`(() => {
