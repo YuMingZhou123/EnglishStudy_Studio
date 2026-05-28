@@ -159,6 +159,12 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-mvp-readiness.ps1
 ```
 
+准备人工验收入口并汇总当前门禁：
+
+```powershell
+.\scripts\prepare-mvp-acceptance.ps1
+```
+
 DDD 分层边界检查：
 
 ```powershell
@@ -225,6 +231,8 @@ API 启动后导入内容包：
 .\scripts\export-beta-feedback-html.ps1
 .\scripts\summarize-beta-feedback.ps1
 ```
+
+也可以直接运行 `.\scripts\prepare-mvp-acceptance.ps1`，它会保留已有 CSV，刷新内容审核台和内测反馈表，并输出第一版人工验收缺口。
 
 ## 第一版内测与审核
 

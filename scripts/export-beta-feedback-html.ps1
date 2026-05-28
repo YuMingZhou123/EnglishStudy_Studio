@@ -52,12 +52,11 @@ $fields = @(
     "Notes"
 )
 
-$sourceRows = if (Test-Path -LiteralPath $FeedbackPath) {
-    @(Import-Csv -LiteralPath $FeedbackPath -Encoding UTF8)
-}
-else {
-    @()
-}
+$sourceRows = @(
+    if (Test-Path -LiteralPath $FeedbackPath) {
+        Import-Csv -LiteralPath $FeedbackPath -Encoding UTF8
+    }
+)
 
 if ($sourceRows.Count -eq 0) {
     $sourceRows = for ($index = 1; $index -le $UserCount; $index++) {
@@ -65,7 +64,7 @@ if ($sourceRows.Count -eq 0) {
     }
 }
 
-$rows = for ($index = 0; $index -lt $sourceRows.Count; $index++) {
+$rows = @(for ($index = 0; $index -lt $sourceRows.Count; $index++) {
     $sourceRow = $sourceRows[$index]
     $row = [ordered]@{}
     foreach ($field in $fields) {
@@ -77,7 +76,7 @@ $rows = for ($index = 0; $index -lt $sourceRows.Count; $index++) {
     }
 
     [pscustomobject]$row
-}
+})
 
 $rowsJson = ($rows | ConvertTo-Json -Depth 8).Replace("</script>", "<\/script>")
 $fieldsJson = ($fields | ConvertTo-Json -Depth 3).Replace("</script>", "<\/script>")

@@ -64,6 +64,7 @@ node .\scripts\ui-smoke-test.mjs
 ```powershell
 .\scripts\check-mvp-readiness.ps1
 .\scripts\check-mvp-readiness.ps1 -IncludeBuild
+.\scripts\prepare-mvp-acceptance.ps1
 ```
 
 DDD 分层边界检查：
@@ -184,6 +185,7 @@ npm run build
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
 - `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
+- `.\scripts\prepare-mvp-acceptance.ps1` 可以一键准备人工验收入口并汇总当前门禁。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。
 - `npm run lint` 和 `npm run build` 通过。
 - 浏览器手工走完内测流程，无阻断问题。

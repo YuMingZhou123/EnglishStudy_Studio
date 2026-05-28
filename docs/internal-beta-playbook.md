@@ -44,6 +44,12 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\export-beta-feedback-html.ps1
 ```
 
+如果需要同时准备内容审核台、内测反馈表和当前门禁汇总，可以运行：
+
+```powershell
+.\scripts\prepare-mvp-acceptance.ps1
+```
+
 默认输出：
 
 ```text
