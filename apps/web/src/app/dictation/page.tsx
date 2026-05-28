@@ -8,9 +8,11 @@ import {
   DictationQuestion,
   DictationSubmitResult,
   dictationApi,
+  getErrorMessage,
+  isAuthError,
   vocabularyApi,
 } from "@/lib/api";
-import { getToken } from "@/lib/session";
+import { clearSession, getToken } from "@/lib/session";
 
 export default function DictationPage() {
   const router = useRouter();
@@ -68,12 +70,18 @@ export default function DictationPage() {
           : await dictationApi.next(authToken, nextMode);
         setQuestion(nextQuestion);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "题目加载失败");
+        if (isAuthError(err)) {
+          clearSession();
+          router.replace("/");
+          return;
+        }
+
+        setError(getErrorMessage(err, "题目加载失败"));
       } finally {
         setLoading(false);
       }
     },
-    [isReviewMode, mode, token],
+    [isReviewMode, mode, router, token],
   );
 
   useEffect(() => {
@@ -122,7 +130,13 @@ export default function DictationPage() {
 
       setResult(submitResult);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "提交失败");
+      if (isAuthError(err)) {
+        clearSession();
+        router.replace("/");
+        return;
+      }
+
+      setError(getErrorMessage(err, "提交失败"));
     } finally {
       setSubmitting(false);
     }
@@ -169,7 +183,13 @@ export default function DictationPage() {
       setSavedWordIds((current) => new Set(current).add(wordId));
       setVocabularyMessage("已加入词汇本");
     } catch (err) {
-      setVocabularyMessage(err instanceof Error ? err.message : "加入失败");
+      if (isAuthError(err)) {
+        clearSession();
+        router.replace("/");
+        return;
+      }
+
+      setVocabularyMessage(getErrorMessage(err, "加入失败"));
     } finally {
       setSavingWordId(null);
     }

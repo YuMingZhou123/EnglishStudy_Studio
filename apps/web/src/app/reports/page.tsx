@@ -7,14 +7,17 @@ import {
   DictationHistoryItem,
   LearningSummary,
   dictationApi,
+  getErrorMessage,
+  isAuthError,
 } from "@/lib/api";
-import { getToken } from "@/lib/session";
+import { clearSession, getToken } from "@/lib/session";
 
 export default function ReportsPage() {
   const router = useRouter();
   const [history, setHistory] = useState<DictationHistoryItem[]>([]);
   const [summary, setSummary] = useState<LearningSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -30,6 +33,15 @@ export default function ReportsPage() {
       .then(([learningSummary, historyItems]) => {
         setSummary(learningSummary);
         setHistory(historyItems);
+      })
+      .catch((err) => {
+        if (isAuthError(err)) {
+          clearSession();
+          router.replace("/");
+          return;
+        }
+
+        setError(getErrorMessage(err, "学习记录加载失败"));
       })
       .finally(() => setLoading(false));
   }, [router]);
@@ -53,6 +65,12 @@ export default function ReportsPage() {
             学习记录
           </h1>
         </header>
+
+        {error ? (
+          <p className="rounded-md border border-[#f0c6b5] bg-[#fff5ef] px-3 py-2 text-sm text-[#9a4727]">
+            {error}
+          </p>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-4">
           <MetricCard

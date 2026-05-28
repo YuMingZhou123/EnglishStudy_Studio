@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi } from "@/lib/api";
-import { getToken, saveSession } from "@/lib/session";
+import { authApi, getErrorMessage } from "@/lib/api";
+import { clearSession, getToken, saveSession } from "@/lib/session";
 
 type AuthMode = "login" | "register";
 
@@ -28,7 +28,7 @@ export default function Home() {
       .me(token)
       .then(() => router.replace("/dashboard"))
       .catch(() => {
-        window.localStorage.clear();
+        clearSession();
       });
   }, [router]);
 
@@ -52,7 +52,7 @@ export default function Home() {
       saveSession(auth);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登录失败");
+      setError(getErrorMessage(err, "登录失败"));
     } finally {
       setLoading(false);
     }

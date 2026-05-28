@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DictationMode, WrongWord, vocabularyApi } from "@/lib/api";
-import { getToken } from "@/lib/session";
+import {
+  DictationMode,
+  WrongWord,
+  getErrorMessage,
+  isAuthError,
+  vocabularyApi,
+} from "@/lib/api";
+import { clearSession, getToken } from "@/lib/session";
 
 export default function VocabularyPage() {
   const router = useRouter();
   const [words, setWords] = useState<WrongWord[]>([]);
   const [reviewMode, setReviewMode] = useState<DictationMode>("beginner");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -22,6 +29,15 @@ export default function VocabularyPage() {
     vocabularyApi
       .words(token)
       .then(setWords)
+      .catch((err) => {
+        if (isAuthError(err)) {
+          clearSession();
+          router.replace("/");
+          return;
+        }
+
+        setError(getErrorMessage(err, "词汇加载失败"));
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -71,6 +87,12 @@ export default function VocabularyPage() {
         <section className="rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
           {loading ? (
             <p className="text-sm text-[#69736f]">正在加载词汇...</p>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-md border border-[#f0c6b5] bg-[#fff5ef] px-3 py-2 text-sm text-[#9a4727]">
+              {error}
+            </p>
           ) : null}
 
           {!loading && words.length === 0 ? (

@@ -10,6 +10,8 @@ import {
   WrongWord,
   authApi,
   dictationApi,
+  getErrorMessage,
+  isAuthError,
   vocabularyApi,
 } from "@/lib/api";
 import { clearSession, getToken, saveCurrentUser } from "@/lib/session";
@@ -31,6 +33,7 @@ export default function DashboardPage() {
     text: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -38,29 +41,57 @@ export default function DashboardPage() {
       router.replace("/");
       return;
     }
+    const authToken = token;
 
-    Promise.all([
-      authApi.me(token),
-      dictationApi.history(token, 6),
-      vocabularyApi.words(token),
-      dictationApi.summary(token),
-    ])
-      .then(([currentUser, historyItems, words, learningSummary]) => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        const currentUser = await authApi.me(authToken);
+        if (cancelled) {
+          return;
+        }
+
         setUser(currentUser);
         setProfileForm({
           displayName: currentUser.displayName ?? "",
           currentLevel: currentUser.currentLevel ?? "beginner",
           learningGoal: currentUser.learningGoal ?? "daily",
         });
+
+        const [historyItems, words, learningSummary] = await Promise.all([
+          dictationApi.history(authToken, 6),
+          vocabularyApi.words(authToken),
+          dictationApi.summary(authToken),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
         setHistory(historyItems);
         setVocabularyWords(words);
         setSummary(learningSummary);
-      })
-      .catch(() => {
-        clearSession();
-        router.replace("/");
-      })
-      .finally(() => setLoading(false));
+      } catch (err) {
+        if (isAuthError(err)) {
+          clearSession();
+          router.replace("/");
+          return;
+        }
+
+        setLoadError(getErrorMessage(err, "学习台加载失败"));
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   function logout() {
@@ -91,9 +122,15 @@ export default function DashboardPage() {
       saveCurrentUser(updatedUser);
       setProfileMessage({ type: "success", text: "已保存" });
     } catch (err) {
+      if (isAuthError(err)) {
+        clearSession();
+        router.replace("/");
+        return;
+      }
+
       setProfileMessage({
         type: "error",
-        text: err instanceof Error ? err.message : "保存失败",
+        text: getErrorMessage(err, "保存失败"),
       });
     } finally {
       setProfileSaving(false);
@@ -112,6 +149,23 @@ export default function DashboardPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f4f7f5] text-[#40504b]">
         正在加载学习台...
+      </main>
+    );
+  }
+
+  if (loadError && !user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f4f7f5] px-5 text-[#40504b]">
+        <section className="w-full max-w-md rounded-lg border border-[#d9e1dc] bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-[#b24b2a]">{loadError}</p>
+          <button
+            className="mt-4 h-10 rounded-md bg-[#1f6f64] px-4 text-sm font-semibold text-white transition hover:bg-[#18574f]"
+            onClick={() => window.location.reload()}
+            type="button"
+          >
+            重新加载
+          </button>
+        </section>
       </main>
     );
   }
@@ -144,6 +198,12 @@ export default function DashboardPage() {
             </Link>
           ) : null}
         </header>
+
+        {loadError ? (
+          <p className="rounded-md border border-[#f0c6b5] bg-[#fff5ef] px-3 py-2 text-sm text-[#9a4727]">
+            {loadError}
+          </p>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-4">
           <SummaryCard label="今日进度" value={`${todayAttemptCount}/${dailyGoal}`} />

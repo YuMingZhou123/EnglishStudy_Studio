@@ -257,6 +257,25 @@ type RequestOptions = RequestInit & {
   token?: string | null;
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly errors: string[] = [],
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function isAuthError(error: unknown) {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
+
+export function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -283,17 +302,32 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
+    let errors: string[] = [];
     try {
       const payload = await response.json();
       if (Array.isArray(payload?.errors)) {
-        message = payload.errors.join(" ");
+        errors = payload.errors;
+        message = errors.join(" ");
+      } else if (payload?.errors && typeof payload.errors === "object") {
+        errors = Object.values(payload.errors)
+          .flatMap((value) => (Array.isArray(value) ? value : [String(value)]))
+          .filter(Boolean);
+        message = errors.join(" ");
+      } else if (typeof payload?.message === "string") {
+        message = payload.message;
+      } else if (typeof payload?.title === "string") {
+        message = payload.title;
       }
     } catch {
       const text = await response.text();
       message = text || message;
     }
 
-    throw new Error(message);
+    if (response.status === 401 || response.status === 403) {
+      message = "登录状态已失效，请重新登录。";
+    }
+
+    throw new ApiError(message, response.status, errors);
   }
 
   if (response.status === 204) {
