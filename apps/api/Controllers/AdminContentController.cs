@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin,ContentAdmin")]
+[Authorize(Policy = AppPermissions.ContentManage)]
 [Route("api/admin")]
 public sealed class AdminContentController(IContentAdminService contentAdminService) : ControllerBase
 {

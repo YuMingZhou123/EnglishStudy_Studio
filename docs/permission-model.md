@@ -61,6 +61,18 @@ user_logins
 user_tokens
 ```
 
+### 3.1 第一版落地状态
+
+当前代码已经启用最小权限链路：
+
+- `AppPermissions.ContentManage = content:manage`
+- 开发环境启动时写入 `Permission` 和 `RolePermission`
+- `Admin`、`ContentAdmin`、`SuperAdmin` 默认拥有 `content:manage`
+- 后台内容接口使用 `[Authorize(Policy = AppPermissions.ContentManage)]`
+- 授权处理器通过 `UserRole -> RolePermission -> Permission` 判断当前用户是否拥有权限
+
+第一版暂时不做可视化权限配置后台，权限先通过种子数据和后续迁移脚本维护。
+
 ## 4. Permission 编码规则
 
 权限使用稳定字符串编码：
@@ -188,4 +200,3 @@ created_by
 - 复杂按钮权限管理。
 - 组织、部门、班级。
 - 数据范围规则引擎。
-

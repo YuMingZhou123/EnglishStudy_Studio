@@ -1,4 +1,5 @@
 using System.Text;
+using Api.Application.Auth;
 using Api.Application.Common.Interfaces;
 using Api.Domain.Identity;
 using Api.Infrastructure.Auth;
@@ -6,6 +7,7 @@ using Api.Infrastructure.Options;
 using Api.Infrastructure.Persistence;
 using Api.Infrastructure.Storage;
 using Api.Infrastructure.Tts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -56,7 +58,16 @@ public static class DependencyInjection
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AppPermissions.ContentManage, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(
+                    new PermissionAuthorizationRequirement(AppPermissions.ContentManage));
+            });
+        });
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IFileStorageService, MinioFileStorageService>();
         services.AddScoped<ITtsProvider, LocalTtsProvider>();

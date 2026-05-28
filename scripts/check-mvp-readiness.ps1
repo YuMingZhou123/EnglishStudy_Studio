@@ -1,6 +1,8 @@
 param(
     [string]$ApiBaseUrl = "http://localhost:5180",
     [string]$WebBaseUrl = "http://localhost:3000",
+    [string]$LearnerEmail = "learner@example.com",
+    [string]$LearnerPassword = 'Pass123$',
     [string]$AdminEmail = "admin@example.com",
     [string]$AdminPassword = 'Admin123$',
     [switch]$SkipSmoke,
@@ -86,6 +88,34 @@ FROM sentences;
     }
 }
 
+function Get-DatabasePermissionSummary {
+    $sql = @"
+SELECT
+  COUNT(DISTINCT p."Id") FILTER (WHERE p."Code" = 'content:manage') AS permissions,
+  COUNT(DISTINCT r."Id") FILTER (
+    WHERE p."Code" = 'content:manage'
+      AND r."Name" IN ('Admin', 'ContentAdmin', 'SuperAdmin')
+  ) AS assigned_roles
+FROM permissions p
+LEFT JOIN role_permissions rp ON rp."PermissionId" = p."Id"
+LEFT JOIN roles r ON r."Id" = rp."RoleId";
+"@
+
+    $raw = $sql |
+        docker exec -i english-study-postgres psql -U english_study -d english_study -t -A -F ","
+
+    $values = ([string]$raw).Trim().Split(",")
+    if ($values.Count -lt 2) {
+        throw "Unexpected permission summary output: $raw"
+    }
+
+    [pscustomobject]@{
+        contentManagePermissions = [int]$values[0]
+        assignedAdminRoles = [int]$values[1]
+        ready = [int]$values[0] -eq 1 -and [int]$values[1] -ge 3
+    }
+}
+
 function Get-OptionalJsonScriptSummary($scriptName, $missingMessage) {
     $scriptPath = Join-Path $PSScriptRoot $scriptName
     try {
@@ -158,6 +188,55 @@ $steps.Add((Invoke-ReadinessStep "admin-content-counts" {
         words = @($words).Count
         sentences = @($sentences).Count
         meetsMinimum = @($sentences).Count -ge 100 -and @($words).Count -ge 300
+    }
+}))
+
+$steps.Add((Invoke-ReadinessStep "permission-policy" {
+    $permissionSummary = Get-DatabasePermissionSummary
+    if (-not [bool]$permissionSummary.ready) {
+        throw "content:manage permission is not assigned to the expected admin roles."
+    }
+
+    $adminAuth = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/auth/login" `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{ email = $AdminEmail; password = $AdminPassword })
+    $learnerAuth = Invoke-RestMethod `
+        -Method Post `
+        -Uri "$ApiBaseUrl/api/auth/login" `
+        -ContentType "application/json" `
+        -Body (ConvertTo-JsonBody @{ email = $LearnerEmail; password = $LearnerPassword })
+
+    $adminResponse = Invoke-WebRequest `
+        -Method Get `
+        -Uri "$ApiBaseUrl/api/admin/scenes" `
+        -Headers @{ Authorization = "Bearer $($adminAuth.accessToken)" } `
+        -UseBasicParsing
+
+    $learnerStatus = $null
+    try {
+        Invoke-WebRequest `
+            -Method Get `
+            -Uri "$ApiBaseUrl/api/admin/scenes" `
+            -Headers @{ Authorization = "Bearer $($learnerAuth.accessToken)" } `
+            -UseBasicParsing |
+            Out-Null
+        $learnerStatus = 200
+    }
+    catch {
+        $learnerStatus = [int]$_.Exception.Response.StatusCode
+    }
+
+    if ([int]$adminResponse.StatusCode -ne 200 -or $learnerStatus -ne 403) {
+        throw "Permission policy did not allow admin and reject learner as expected."
+    }
+
+    [pscustomobject]@{
+        contentManagePermissions = $permissionSummary.contentManagePermissions
+        assignedAdminRoles = $permissionSummary.assignedAdminRoles
+        adminStatus = [int]$adminResponse.StatusCode
+        learnerStatus = $learnerStatus
     }
 }))
 

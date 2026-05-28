@@ -1,3 +1,4 @@
+using Api.Application.Auth;
 using Api.Domain.Content;
 using Api.Domain.Identity;
 using Microsoft.AspNetCore.Builder;
@@ -25,8 +26,23 @@ public static class DevelopmentDataSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         await EnsureRoleAsync(roleManager, "Learner", "Default learner role");
-        await EnsureRoleAsync(roleManager, "Admin", "Platform admin role");
-        await EnsureRoleAsync(roleManager, "ContentAdmin", "Content management role");
+        var adminRole = await EnsureRoleAsync(roleManager, "Admin", "Platform admin role");
+        var contentAdminRole = await EnsureRoleAsync(roleManager, "ContentAdmin", "Content management role");
+        var superAdminRole = await EnsureRoleAsync(roleManager, "SuperAdmin", "Platform super admin role");
+
+        var contentManagePermission = await EnsurePermissionAsync(
+            dbContext,
+            AppPermissions.ContentManage,
+            "Manage content",
+            "content",
+            "content",
+            "manage",
+            "Create, update, publish, import, and attach media for learning content.");
+
+        await EnsureRolePermissionAsync(dbContext, adminRole, contentManagePermission);
+        await EnsureRolePermissionAsync(dbContext, contentAdminRole, contentManagePermission);
+        await EnsureRolePermissionAsync(dbContext, superAdminRole, contentManagePermission);
+        await dbContext.SaveChangesAsync();
 
         await EnsureUserAsync(
             userManager,
@@ -146,22 +162,99 @@ public static class DevelopmentDataSeeder
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task EnsureRoleAsync(
+    private static async Task<ApplicationRole> EnsureRoleAsync(
         RoleManager<ApplicationRole> roleManager,
         string name,
         string description)
     {
-        if (await roleManager.RoleExistsAsync(name))
+        var existingRole = await roleManager.FindByNameAsync(name);
+        if (existingRole is not null)
         {
-            return;
+            existingRole.Description = description;
+            existingRole.IsSystem = true;
+            existingRole.UpdatedAt = DateTimeOffset.UtcNow;
+            var updateResult = await roleManager.UpdateAsync(existingRole);
+            ThrowIfIdentityFailed(updateResult, $"update role '{name}'");
+            return existingRole;
         }
 
-        await roleManager.CreateAsync(new ApplicationRole
+        var role = new ApplicationRole
         {
             Name = name,
             Description = description,
             IsSystem = true
+        };
+
+        var result = await roleManager.CreateAsync(role);
+        ThrowIfIdentityFailed(result, $"create role '{name}'");
+
+        return role;
+    }
+
+    private static async Task<Permission> EnsurePermissionAsync(
+        AppDbContext dbContext,
+        string code,
+        string name,
+        string module,
+        string resource,
+        string action,
+        string description)
+    {
+        var permission = await dbContext.Permissions
+            .FirstOrDefaultAsync(item => item.Code == code);
+
+        if (permission is null)
+        {
+            permission = new Permission
+            {
+                Code = code,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.Permissions.Add(permission);
+        }
+
+        permission.Name = name;
+        permission.Module = module;
+        permission.Resource = resource;
+        permission.Action = action;
+        permission.Type = "api";
+        permission.Description = description;
+        permission.IsEnabled = true;
+        permission.UpdatedAt = DateTimeOffset.UtcNow;
+
+        return permission;
+    }
+
+    private static async Task EnsureRolePermissionAsync(
+        AppDbContext dbContext,
+        ApplicationRole role,
+        Permission permission)
+    {
+        var exists = await dbContext.RolePermissions.AnyAsync(rolePermission =>
+            rolePermission.RoleId == role.Id &&
+            rolePermission.PermissionId == permission.Id);
+
+        if (exists)
+        {
+            return;
+        }
+
+        dbContext.RolePermissions.Add(new RolePermission
+        {
+            RoleId = role.Id,
+            PermissionId = permission.Id
         });
+    }
+
+    private static void ThrowIfIdentityFailed(IdentityResult result, string action)
+    {
+        if (result.Succeeded)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Failed to {action}: {string.Join("; ", result.Errors.Select(error => error.Description))}");
     }
 
     private static async Task EnsureUserAsync(
