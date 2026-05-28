@@ -41,13 +41,17 @@ node .\scripts\ui-smoke-test.mjs
 
 ```powershell
 .\scripts\export-beta-feedback-template.ps1
+.\scripts\export-beta-feedback-html.ps1
 ```
 
 默认输出：
 
 ```text
 feedback/internal-beta-feedback.csv
+feedback/internal-beta-feedback.html
 ```
+
+可以打开 `feedback/internal-beta-feedback.html` 逐位记录内测结果，再导出 `internal-beta-feedback.csv`，最后用 `summarize-beta-feedback.ps1` 汇总。
 
 ## 3. 参与用户
 

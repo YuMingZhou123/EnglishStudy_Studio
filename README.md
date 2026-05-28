@@ -222,6 +222,7 @@ API 启动后导入内容包：
 
 ```powershell
 .\scripts\export-beta-feedback-template.ps1
+.\scripts\export-beta-feedback-html.ps1
 .\scripts\summarize-beta-feedback.ps1
 ```
 

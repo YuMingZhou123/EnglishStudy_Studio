@@ -88,6 +88,7 @@ DDD 分层边界检查：
 .\scripts\export-content-review-html.ps1
 .\scripts\summarize-content-review.ps1
 .\scripts\export-beta-feedback-template.ps1
+.\scripts\export-beta-feedback-html.ps1
 .\scripts\summarize-beta-feedback.ps1
 ```
 
@@ -181,7 +182,7 @@ npm run build
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
 - `.\scripts\generate-missing-audio.ps1` 可以为已发布句子生成缺失音频。
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
-- `.\scripts\export-beta-feedback-template.ps1` 可以导出内测反馈表。
+- `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。
 - `npm run lint` 和 `npm run build` 通过。
