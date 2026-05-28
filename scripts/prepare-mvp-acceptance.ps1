@@ -70,13 +70,20 @@ $betaTemplate = Ensure-Template `
     -ScriptName "export-beta-feedback-template.ps1" `
     -Parameters @{ UserCount = $BetaUserCount }
 
+$contentValidation = Invoke-JsonScript `
+    -ScriptName "import-acceptance-csv.ps1" `
+    -Parameters @{ Kind = "content"; SourcePath = $contentReviewCsv; ValidateOnly = $true }
+$betaValidation = Invoke-JsonScript `
+    -ScriptName "import-acceptance-csv.ps1" `
+    -Parameters @{ Kind = "beta"; SourcePath = $betaFeedbackCsv; ValidateOnly = $true }
+
 $contentHtml = Invoke-JsonScript -ScriptName "export-content-review-html.ps1"
 $betaHtml = Invoke-JsonScript `
     -ScriptName "export-beta-feedback-html.ps1" `
     -Parameters @{ UserCount = $BetaUserCount }
 
-$contentSummary = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
-$betaSummary = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
+$contentSummary = $contentValidation.summary
+$betaSummary = $betaValidation.summary
 
 $dashboardParams = @{}
 if ($SkipReadiness) {
@@ -115,11 +122,13 @@ else {
 [pscustomobject]@{
     contentReview = [pscustomobject]@{
         csv = $contentTemplate
+        validation = $contentValidation
         html = $contentHtml
         summary = $contentSummary
     }
     betaFeedback = [pscustomobject]@{
         csv = $betaTemplate
+        validation = $betaValidation
         html = $betaHtml
         summary = $betaSummary
     }
