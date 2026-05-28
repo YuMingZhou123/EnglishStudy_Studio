@@ -51,6 +51,12 @@ npm run dev
 .\scripts\smoke-test.ps1 -IncludeTts
 ```
 
+导入 MVP 内容包：
+
+```powershell
+.\scripts\import-mvp-content.ps1
+```
+
 构建检查：
 
 ```powershell
@@ -105,8 +111,8 @@ npm run build
 
 | 事项 | 当前状态 | 下一步 |
 | --- | --- | --- |
-| 第一批内容规模 100 到 300 句 | 未完成 | 使用后台批量导入补齐日常、校园、职场、面试、旅行内容 |
-| 核心词 300 到 800 个 | 未完成 | 随句子批量导入词条，先保证每句至少 1 个目标词 |
+| 第一批内容规模 100 到 300 句 | 已有可导入内容包 | `content/mvp-sentence-pack.json` 提供 120 条原创句子，运行 `.\scripts\import-mvp-content.ps1` 导入 |
+| 核心词 300 到 800 个 | 部分完成 | 内容包随句子提供目标词，已满足每句至少 1 个目标词；后续继续扩到 300+ 独立词条 |
 | 5 到 10 名真实用户内测 | 未完成 | 用 smoke test 确认环境后，安排用户按清单试用并收集反馈 |
 | 前端真实听音体验 | 待人工验收 | 浏览器中手工播放上传音频和 TTS 音频，确认音量、加载、慢速体验 |
 | 内容质量审核 | 待完善 | 为每条句子检查英文自然度、中文翻译、关键词位置、音频质量 |
@@ -131,6 +137,7 @@ npm run build
 工程第一版可以认为“可内测”的条件：
 
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
+- `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。
 - `npm run lint` 和 `npm run build` 通过。
 - 浏览器手工走完内测流程，无阻断问题。
