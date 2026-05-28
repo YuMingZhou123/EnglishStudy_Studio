@@ -104,6 +104,7 @@ if ($SkipReadiness) {
     $statusReportParams.SkipReadiness = $true
 }
 $statusReport = Invoke-JsonScript -ScriptName "export-first-version-status.ps1" -Parameters $statusReportParams
+$handoff = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
 
 $readiness = $null
 if (-not $SkipReadiness) {
@@ -150,6 +151,7 @@ else {
     fixPlan = $fixPlan
     releaseGate = $releaseGate
     statusReport = $statusReport
+    handoff = $handoff
     readiness = $readinessSummary
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
@@ -157,6 +159,7 @@ else {
         "Open acceptance/mvp-fix-plan.md after content review or beta feedback is filled to see what must be fixed before release.",
         "Open acceptance/first-version-release-gate.md to see the final release gates.",
         "Open acceptance/first-version-status.md for the current release decision snapshot.",
+        "Open acceptance/first-version-handoff.md for the next content batch and beta tester slot.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
