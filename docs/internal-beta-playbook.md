@@ -94,6 +94,12 @@ feedback/internal-beta-feedback.html
 - 高阶考试用户。
 - 只关心机构管理功能的人。
 
+招募消息、预约确认、内测前说明和访谈问题可以直接使用：
+
+```text
+docs/internal-beta-recruitment-script.md
+```
+
 ## 4. 测试账号安排
 
 优先让用户自己注册账号，这样可以验证新用户链路。
