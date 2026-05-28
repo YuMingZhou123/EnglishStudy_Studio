@@ -120,6 +120,7 @@ npm run build
 | 验收项 | 当前状态 | 证据 |
 | --- | --- | --- |
 | 前端项目可以本地启动 | 已验证 | `http://localhost:3000` 返回 200，smoke test |
+| 前端核心页面适配移动视口 | 已验证 | `node .\scripts\ui-smoke-test.mjs` 覆盖桌面和 390px 移动端视口，并检查核心页面无明显横向溢出 |
 | 后端项目可以本地启动 | 已验证 | `http://localhost:5180/health` 返回 Healthy |
 | Swagger 可以访问 | 已验证 | `http://localhost:5180/swagger/index.html` 返回 200，smoke test |
 | PostgreSQL 可以连接 | 已验证 | `/health/ready` database Healthy |
@@ -165,7 +166,7 @@ npm run build
 
 - `.\scripts\check-mvp-readiness.ps1` 输出 `automatedReady: true`。
 - `.\scripts\smoke-test.ps1 -IncludeTts` 通过。
-- `node .\scripts\ui-smoke-test.mjs` 通过。
+- `node .\scripts\ui-smoke-test.mjs` 通过桌面和移动端视口检查。
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
 - `.\scripts\audit-mvp-content-quality.ps1` 可以通过内容质量体检。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。

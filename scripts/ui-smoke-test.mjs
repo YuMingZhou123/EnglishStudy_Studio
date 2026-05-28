@@ -7,6 +7,7 @@ import path from "node:path";
 
 const text = {
   beginnerDictation: "\u521d\u7ea7\u8bed\u5883\u542c\u5199",
+  advancedDictation: "\u9ad8\u7ea7\u8bed\u5883\u542c\u5199",
   normalSpeed: "\u539f\u901f\u6717\u8bfb",
   slowSpeed: "\u6162\u901f\u6717\u8bfb",
   firstLetter: "\u9996\u5b57\u6bcd",
@@ -211,6 +212,57 @@ async function main() {
       );
     }
 
+    async function setViewport(width, height, mobile = false) {
+      await cdp("Emulation.setDeviceMetricsOverride", {
+        width,
+        height,
+        deviceScaleFactor: mobile ? 2 : 1,
+        mobile,
+      });
+      await cdp("Emulation.setTouchEmulationEnabled", { enabled: mobile });
+      await sleep(250);
+    }
+
+    async function assertNoHorizontalOverflow(label) {
+      const result = await evalJs(`(() => {
+        const documentElement = document.documentElement;
+        const body = document.body;
+        const viewportWidth = documentElement.clientWidth;
+        const pageWidth = Math.max(
+          documentElement.scrollWidth,
+          body ? body.scrollWidth : 0,
+        );
+        const overflowing = [...document.querySelectorAll("body *")]
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            const tag = element.tagName.toLowerCase();
+            const text = (element.innerText || element.value || "").trim().replace(/\\s+/g, " ");
+            return {
+              tag,
+              text: text.slice(0, 80),
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+            };
+          })
+          .filter((item) => item.width > 0 && (item.left < -4 || item.right > viewportWidth + 4))
+          .slice(0, 8);
+
+        return {
+          viewportWidth,
+          pageWidth,
+          overflowBy: pageWidth - viewportWidth,
+          overflowing,
+        };
+      })()`);
+
+      if (result.overflowBy > 4 || result.overflowing.length > 0) {
+        throw new Error(
+          `${label} has horizontal overflow: ${JSON.stringify(result)}`,
+        );
+      }
+    }
+
     async function waitText(value, timeoutMs = 15_000) {
       await waitFor(
         () =>
@@ -287,6 +339,7 @@ async function main() {
 
     await cdp("Page.enable");
     await cdp("Runtime.enable");
+    await setViewport(1365, 900, false);
 
     await navigate("/");
     await waitTitle("EnglishStudy Studio");
@@ -340,8 +393,37 @@ async function main() {
     await waitText(text.newSentence);
     await waitText(text.batchImport);
 
+    await setViewport(390, 844, true);
+    const mobilePages = [
+      { path: "/dashboard", expectedText: "LEARNING DESK", label: "mobile dashboard" },
+      {
+        path: "/dictation?mode=advanced",
+        expectedText: text.advancedDictation,
+        label: "mobile dictation",
+      },
+      { path: "/vocabulary", expectedText: text.vocabulary, label: "mobile vocabulary" },
+      { path: "/reports", expectedText: text.reports, label: "mobile reports" },
+      { path: "/admin", expectedText: text.adminTitle, label: "mobile admin" },
+    ];
+
+    for (const pageCheck of mobilePages) {
+      await navigate(pageCheck.path);
+      await waitText(pageCheck.expectedText);
+      await assertNoHorizontalOverflow(pageCheck.label);
+    }
+
     passed = true;
-    console.log(JSON.stringify({ status: "passed", baseUrl }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          status: "passed",
+          baseUrl,
+          checkedViewports: ["desktop:1365x900", "mobile:390x844"],
+        },
+        null,
+        2,
+      ),
+    );
   } finally {
     try {
       ws?.close();
