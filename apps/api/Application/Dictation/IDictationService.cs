@@ -31,4 +31,13 @@ public interface IDictationService
     Task<IReadOnlyCollection<WrongWordResponse>> GetWrongWordsAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<WrongWordResponse>> GetVocabularyWordsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<WrongWordResponse>> AddVocabularyWordAsync(
+        Guid userId,
+        AddVocabularyWordRequest request,
+        CancellationToken cancellationToken = default);
 }

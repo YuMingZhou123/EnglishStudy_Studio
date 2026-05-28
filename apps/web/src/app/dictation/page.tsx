@@ -39,6 +39,9 @@ export default function DictationPage() {
   const [showMeaning, setShowMeaning] = useState(false);
   const [replayCount, setReplayCount] = useState(0);
   const [startedAt, setStartedAt] = useState(() => Date.now());
+  const [savedWordIds, setSavedWordIds] = useState<Set<string>>(() => new Set());
+  const [savingWordId, setSavingWordId] = useState<string | null>(null);
+  const [vocabularyMessage, setVocabularyMessage] = useState<string | null>(null);
 
   const loadQuestion = useCallback(
     async (authToken = token, nextMode = mode) => {
@@ -55,6 +58,9 @@ export default function DictationPage() {
       setShowMeaning(false);
       setReplayCount(0);
       setStartedAt(Date.now());
+      setSavedWordIds(new Set());
+      setSavingWordId(null);
+      setVocabularyMessage(null);
 
       try {
         const nextQuestion = isReviewMode
@@ -148,6 +154,25 @@ export default function DictationPage() {
     }
 
     speakWithBrowserVoice(rate);
+  }
+
+  async function addVocabularyWord(wordId: string) {
+    if (!token) {
+      return;
+    }
+
+    setSavingWordId(wordId);
+    setVocabularyMessage(null);
+
+    try {
+      await vocabularyApi.addWord(token, wordId);
+      setSavedWordIds((current) => new Set(current).add(wordId));
+      setVocabularyMessage("已加入词汇本");
+    } catch (err) {
+      setVocabularyMessage(err instanceof Error ? err.message : "加入失败");
+    } finally {
+      setSavingWordId(null);
+    }
   }
 
   function speakWithBrowserVoice(rate = 1) {
@@ -410,7 +435,14 @@ export default function DictationPage() {
 
             {result.targetWords.length > 0 ? (
               <div className="mt-5 border-t border-[#eef2ef] pt-5">
-                <h3 className="text-base font-semibold">目标词</h3>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold">目标词</h3>
+                  {vocabularyMessage ? (
+                    <span className="text-sm font-medium text-[#1f6f64]">
+                      {vocabularyMessage}
+                    </span>
+                  ) : null}
+                </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {result.targetWords.map((word) => (
                     <div
@@ -447,6 +479,20 @@ export default function DictationPage() {
                           常见搭配：{word.collocations}
                         </p>
                       ) : null}
+                      <button
+                        className="mt-3 h-9 rounded-md border border-[#cfd8d3] px-3 text-sm font-medium text-[#40504b] transition hover:bg-white disabled:cursor-not-allowed disabled:bg-[#edf2ef] disabled:text-[#87908c]"
+                        disabled={
+                          savingWordId === word.wordId || savedWordIds.has(word.wordId)
+                        }
+                        onClick={() => addVocabularyWord(word.wordId)}
+                        type="button"
+                      >
+                        {savedWordIds.has(word.wordId)
+                          ? "已加入"
+                          : savingWordId === word.wordId
+                            ? "加入中..."
+                            : "加入词汇本"}
+                      </button>
                     </div>
                   ))}
                 </div>

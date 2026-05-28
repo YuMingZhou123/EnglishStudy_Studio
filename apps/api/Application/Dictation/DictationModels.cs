@@ -97,10 +97,15 @@ public sealed record WrongWordResponse(
     string MeaningCn,
     string? Phonetic,
     string Status,
+    string Source,
     int MistakeCount,
     int CorrectStreak,
     DateTimeOffset? NextReviewAt,
     DateTimeOffset? LastReviewedAt,
     DateTimeOffset? LastMistakeAt,
+    DateTimeOffset AddedAt,
     string? SourceSentenceText,
     string? SourceSentenceTranslation);
+
+public sealed record AddVocabularyWordRequest(
+    Guid WordId);

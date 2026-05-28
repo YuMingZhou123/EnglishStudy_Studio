@@ -113,11 +113,13 @@ export type WrongWord = {
   meaningCn: string;
   phonetic?: string | null;
   status: string;
+  source: string;
   mistakeCount: number;
   correctStreak: number;
   nextReviewAt?: string | null;
   lastReviewedAt?: string | null;
   lastMistakeAt?: string | null;
+  addedAt: string;
   sourceSentenceText?: string | null;
   sourceSentenceTranslation?: string | null;
 };
@@ -383,8 +385,20 @@ export const dictationApi = {
 };
 
 export const vocabularyApi = {
+  words(token: string) {
+    return apiRequest<WrongWord[]>("/api/vocabulary/words", { token });
+  },
+
   wrongWords(token: string) {
     return apiRequest<WrongWord[]>("/api/vocabulary/wrong-words", { token });
+  },
+
+  addWord(token: string, wordId: string) {
+    return apiRequest<WrongWord>("/api/vocabulary/words", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ wordId }),
+    });
   },
 
   reviewNext(token: string, mode: DictationMode) {

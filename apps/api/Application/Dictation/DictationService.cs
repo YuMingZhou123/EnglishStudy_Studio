@@ -226,26 +226,81 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        return await dbContext.UserWordStates
+        var states = await dbContext.UserWordStates
             .AsNoTracking()
             .Where(state => state.UserId == userId && state.MistakeCount > 0)
             .Include(state => state.Word)
             .Include(state => state.LastMistakeSentence)
             .OrderByDescending(state => state.UpdatedAt)
-            .Select(state => new WrongWordResponse(
-                state.WordId,
-                state.Word.Lemma,
-                state.Word.MeaningCn,
-                state.Word.Phonetic,
-                state.Status,
-                state.MistakeCount,
-                state.CorrectStreak,
-                state.NextReviewAt,
-                state.LastReviewedAt,
-                state.LastMistakeAt,
-                state.LastMistakeSentence == null ? null : state.LastMistakeSentence.Text,
-                state.LastMistakeSentence == null ? null : state.LastMistakeSentence.Translation))
             .ToListAsync(cancellationToken);
+
+        return states.Select(MapVocabularyWord).ToArray();
+    }
+
+    public async Task<IReadOnlyCollection<WrongWordResponse>> GetVocabularyWordsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var states = await dbContext.UserWordStates
+            .AsNoTracking()
+            .Where(state => state.UserId == userId)
+            .Include(state => state.Word)
+            .Include(state => state.LastMistakeSentence)
+            .OrderBy(state => state.NextReviewAt ?? state.UpdatedAt)
+            .ThenByDescending(state => state.UpdatedAt)
+            .ToListAsync(cancellationToken);
+
+        return states.Select(MapVocabularyWord).ToArray();
+    }
+
+    public async Task<ServiceResult<WrongWordResponse>> AddVocabularyWordAsync(
+        Guid userId,
+        AddVocabularyWordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var word = await dbContext.Words
+            .FirstOrDefaultAsync(item => item.Id == request.WordId, cancellationToken);
+        if (word is null)
+        {
+            return ServiceResult<WrongWordResponse>.Failure("Word was not found.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var state = await dbContext.UserWordStates
+            .Include(item => item.Word)
+            .Include(item => item.LastMistakeSentence)
+            .FirstOrDefaultAsync(
+                item => item.UserId == userId && item.WordId == request.WordId,
+                cancellationToken);
+
+        if (state is null)
+        {
+            state = new UserWordState
+            {
+                UserId = userId,
+                WordId = request.WordId,
+                Word = word,
+                Status = "New",
+                Source = "manual",
+                NextReviewAt = now,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            dbContext.UserWordStates.Add(state);
+        }
+        else
+        {
+            state.Source = string.Equals(state.Source, "dictation", StringComparison.OrdinalIgnoreCase)
+                ? state.Source
+                : "manual";
+            state.Status = state.MistakeCount > 0 ? state.Status : "New";
+            state.NextReviewAt ??= now;
+            state.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ServiceResult<WrongWordResponse>.Success(MapVocabularyWord(state));
     }
 
     public async Task<LearningSummaryResponse> GetLearningSummaryAsync(
@@ -297,7 +352,7 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             .CountAsync(
                 state =>
                     state.UserId == userId &&
-                    state.MistakeCount > 0 &&
+                    (state.MistakeCount > 0 || state.Source == "manual") &&
                     (state.NextReviewAt == null || state.NextReviewAt <= now),
                 cancellationToken);
 
@@ -368,7 +423,9 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
         var now = DateTimeOffset.UtcNow;
         var query = dbContext.UserWordStates
             .AsNoTracking()
-            .Where(state => state.UserId == userId && state.MistakeCount > 0);
+            .Where(state =>
+                state.UserId == userId &&
+                (state.MistakeCount > 0 || state.Source == "manual"));
 
         if (dueOnly)
         {
@@ -664,6 +721,25 @@ public sealed partial class DictationService(IAppDbContext dbContext) : IDictati
             string.IsNullOrWhiteSpace(keyword.SurfaceText)
                 ? null
                 : keyword.SurfaceText[..1]);
+    }
+
+    private static WrongWordResponse MapVocabularyWord(UserWordState state)
+    {
+        return new WrongWordResponse(
+            state.WordId,
+            state.Word.Lemma,
+            state.Word.MeaningCn,
+            state.Word.Phonetic,
+            state.Status,
+            state.Source,
+            state.MistakeCount,
+            state.CorrectStreak,
+            state.NextReviewAt,
+            state.LastReviewedAt,
+            state.LastMistakeAt,
+            state.CreatedAt,
+            state.LastMistakeSentence?.Text,
+            state.LastMistakeSentence?.Translation);
     }
 
     private static string BuildBlankId(SentenceKeyword keyword)

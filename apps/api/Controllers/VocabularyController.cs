@@ -18,6 +18,33 @@ public sealed class VocabularyController(IDictationService dictationService) : C
             cancellationToken);
     }
 
+    [HttpGet("words")]
+    public async Task<IReadOnlyCollection<WrongWordResponse>> Words(
+        CancellationToken cancellationToken)
+    {
+        return await dictationService.GetVocabularyWordsAsync(
+            User.GetRequiredUserId(),
+            cancellationToken);
+    }
+
+    [HttpPost("words")]
+    public async Task<IActionResult> AddWord(
+        AddVocabularyWordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await dictationService.AddVocabularyWordAsync(
+            User.GetRequiredUserId(),
+            request,
+            cancellationToken);
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Value);
+        }
+
+        return BadRequest(new { errors = result.Errors });
+    }
+
     [HttpGet("review/next")]
     public async Task<IActionResult> NextReview(
         [FromQuery] string mode = "beginner",

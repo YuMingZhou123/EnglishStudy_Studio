@@ -152,7 +152,7 @@ export default function DashboardPage() {
             value={`${summary?.todayAccuracy ?? 0}%`}
           />
           <SummaryCard
-            label="待复习错词"
+            label="待复习词"
             value={`${summary?.dueReviewCount ?? wrongWords.length} 个`}
           />
           <SummaryCard

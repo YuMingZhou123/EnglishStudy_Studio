@@ -19,7 +19,7 @@ export default function VocabularyPage() {
     }
 
     vocabularyApi
-      .wrongWords(token)
+      .words(token)
       .then(setWords)
       .finally(() => setLoading(false));
   }, [router]);
@@ -33,9 +33,9 @@ export default function VocabularyPage() {
           </Link>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold tracking-normal">错词本</h1>
+              <h1 className="text-3xl font-semibold tracking-normal">词汇本</h1>
               <p className="mt-2 text-sm text-[#69736f]">
-                错词会按复习时间重新进入语境听写，连续答对后逐步变成已掌握。
+                手动加入的生词和答错的目标词都会按复习时间重新进入语境听写。
               </p>
             </div>
             <Link
@@ -53,7 +53,7 @@ export default function VocabularyPage() {
           ) : null}
 
           {!loading && words.length === 0 ? (
-            <p className="text-sm text-[#69736f]">暂时没有错词。</p>
+            <p className="text-sm text-[#69736f]">暂时没有生词或错词。</p>
           ) : null}
 
           <div className="grid gap-3">
@@ -70,6 +70,9 @@ export default function VocabularyPage() {
                         {word.phonetic}
                       </span>
                     ) : null}
+                    <span className="rounded-md bg-[#eef7f4] px-2 py-1 text-xs font-semibold text-[#1f6f64]">
+                      {sourceLabel(word.source)}
+                    </span>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-[#69736f]">
                     {word.meaningCn}
@@ -96,12 +99,17 @@ export default function VocabularyPage() {
                       最近错误：{formatDateTime(word.lastMistakeAt)}
                     </p>
                   ) : null}
+                  <p className="mt-1 text-xs text-[#87908c]">
+                    加入时间：{formatDateTime(word.addedAt)}
+                  </p>
                 </div>
                 <div className="grid content-start gap-2 sm:justify-items-end">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-md bg-[#fff3df] px-2 py-1 text-xs font-semibold text-[#8a5a00]">
-                      错 {word.mistakeCount}
-                    </span>
+                    {word.mistakeCount > 0 ? (
+                      <span className="rounded-md bg-[#fff3df] px-2 py-1 text-xs font-semibold text-[#8a5a00]">
+                        错 {word.mistakeCount}
+                      </span>
+                    ) : null}
                     <span className="rounded-md bg-[#eef7f4] px-2 py-1 text-xs font-semibold text-[#1f6f64]">
                       连对 {word.correctStreak}
                     </span>
@@ -121,12 +129,22 @@ export default function VocabularyPage() {
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
+    New: "未学习",
     Learning: "学习中",
     Reviewing: "复习中",
     Mastered: "已掌握",
   };
 
   return labels[status] ?? status;
+}
+
+function sourceLabel(source: string) {
+  const labels: Record<string, string> = {
+    manual: "手动加入",
+    dictation: "听写错词",
+  };
+
+  return labels[source] ?? source;
 }
 
 function formatDateTime(value: string) {
