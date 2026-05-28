@@ -78,6 +78,7 @@ $betaValidation = Invoke-JsonScript `
     -Parameters @{ Kind = "beta"; SourcePath = $betaFeedbackCsv; ValidateOnly = $true }
 
 $contentHtml = Invoke-JsonScript -ScriptName "export-content-review-html.ps1"
+$contentPackets = Invoke-JsonScript -ScriptName "export-content-review-packets.ps1"
 $betaHtml = Invoke-JsonScript `
     -ScriptName "export-beta-feedback-html.ps1" `
     -Parameters @{ UserCount = $BetaUserCount }
@@ -124,6 +125,7 @@ else {
         csv = $contentTemplate
         validation = $contentValidation
         html = $contentHtml
+        packets = $contentPackets
         summary = $contentSummary
     }
     betaFeedback = [pscustomobject]@{
@@ -138,6 +140,7 @@ else {
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
         "Open acceptance/mvp-acceptance-tasks.md for batch-by-batch content review and tester follow-up tasks.",
+        "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
         "If the content CSV validates, run .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts.",
         "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly before importing.",

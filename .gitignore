@@ -33,6 +33,7 @@ yarn-error.log*
 # generated review artifacts
 content/mvp-content-review.csv
 content/mvp-content-review.html
+content/review-packets/
 feedback/internal-beta-feedback.csv
 feedback/internal-beta-feedback.html
 acceptance/mvp-acceptance-dashboard.html

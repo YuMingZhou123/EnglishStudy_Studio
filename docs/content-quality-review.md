@@ -31,6 +31,19 @@ content/mvp-content-review.csv
 content/mvp-content-review.html
 ```
 
+如果想把 120 条内容分给多个人审核，可以导出 20 条一组的 Markdown 审核包：
+
+```powershell
+.\scripts\export-content-review-packets.ps1
+```
+
+默认输出：
+
+```text
+content/review-packets/index.md
+content/review-packets/content-review-batch-001-020.md
+```
+
 审核时可以直接在 CSV 中填写 `ReviewStatus` 和各类备注；也可以打开 HTML 审核台，逐条选择状态、填写备注，再导出新的 CSV。建议状态：
 
 HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过滤；逐条确认当前筛选结果后，可以把可见行批量标记为 `pass` 或清空状态重审。建议每次只处理一个批次，避免 120 条内容一次性审核时漏行。
@@ -176,6 +189,7 @@ remove
 ```powershell
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
+.\scripts\export-content-review-packets.ps1
 ```
 
 3. 人工逐行审核句子、翻译、关键词；也可以打开 `content/mvp-content-review.html` 使用审核台并导出 CSV。
