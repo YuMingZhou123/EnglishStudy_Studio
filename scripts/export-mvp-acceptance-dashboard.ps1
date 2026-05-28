@@ -20,6 +20,21 @@ function ConvertTo-FileUri([string]$path) {
     return ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
 }
 
+function ConvertTo-FileUriWithQuery([string]$path, [hashtable]$Query = @{}) {
+    $uri = ConvertTo-FileUri $path
+    if ($Query.Count -eq 0) {
+        return $uri
+    }
+
+    $pairs = foreach ($key in ($Query.Keys | Sort-Object)) {
+        $escapedKey = [System.Uri]::EscapeDataString([string]$key)
+        $escapedValue = [System.Uri]::EscapeDataString([string]$Query[$key])
+        "$escapedKey=$escapedValue"
+    }
+
+    return "${uri}?$($pairs -join '&')"
+}
+
 function Invoke-JsonScript {
     param(
         [string]$ScriptName,
@@ -76,6 +91,67 @@ function Test-ObjectFlag($object, [string]$name) {
     }
 
     return [bool]$value
+}
+
+function Get-NextContentReviewBatch([string]$ReviewPath, [int]$BatchSize = 20) {
+    if (-not (Test-Path -LiteralPath $ReviewPath)) {
+        return [pscustomobject]@{
+            batch = "1-20"
+            status = "blank"
+            label = "Review rows 1-20"
+        }
+    }
+
+    $rows = @(Import-Csv -LiteralPath $ReviewPath -Encoding UTF8)
+    if ($rows.Count -eq 0) {
+        return [pscustomobject]@{
+            batch = "1-20"
+            status = "blank"
+            label = "Review rows 1-20"
+        }
+    }
+
+    $targetRow = $null
+    $status = "blank"
+    $labelPrefix = "Review rows"
+    foreach ($row in $rows) {
+        if ([string]::IsNullOrWhiteSpace([string]$row.ReviewStatus)) {
+            $targetRow = $row
+            break
+        }
+    }
+
+    if ($null -eq $targetRow) {
+        foreach ($row in $rows) {
+            $rowStatus = ([string]$row.ReviewStatus).Trim().ToLowerInvariant()
+            if ($rowStatus -ne "pass") {
+                $targetRow = $row
+                $status = $rowStatus
+                $labelPrefix = "Fix rows"
+                break
+            }
+        }
+    }
+
+    if ($null -eq $targetRow) {
+        $targetRow = $rows[0]
+        $status = ""
+        $labelPrefix = "Open rows"
+    }
+
+    $rowNumber = 1
+    if (-not [int]::TryParse([string]$targetRow.RowNumber, [ref]$rowNumber)) {
+        $rowNumber = 1
+    }
+
+    $start = ([math]::Floor(($rowNumber - 1) / $BatchSize) * $BatchSize) + 1
+    $end = [math]::Min($start + $BatchSize - 1, $rows.Count)
+
+    return [pscustomobject]@{
+        batch = "$start-$end"
+        status = $status
+        label = "$labelPrefix $start-$end"
+    }
 }
 
 function New-MetricHtml([string]$label, $value, [string]$className = "") {
@@ -152,6 +228,7 @@ else {
 }
 
 $contentReviewHtmlPath = Join-Path $PSScriptRoot "..\content\mvp-content-review.html"
+$contentReviewCsvPath = Get-ObjectProperty $contentReview "reviewPath" (Join-Path $PSScriptRoot "..\content\mvp-content-review.csv")
 $betaFeedbackHtmlPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"
 $contentReviewDocPath = Join-Path $PSScriptRoot "..\docs\content-quality-review.md"
 $betaPlaybookPath = Join-Path $PSScriptRoot "..\docs\internal-beta-playbook.md"
@@ -176,6 +253,12 @@ $betaIndependentUsers = Get-ObjectProperty $betaFeedback "independentUsers" "n/a
 $betaDifficultyUsers = Get-ObjectProperty $betaFeedback "difficultyUnderstoodUsers" "n/a"
 $betaWillingNextUsers = Get-ObjectProperty $betaFeedback "willingNextUsers" "n/a"
 $betaP0Issues = Get-ObjectProperty $betaFeedback "p0Issues" "n/a"
+$nextContentBatch = Get-NextContentReviewBatch $contentReviewCsvPath
+$nextContentBatchQuery = @{ batch = $nextContentBatch.batch }
+if (-not [string]::IsNullOrWhiteSpace([string]$nextContentBatch.status)) {
+    $nextContentBatchQuery.status = $nextContentBatch.status
+}
+$nextContentBatchUri = ConvertTo-FileUriWithQuery $contentReviewHtmlPath $nextContentBatchQuery
 
 $contentMetrics = @(
     New-MetricHtml "Total rows" $contentTotalRows
@@ -353,7 +436,8 @@ $readinessMetrics
 $contentMetrics
       </div>
       <div class="links">
-        <a class="button primary" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewHtmlPath))">Open review desk</a>
+        <a class="button primary" href="$(ConvertTo-HtmlText $nextContentBatchUri)">$(ConvertTo-HtmlText $nextContentBatch.label)</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewHtmlPath))">Open review desk</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewDocPath))">Review guide</a>
       </div>
     </section>

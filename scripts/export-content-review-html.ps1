@@ -369,6 +369,24 @@ $html = @'
       ].join("");
     }
 
+    function setFilterFromQuery(filterId, queryName) {
+      const value = new URLSearchParams(location.search).get(queryName);
+      if (!value) return;
+
+      const filter = document.getElementById(filterId);
+      const hasOption = Array.from(filter.options).some(option => option.value === value);
+      if (hasOption) {
+        filter.value = value;
+      }
+    }
+
+    function applyQueryFilters() {
+      setFilterFromQuery("sceneFilter", "scene");
+      setFilterFromQuery("levelFilter", "level");
+      setFilterFromQuery("batchFilter", "batch");
+      setFilterFromQuery("statusFilter", "status");
+    }
+
     function getFilteredRows() {
       const scene = document.getElementById("sceneFilter").value;
       const level = document.getElementById("levelFilter").value;
@@ -474,6 +492,7 @@ $html = @'
     }
 
     renderFilters();
+    applyQueryFilters();
     renderCards();
     renderSummary();
 
