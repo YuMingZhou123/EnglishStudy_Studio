@@ -141,7 +141,83 @@ function Validate-Rows($config, [string]$source) {
         throw "CSV contains duplicate $($config.keyColumn) value(s): $($duplicateKeys.Name -join ', ')"
     }
 
+    if ($config.keyColumn -eq "RowNumber") {
+        Validate-ContentReviewRows $rows
+    }
+    else {
+        Validate-BetaFeedbackRows $rows
+    }
+
     return $rows
+}
+
+function Normalize-Value($value) {
+    return ([string]$value).Trim().ToLowerInvariant()
+}
+
+function Assert-AllowedValues {
+    param(
+        [array]$Rows,
+        [string]$KeyColumn,
+        [string]$Column,
+        [string[]]$AllowedValues
+    )
+
+    $allowedSet = @{}
+    foreach ($value in $AllowedValues) {
+        $allowedSet[(Normalize-Value $value)] = $true
+    }
+
+    $invalidRows = @($Rows | Where-Object {
+        $normalized = Normalize-Value $_.$Column
+        -not [string]::IsNullOrWhiteSpace($normalized) -and -not $allowedSet.ContainsKey($normalized)
+    })
+
+    if ($invalidRows.Count -eq 0) {
+        return
+    }
+
+    $examples = @(
+        $invalidRows |
+            Select-Object -First 10 |
+            ForEach-Object { "$($_.$KeyColumn):$($_.$Column)" }
+    )
+    $allowedText = (@("blank") + $AllowedValues) -join ", "
+    throw "CSV contains invalid $Column value(s). Allowed values: $allowedText. Examples: $($examples -join '; ')"
+}
+
+function Validate-ContentReviewRows([array]$rows) {
+    Assert-AllowedValues `
+        -Rows $rows `
+        -KeyColumn "RowNumber" `
+        -Column "ReviewStatus" `
+        -AllowedValues @(
+            "pass",
+            "fix_sentence",
+            "fix_translation",
+            "fix_keyword",
+            "fix_audio",
+            "remove"
+        )
+}
+
+function Validate-BetaFeedbackRows([array]$rows) {
+    $yesCn = [string][char]0x662f
+    $noCn = [string][char]0x5426
+    $completedCn = -join @([char]0x5b8c, [char]0x6210)
+    $usefulCn = -join @([char]0x6709, [char]0x7528)
+    $partialCn = -join @([char]0x90e8, [char]0x5206)
+    $averageCn = -join @([char]0x4e00, [char]0x822c)
+
+    $yesNoValues = @("yes", "y", "true", "1", "no", "n", "false", "0", $yesCn, $noCn, $completedCn, $usefulCn)
+    $partialValues = @("yes", "y", "true", "1", "no", "n", "false", "0", "partial", "partly", "average", $yesCn, $noCn, $completedCn, $usefulCn, $partialCn, $averageCn)
+
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "CompletedTest" -AllowedValues $yesNoValues
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "IndependentCompletion" -AllowedValues $yesNoValues
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "UnderstandsDifficulty" -AllowedValues $partialValues
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "WillingNext" -AllowedValues @("yes", "y", "true", "1", "no", "n", "false", "0", "average", $yesCn, $noCn, $averageCn)
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "PerceivedUseful" -AllowedValues $partialValues
+    Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "Priority" -AllowedValues @("P0", "P1", "P2")
 }
 
 function Backup-Destination([string]$destination) {
