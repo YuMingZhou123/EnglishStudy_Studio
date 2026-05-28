@@ -88,9 +88,11 @@ DDD 分层边界检查：
 ```powershell
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
+.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 .\scripts\summarize-content-review.ps1
 .\scripts\export-beta-feedback-template.ps1
 .\scripts\export-beta-feedback-html.ps1
+.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\summarize-beta-feedback.ps1
 ```
 
@@ -185,6 +187,7 @@ npm run build
 - `.\scripts\generate-missing-audio.ps1` 可以为已发布句子生成缺失音频。
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
 - `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
+- `.\scripts\import-acceptance-csv.ps1` 可以校验并导入浏览器导出的审核/反馈 CSV。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
 - `.\scripts\prepare-mvp-acceptance.ps1` 可以一键准备人工验收入口并汇总当前门禁。
 - `.\scripts\export-mvp-acceptance-dashboard.ps1` 可以生成本地第一版验收总览。

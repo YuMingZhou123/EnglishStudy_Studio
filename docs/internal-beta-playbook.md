@@ -57,7 +57,14 @@ feedback/internal-beta-feedback.csv
 feedback/internal-beta-feedback.html
 ```
 
-可以打开 `feedback/internal-beta-feedback.html` 逐位记录内测结果，再导出 `internal-beta-feedback.csv`，最后用 `summarize-beta-feedback.ps1` 汇总。
+可以打开 `feedback/internal-beta-feedback.html` 逐位记录内测结果，再导出 `internal-beta-feedback.csv`，最后导入并汇总：
+
+```powershell
+.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
+.\scripts\summarize-beta-feedback.ps1
+```
+
+说明：如果 HTML 反馈表导出的 `internal-beta-feedback.csv` 在浏览器下载目录，`import-acceptance-csv.ps1` 会自动找下载目录中的最新同名文件；如果文件在其他位置，使用 `-SourcePath` 指定。
 
 ## 3. 参与用户
 

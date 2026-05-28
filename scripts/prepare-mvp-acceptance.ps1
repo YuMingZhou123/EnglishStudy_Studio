@@ -125,8 +125,8 @@ else {
     readiness = $readinessSummary
     nextActions = @(
         "Open acceptance/mvp-acceptance-dashboard.html for the current MVP acceptance overview.",
-        "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, and place it under content/.",
-        "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, and place it under feedback/.",
+        "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts.",
+        "Open feedback/internal-beta-feedback.html after each beta session, export internal-beta-feedback.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts.",
         "Run .\scripts\check-mvp-readiness.ps1 -IncludeBuild before calling the first version complete."
     )
 } | ConvertTo-Json -Depth 12
