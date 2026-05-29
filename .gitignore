@@ -48,6 +48,7 @@ acceptance/content-review-gate-check.md
 acceptance/content-precheck-report.md
 acceptance/beta-feedback-session.md
 acceptance/beta-feedback-session-check.md
+acceptance/beta-feedback-gate-check.md
 acceptance/mvp-fix-plan.md
 acceptance/local-beta-run.md
 acceptance/local-beta-readiness.md

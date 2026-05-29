@@ -71,6 +71,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-content-review-gate.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\check-beta-feedback-session.ps1
+.\scripts\check-beta-feedback-gate.ps1
 .\scripts\export-mvp-acceptance-dashboard.ps1
 .\scripts\export-mvp-acceptance-tasks.ps1
 ```
@@ -110,6 +111,7 @@ dotnet run --project apps/api.tests/api.tests.csproj
 .\scripts\export-beta-feedback-html.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\check-beta-feedback-session.ps1
+.\scripts\check-beta-feedback-gate.ps1
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\summarize-beta-feedback.ps1
 ```
@@ -211,6 +213,7 @@ npm run build
 - `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
 - `.\scripts\start-beta-feedback-session.ps1` 可以生成下一位真实测试用户的反馈会话。
 - `.\scripts\check-beta-feedback-session.ps1` 可以检查单个真实测试用户的反馈是否填写完整、取值合法、问题项已标记优先级。
+- `.\scripts\check-beta-feedback-gate.ps1` 可以检查全部内测反馈是否满足第一版发布门禁。
 - `.\scripts\import-acceptance-csv.ps1` 可以校验并导入浏览器导出的审核/反馈 CSV。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
 - `.\scripts\prepare-mvp-acceptance.ps1` 可以一键准备人工验收入口并汇总当前门禁。

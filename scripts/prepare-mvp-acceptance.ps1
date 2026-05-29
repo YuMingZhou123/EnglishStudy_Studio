@@ -78,6 +78,7 @@ $contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1
 $betaValidation = Invoke-JsonScript `
     -ScriptName "import-acceptance-csv.ps1" `
     -Parameters @{ Kind = "beta"; SourcePath = $betaFeedbackCsv; ValidateOnly = $true }
+$betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 
 $contentHtml = Invoke-JsonScript -ScriptName "export-content-review-html.ps1"
 $contentPackets = Invoke-JsonScript -ScriptName "export-content-review-packets.ps1"
@@ -155,6 +156,7 @@ else {
         html = $betaHtml
         packets = $betaPackets
         session = $betaSession
+        gateCheck = $betaGateCheck
         summary = $betaSummary
     }
     dashboard = $dashboard
@@ -180,6 +182,7 @@ else {
         "Open acceptance/content-precheck-report.md for automated content hints before manual review.",
         "Open acceptance/content-review-gate-check.md for the full content review gate check.",
         "Open acceptance/beta-feedback-session.md for the next real beta session.",
+        "Open acceptance/beta-feedback-gate-check.md for the full beta feedback gate check.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",

@@ -109,18 +109,13 @@ $readiness = Invoke-JsonScript -ScriptName "check-mvp-readiness.ps1" -Parameters
 $content = $readiness.contentReview
 $beta = $readiness.betaFeedback
 $contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
+$betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
 $handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
 
-$p0Issues = 0
-if ($null -ne $beta -and $beta.PSObject.Properties.Name -contains "p0Issues") {
-    $p0Issues = [int]$beta.p0Issues
-}
+$p0Issues = [int]$betaGateCheck.p0Issues
 
-$betaNeedsTriage = 0
-if ($null -ne $fixPlan -and $fixPlan.PSObject.Properties.Name -contains "betaNeedsTriage") {
-    $betaNeedsTriage = [int]$fixPlan.betaNeedsTriage
-}
+$betaNeedsTriage = [int]$betaGateCheck.untriagedIssueRows
 
 $gates = @(
     (New-GateRow "Git worktree clean" (-not [bool]$git.dirty) "dirty files: $($git.dirtyCount)" "0 dirty files")
@@ -128,7 +123,7 @@ $gates = @(
     (New-GateRow "Product review readiness" ([bool]$readiness.productReviewReady) "productReviewReady: $($readiness.productReviewReady)" "true")
     (New-GateRow "First version readiness" ([bool]$readiness.firstVersionReady) "firstVersionReady: $($readiness.firstVersionReady)" "true")
     (New-GateRow "Content review gate" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), fix: $($contentGateCheck.fixRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), missing notes: $($contentGateCheck.missingNoteRows)" ">=100 pass, 0 fix, 0 blank, 0 invalid, scene/level minimums met")
-    (New-GateRow "Beta feedback gate" ([bool]$beta.passesMinimumGate) "filled: $($beta.filledRows), completed: $($beta.completedUsers), independent: $($beta.independentUsers)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next")
+    (New-GateRow "Beta feedback gate" ([bool]$betaGateCheck.ready) "filled: $($betaGateCheck.filledRows), completed: $($betaGateCheck.completedUsers), independent: $($betaGateCheck.independentUsers), invalid: $($betaGateCheck.invalidRows), incomplete: $($betaGateCheck.incompleteTouchedRows)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next, 0 invalid/incomplete")
     (New-GateRow "No untriaged beta issue notes" ($betaNeedsTriage -eq 0) "needs triage: $betaNeedsTriage" "0")
     (New-GateRow "Handoff artifacts valid" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "all handoff files and links valid")
     (New-GateRow "No P0 beta issues" ($p0Issues -eq 0) "P0 issues: $p0Issues" "0")
@@ -218,7 +213,9 @@ $result = [pscustomobject]@{
     contentBlankRows = $contentGateCheck.blankRows
     contentInvalidStatusRows = $contentGateCheck.invalidStatusRows
     contentMissingNoteRows = $contentGateCheck.missingNoteRows
-    betaFilledRows = $beta.filledRows
+    betaFilledRows = $betaGateCheck.filledRows
+    betaInvalidRows = $betaGateCheck.invalidRows
+    betaIncompleteTouchedRows = $betaGateCheck.incompleteTouchedRows
     betaNeedsTriage = $betaNeedsTriage
     handoffValid = [bool]$handoffValidation.valid
     openGateShortages = $fixPlan.openGateShortages
