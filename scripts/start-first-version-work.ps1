@@ -200,6 +200,7 @@ $lines = @(
     '```powershell',
     '.\scripts\start-first-version-work.ps1',
     '.\scripts\start-first-version-work.ps1 -Open',
+    '.\scripts\check-content-review-batch.ps1',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '```'

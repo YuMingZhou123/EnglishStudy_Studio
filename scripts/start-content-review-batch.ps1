@@ -213,6 +213,8 @@ $lines = @(
     "## Finish Commands",
     "",
     '```powershell',
+    ".\scripts\check-content-review-batch.ps1 -Batch $batchName",
+    ".\scripts\check-content-review-batch.ps1 -Batch $batchName -AssertComplete",
     '.\scripts\import-content-review-packets.ps1 -ValidateOnly',
     '.\scripts\import-content-review-packets.ps1 -RefreshArtifacts',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly',

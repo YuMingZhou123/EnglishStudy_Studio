@@ -173,6 +173,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\prepare-local-beta-run.ps1
 .\scripts\start-first-version-work.ps1
 .\scripts\start-content-review-batch.ps1
+.\scripts\check-content-review-batch.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\export-first-version-handoff.ps1
 .\scripts\validate-first-version-handoff.ps1 -AssertValid
@@ -249,6 +250,7 @@ API 启动后导入内容包：
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\export-content-review-packets.ps1
+.\scripts\check-content-review-batch.ps1
 .\scripts\import-content-review-packets.ps1 -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
