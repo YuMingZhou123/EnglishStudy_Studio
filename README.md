@@ -181,6 +181,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\export-first-version-handoff.ps1
 .\scripts\validate-first-version-handoff.ps1 -AssertValid
 .\scripts\export-first-version-progress.ps1
+.\scripts\export-first-version-human-plan.ps1
 .\scripts\check-local-beta-readiness.ps1
 ```
 
@@ -281,6 +282,7 @@ API 启动后导入内容包：
 .\scripts\export-first-version-handoff.ps1
 .\scripts\validate-first-version-handoff.ps1 -AssertValid
 .\scripts\export-first-version-progress.ps1
+.\scripts\export-first-version-human-plan.ps1
 .\scripts\check-local-beta-readiness.ps1
 .\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady
 .\scripts\summarize-beta-feedback.ps1
@@ -289,6 +291,7 @@ API 启动后导入内容包：
 也可以直接运行 `.\scripts\prepare-mvp-acceptance.ps1`，它会保留已有 CSV，刷新内容审核台和内测反馈表，并输出第一版人工验收缺口。
 生成的 `acceptance/mvp-acceptance-dashboard.html` 会汇总第一版状态，并提供内容审核台和内测反馈表入口。
 生成的 `acceptance/mvp-acceptance-tasks.md` 会把内容审核拆成批次任务，并列出内测用户跟进任务。
+生成的 `acceptance/first-version-human-plan.md` 会按顺序列出内容审核、真实内测和最终发布门禁的人工执行队列。
 生成的 `acceptance/content-precheck-report.md` 会给内容人工审核提供自动预审提示，但不会替代人工审核结论。
 生成的 `acceptance/content-review-gate-check.md` 会汇总所有内容审核批次，并检查最终内容审核门禁是否达标。
 生成的 `acceptance/beta-feedback-gate-check.md` 会汇总所有内测反馈，并检查最终内测反馈门禁是否达标。

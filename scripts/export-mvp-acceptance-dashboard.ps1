@@ -297,6 +297,7 @@ $betaFeedbackHtmlPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedb
 $betaFeedbackCsvPath = Get-ObjectProperty $betaFeedback "feedbackPath" (Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv")
 $betaGateCheckPath = Join-Path $PSScriptRoot "..\acceptance\beta-feedback-gate-check.md"
 $acceptanceTasksPath = Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-tasks.md"
+$humanPlanPath = Join-Path $PSScriptRoot "..\acceptance\first-version-human-plan.md"
 $contentReviewDocPath = Join-Path $PSScriptRoot "..\docs\content-quality-review.md"
 $betaPlaybookPath = Join-Path $PSScriptRoot "..\docs\internal-beta-playbook.md"
 $acceptanceChecklistPath = Join-Path $PSScriptRoot "..\docs\mvp-acceptance-checklist.md"
@@ -506,6 +507,7 @@ $html = @"
       </div>
       <div class="links">
         <a class="button primary" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $acceptanceTasksPath))">Acceptance tasks</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $humanPlanPath))">Human plan</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $acceptanceChecklistPath))">Acceptance checklist</a>
       </div>
     </div>

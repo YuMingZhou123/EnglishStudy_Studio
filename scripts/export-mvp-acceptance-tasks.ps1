@@ -32,6 +32,7 @@ $releaseGatePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\ac
 $handoffPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-handoff.md"))
 $handoffValidationPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-handoff-validation.md"))
 $progressPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-progress.md"))
+$humanPlanPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-human-plan.md"))
 $localBetaReadinessPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\local-beta-readiness.md"))
 
 function ConvertTo-FileUri([string]$path) {
@@ -176,6 +177,7 @@ $releaseGateLink = Get-MarkdownLink "Open release gate" (ConvertTo-FileUri $rele
 $handoffLink = Get-MarkdownLink "Open handoff" (ConvertTo-FileUri $handoffPath)
 $handoffValidationLink = Get-MarkdownLink "Open handoff validation" (ConvertTo-FileUri $handoffValidationPath)
 $progressLink = Get-MarkdownLink "Open progress" (ConvertTo-FileUri $progressPath)
+$humanPlanLink = Get-MarkdownLink "Open human execution plan" (ConvertTo-FileUri $humanPlanPath)
 $localBetaReadinessLink = Get-MarkdownLink "Open local beta readiness" (ConvertTo-FileUri $localBetaReadinessPath)
 
 $contentTable = if ($contentBatches.Count -eq 0) {
@@ -234,6 +236,8 @@ $lines = @(
     "",
     "First version progress: $progressLink",
     "",
+    "Human execution plan: $humanPlanLink",
+    "",
     "Local beta readiness: $localBetaReadinessLink",
     "",
     "## Current Gates",
@@ -265,6 +269,7 @@ $lines = @(
     '.\scripts\export-first-version-handoff.ps1',
     '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
     '.\scripts\export-first-version-progress.ps1',
+    '.\scripts\export-first-version-human-plan.ps1',
     '.\scripts\check-local-beta-readiness.ps1',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly',

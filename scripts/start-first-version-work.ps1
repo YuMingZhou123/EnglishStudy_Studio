@@ -72,6 +72,7 @@ $content = $acceptance.contentReview.summary
 $beta = $acceptance.betaFeedback.summary
 $contentSession = $acceptance.contentReview.session
 $betaSession = $acceptance.betaFeedback.session
+$humanPlan = $acceptance.humanPlan
 
 $contentNeedsReview =
     -not [bool]$content.passesMinimumGate -or
@@ -182,6 +183,7 @@ $lines = @(
     "## Useful Files",
     "",
     "- Work target: [open]($(ConvertTo-FileUri $action.targetPath))",
+    "- Human execution plan: [open]($(ConvertTo-FileUri $humanPlan.outputPath))",
     "- Content review session: [open]($(ConvertTo-FileUri $contentSession.outputPath))",
     "- Beta feedback session: [open]($(ConvertTo-FileUri $betaSession.outputPath))",
     "- First version progress: [open]($(ConvertTo-FileUri $progress.outputPath))",
@@ -227,6 +229,7 @@ if ($Open) {
     command = $action.command
     reason = $action.reason
     targetPath = $action.targetPath
+    humanPlanPath = $humanPlan.outputPath
     readyForRelease = [bool]$releaseGate.readyForRelease
     automatedReady = [bool]$releaseGate.automatedReady
     productReviewReady = [bool]$releaseGate.productReviewReady

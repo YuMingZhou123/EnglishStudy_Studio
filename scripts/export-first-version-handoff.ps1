@@ -199,6 +199,7 @@ $contentBatches = @(New-ContentBatchRows $contentRows)
 $betaSlots = @(New-BetaSlotRows $betaRows)
 $nextContentBatch = @($contentBatches | Where-Object { $_.blankRows -gt 0 } | Select-Object -First 1)
 $nextBetaSlot = @($betaSlots | Where-Object { -not $_.filled } | Select-Object -First 1)
+$humanPlanPath = Join-Path $RepoRoot "acceptance\first-version-human-plan.md"
 $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 $contentBatchLines = if ($contentBatches.Count -eq 0) {
@@ -263,6 +264,7 @@ $lines = @(
     "",
     $nextContentLine,
     $nextBetaLine,
+    "- Human execution plan: $(Get-MarkdownLink 'open' $humanPlanPath)",
     '- Content precheck: `.\scripts\export-content-precheck-report.ps1`',
     '- Start content review: `.\scripts\start-content-review-batch.ps1`',
     '- Check content review batch: `.\scripts\check-content-review-batch.ps1`',
@@ -330,6 +332,7 @@ $lines = @(
     '.\scripts\check-beta-feedback-gate.ps1',
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-handoff.ps1',
+    '.\scripts\export-first-version-human-plan.ps1',
     '.\scripts\validate-first-version-handoff.ps1 -AssertValid',
     '.\scripts\export-first-version-progress.ps1',
     '.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady',

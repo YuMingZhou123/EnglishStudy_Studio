@@ -56,6 +56,7 @@ $paths = [ordered]@{
     releaseGate = Join-Path $RepoRoot "acceptance\first-version-release-gate.md"
     handoff = Join-Path $RepoRoot "acceptance\first-version-handoff.md"
     status = Join-Path $RepoRoot "acceptance\first-version-status.md"
+    humanPlan = Join-Path $RepoRoot "acceptance\first-version-human-plan.md"
     localBetaRun = Join-Path $RepoRoot "acceptance\local-beta-run.md"
     localBetaReadiness = Join-Path $RepoRoot "acceptance\local-beta-readiness.md"
     contentPrecheck = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
@@ -115,6 +116,7 @@ $handoffText = Get-FileText $paths.handoff
 $tasksText = Get-FileText $paths.tasks
 $dashboardText = Get-FileText $paths.dashboard
 $statusText = Get-FileText $paths.status
+$humanPlanText = Get-FileText $paths.humanPlan
 $localBetaText = Get-FileText $paths.localBetaRun
 $localBetaReadinessText = Get-FileText $paths.localBetaReadiness
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
@@ -137,9 +139,14 @@ $checks.Add((Test-TextContains "tasks link content review session" $tasksText "c
 $checks.Add((Test-TextContains "tasks link beta feedback session" $tasksText "beta-feedback-session.md" "acceptance tasks link beta feedback session"))
 $checks.Add((Test-TextContains "tasks link content gate" $tasksText "content-review-gate-check.md" "acceptance tasks link content gate check"))
 $checks.Add((Test-TextContains "tasks link beta gate" $tasksText "beta-feedback-gate-check.md" "acceptance tasks link beta gate check"))
+$checks.Add((Test-TextContains "tasks link human plan" $tasksText "first-version-human-plan.md" "acceptance tasks link human execution plan"))
 $checks.Add((Test-TextContains "dashboard links content gate" $dashboardText "content-review-gate-check.md" "acceptance dashboard links content gate check"))
 $checks.Add((Test-TextContains "dashboard links beta gate" $dashboardText "beta-feedback-gate-check.md" "acceptance dashboard links beta gate check"))
+$checks.Add((Test-TextContains "dashboard links human plan" $dashboardText "first-version-human-plan.md" "acceptance dashboard links human execution plan"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
+$checks.Add((Test-TextContains "human plan has content queue" $humanPlanText "## Content Review Queue" "human plan includes content review queue"))
+$checks.Add((Test-TextContains "human plan has beta queue" $humanPlanText "## Beta Feedback Queue" "human plan includes beta feedback queue"))
+$checks.Add((Test-TextContains "human plan guards beta invite order" $humanPlanText "Do not invite beta testers before content review passes the gate." "human plan preserves content-before-beta guardrail"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
 $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))
@@ -154,6 +161,7 @@ $checks.Add((Test-TextContains "readme mentions beta feedback gate checker" $rea
 $checks.Add((Test-TextContains "readme mentions content batch checker" $readmeText "check-content-review-batch.ps1" "README lists content batch checker command"))
 $checks.Add((Test-TextContains "readme mentions content precheck" $readmeText "export-content-precheck-report.ps1" "README lists content precheck command"))
 $checks.Add((Test-TextContains "readme mentions content review gate checker" $readmeText "check-content-review-gate.ps1" "README lists full content gate checker command"))
+$checks.Add((Test-TextContains "readme mentions human plan" $readmeText "export-first-version-human-plan.ps1" "README lists human execution plan command"))
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
 $passedChecks = @($checks | Where-Object { [bool]$_.passed })
