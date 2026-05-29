@@ -22,6 +22,7 @@ $betaFeedbackHtmlPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "
 $betaFeedbackPacketDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\feedback\beta-feedback-packets"))
 $dashboardPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-dashboard.html"))
 $contentReviewSessionPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\content-review-session.md"))
+$betaFeedbackSessionPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\beta-feedback-session.md"))
 $fixPlanPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-fix-plan.md"))
 $statusReportPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-status.md"))
 $releaseGatePath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\first-version-release-gate.md"))
@@ -162,6 +163,7 @@ $betaP0Issues = @($betaRows | Where-Object { (Get-Status $_.Priority) -eq "p0" }
 $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $dashboardLink = Get-MarkdownLink "Open dashboard" (ConvertTo-FileUri $dashboardPath)
 $contentReviewSessionLink = Get-MarkdownLink "Open content review session" (ConvertTo-FileUri $contentReviewSessionPath)
+$betaFeedbackSessionLink = Get-MarkdownLink "Open beta feedback session" (ConvertTo-FileUri $betaFeedbackSessionPath)
 $fixPlanLink = Get-MarkdownLink "Open fix plan" (ConvertTo-FileUri $fixPlanPath)
 $statusReportLink = Get-MarkdownLink "Open status" (ConvertTo-FileUri $statusReportPath)
 $releaseGateLink = Get-MarkdownLink "Open release gate" (ConvertTo-FileUri $releaseGatePath)
@@ -206,6 +208,8 @@ $lines = @(
     "",
     "Content review session: $contentReviewSessionLink",
     "",
+    "Beta feedback session: $betaFeedbackSessionLink",
+    "",
     "Fix plan: $fixPlanLink",
     "",
     "First version status: $statusReportLink",
@@ -239,6 +243,7 @@ $lines = @(
     '.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
     '.\scripts\start-content-review-batch.ps1',
+    '.\scripts\start-beta-feedback-session.ps1',
     '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
     '.\scripts\export-mvp-fix-plan.ps1',

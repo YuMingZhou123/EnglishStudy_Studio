@@ -272,6 +272,8 @@ function Write-Runbook($summary) {
         "",
         "- Dashboard: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-acceptance-dashboard.html')))",
         "- Task list: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-acceptance-tasks.md')))",
+        "- Content review session: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\content-review-session.md')))",
+        "- Beta feedback session: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\beta-feedback-session.md')))",
         "- Fix plan: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\mvp-fix-plan.md')))",
         "- Release gate: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-release-gate.md')))",
         "- First version handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot 'acceptance\first-version-handoff.md')))",
@@ -285,6 +287,8 @@ function Write-Runbook($summary) {
         "## Next Commands",
         "",
         '```powershell',
+        '.\scripts\start-content-review-batch.ps1',
+        '.\scripts\start-beta-feedback-session.ps1',
         '.\scripts\import-content-review-packets.ps1 -ValidateOnly',
         '.\scripts\import-content-review-packets.ps1 -RefreshArtifacts',
         '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
@@ -399,6 +403,8 @@ $summary = [pscustomobject]@{
         statusReport = $statusReport.outputPath
         contentPackets = $acceptance.contentReview.packets.indexPath
         betaPackets = $acceptance.betaFeedback.packets.indexPath
+        contentReviewSession = $acceptance.contentReview.session.outputPath
+        betaFeedbackSession = $acceptance.betaFeedback.session.outputPath
     }
     readiness = if ($SkipReadiness) {
         $readiness

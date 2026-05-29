@@ -58,6 +58,8 @@ $paths = [ordered]@{
     status = Join-Path $RepoRoot "acceptance\first-version-status.md"
     localBetaRun = Join-Path $RepoRoot "acceptance\local-beta-run.md"
     localBetaReadiness = Join-Path $RepoRoot "acceptance\local-beta-readiness.md"
+    contentReviewSession = Join-Path $RepoRoot "acceptance\content-review-session.md"
+    betaFeedbackSession = Join-Path $RepoRoot "acceptance\beta-feedback-session.md"
     contentReviewCsv = Join-Path $RepoRoot "content\mvp-content-review.csv"
     contentReviewHtml = Join-Path $RepoRoot "content\mvp-content-review.html"
     contentPacketIndex = Join-Path $RepoRoot "content\review-packets\index.md"
@@ -115,11 +117,15 @@ $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
 $checks.Add((Test-TextContains "handoff has next beta slot" $handoffText "Next beta tester slot:" "handoff points to the next beta tester slot"))
+$checks.Add((Test-TextContains "handoff has start content review command" $handoffText "start-content-review-batch.ps1" "handoff includes content session command"))
+$checks.Add((Test-TextContains "handoff has start beta feedback command" $handoffText "start-beta-feedback-session.ps1" "handoff includes beta session command"))
 $checks.Add((Test-TextContains "handoff has final release command" $handoffText ".\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady" "handoff includes final release gate command"))
 $checks.Add((Test-TextContains "handoff has guardrail against fake content pass" $handoffText 'Do not mark content as `pass`' "handoff warns against unreviewed pass marks"))
 $checks.Add((Test-TextContains "handoff has guardrail against fake beta feedback" $handoffText "Do not invent or copy beta feedback" "handoff warns against fabricated feedback"))
 $checks.Add((New-Check "handoff packet links resolved" (-not $handoffText.Contains("missing")) "missing marker present: $($handoffText.Contains('missing'))" "no missing packet links"))
 $checks.Add((Test-TextContains "tasks link handoff" $tasksText "first-version-handoff.md" "acceptance tasks link handoff"))
+$checks.Add((Test-TextContains "tasks link content review session" $tasksText "content-review-session.md" "acceptance tasks link content review session"))
+$checks.Add((Test-TextContains "tasks link beta feedback session" $tasksText "beta-feedback-session.md" "acceptance tasks link beta feedback session"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
@@ -127,6 +133,7 @@ $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaRea
 $checks.Add((Test-TextContains "local beta readiness preserves content gate" $localBetaReadinessText "Content ready for beta testers" "readiness report checks content gate before beta"))
 $checks.Add((Test-TextContains "readme mentions handoff" $readmeText "export-first-version-handoff.ps1" "README lists handoff command"))
 $checks.Add((Test-TextContains "readme mentions local beta readiness" $readmeText "check-local-beta-readiness.ps1" "README lists local beta readiness command"))
+$checks.Add((Test-TextContains "readme mentions beta session" $readmeText "start-beta-feedback-session.ps1" "README lists beta session command"))
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
 $passedChecks = @($checks | Where-Object { [bool]$_.passed })

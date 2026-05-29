@@ -85,6 +85,8 @@ $betaHtml = Invoke-JsonScript `
 $betaPackets = Invoke-JsonScript `
     -ScriptName "export-beta-feedback-packets.ps1" `
     -Parameters @{ UserCount = $BetaUserCount }
+$contentSession = Invoke-JsonScript -ScriptName "start-content-review-batch.ps1"
+$betaSession = Invoke-JsonScript -ScriptName "start-beta-feedback-session.ps1"
 
 $contentSummary = $contentValidation.summary
 $betaSummary = $betaValidation.summary
@@ -140,6 +142,7 @@ else {
         validation = $contentValidation
         html = $contentHtml
         packets = $contentPackets
+        session = $contentSession
         summary = $contentSummary
     }
     betaFeedback = [pscustomobject]@{
@@ -147,6 +150,7 @@ else {
         validation = $betaValidation
         html = $betaHtml
         packets = $betaPackets
+        session = $betaSession
         summary = $betaSummary
     }
     dashboard = $dashboard
@@ -169,6 +173,7 @@ else {
         "Open acceptance/first-version-handoff-validation.md to confirm handoff files are shareable.",
         "Open acceptance/first-version-progress.md for the compact progress brief.",
         "Open acceptance/local-beta-readiness.md before inviting a real beta tester.",
+        "Open acceptance/beta-feedback-session.md for the next real beta session.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",
         "Open content/mvp-content-review.html, review every sentence, export mvp-content-review.csv, then run .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly before importing.",
