@@ -139,6 +139,8 @@ $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "fi
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
 $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))
 $checks.Add((Test-TextContains "local beta readiness preserves content gate" $localBetaReadinessText "Content ready for beta testers" "readiness report checks content gate before beta"))
+$checks.Add((Test-TextContains "local beta readiness links content gate" $localBetaReadinessText "content-review-gate-check.md" "local beta readiness links content gate check"))
+$checks.Add((Test-TextContains "local beta readiness links beta gate" $localBetaReadinessText "beta-feedback-gate-check.md" "local beta readiness links beta gate check"))
 $checks.Add((Test-TextContains "readme mentions handoff" $readmeText "export-first-version-handoff.ps1" "README lists handoff command"))
 $checks.Add((Test-TextContains "readme mentions local beta readiness" $readmeText "check-local-beta-readiness.ps1" "README lists local beta readiness command"))
 $checks.Add((Test-TextContains "readme mentions beta session" $readmeText "start-beta-feedback-session.ps1" "README lists beta session command"))

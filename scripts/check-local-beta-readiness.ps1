@@ -95,10 +95,12 @@ $handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-hando
 $progress = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
 $content = $readiness.contentReview
 $beta = $readiness.betaFeedback
+$contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
+$betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 $contentValidation = $readiness.contentReviewValidation
 $betaValidation = $readiness.betaFeedbackValidation
 
-$betaSlotAvailable = ([int]$beta.filledRows) -lt 10
+$betaSlotAvailable = ([int]$betaGateCheck.filledRows) -lt 10
 $reviewMaterialReady =
     [bool]$apiHealth.reachable -and
     [bool]$apiReady.reachable -and
@@ -109,8 +111,10 @@ $reviewMaterialReady =
     [bool]$betaValidation.valid
 $betaSessionReady =
     $reviewMaterialReady -and
-    [bool]$content.passesMinimumGate -and
-    $betaSlotAvailable
+    [bool]$contentGateCheck.ready -and
+    $betaSlotAvailable -and
+    [int]$betaGateCheck.p0Issues -eq 0 -and
+    [int]$betaGateCheck.untriagedIssueRows -eq 0
 
 $checks = @(
     (New-Check "API health reachable" ([bool]$apiHealth.reachable) "status: $($apiHealth.statusCode); error: $($apiHealth.error)" "HTTP 2xx")
@@ -120,9 +124,10 @@ $checks = @(
     (New-Check "Handoff validation" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "0 failed checks")
     (New-Check "Content review sheet valid" ([bool]$contentValidation.valid) "rows: $($contentValidation.rowCount)" "valid CSV")
     (New-Check "Beta feedback sheet valid" ([bool]$betaValidation.valid) "rows: $($betaValidation.rowCount)" "valid CSV")
-    (New-Check "Content ready for beta testers" ([bool]$content.passesMinimumGate) "pass: $($content.passRows), blank: $($content.blankRows), fix: $($content.fixRows)" "content review minimum gate true")
-    (New-Check "Beta tester slot available" $betaSlotAvailable "filled: $($beta.filledRows), next: $($progress.nextBetaSlot)" "at least one open tester slot")
-    (New-Check "No P0 beta issues" ([int]$beta.p0Issues -eq 0) "P0 issues: $($beta.p0Issues)" "0")
+    (New-Check "Content ready for beta testers" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), shortages: $($contentGateCheck.minimumShortages)" "full content gate true")
+    (New-Check "Beta tester slot available" $betaSlotAvailable "filled: $($betaGateCheck.filledRows), next: $($progress.nextBetaSlot)" "at least one open tester slot")
+    (New-Check "No P0 beta issues" ([int]$betaGateCheck.p0Issues -eq 0) "P0 issues: $($betaGateCheck.p0Issues)" "0")
+    (New-Check "No untriaged beta issues" ([int]$betaGateCheck.untriagedIssueRows -eq 0) "untriaged: $($betaGateCheck.untriagedIssueRows)" "0")
 )
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
@@ -184,12 +189,16 @@ $lines = @(
     "- First version progress: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-progress.md")))",
     "- First version handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff.md")))",
     "- Handoff validation: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff-validation.md")))",
+    "- Content gate check: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-review-gate-check.md")))",
+    "- Beta gate check: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\beta-feedback-gate-check.md")))",
     "- Local beta runbook: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\local-beta-run.md")))",
     "",
     "## Commands",
     "",
     '```powershell',
     '.\scripts\prepare-local-beta-run.ps1 -SkipInfrastructure -SkipServerStart -SkipContentImport -SkipAudio',
+    '.\scripts\check-content-review-gate.ps1',
+    '.\scripts\check-beta-feedback-gate.ps1',
     '.\scripts\check-local-beta-readiness.ps1',
     '.\scripts\check-local-beta-readiness.ps1 -AssertBetaReady',
     '```'
@@ -215,6 +224,10 @@ $result = [pscustomobject]@{
     failedCheckNames = @($failedChecks | ForEach-Object { $_.name })
     nextContentBatch = $progress.nextContentBatch
     nextBetaSlot = $progress.nextBetaSlot
+    contentGateReady = [bool]$contentGateCheck.ready
+    betaGateReady = [bool]$betaGateCheck.ready
+    betaP0Issues = [int]$betaGateCheck.p0Issues
+    betaUntriagedIssueRows = [int]$betaGateCheck.untriagedIssueRows
 }
 
 if ($AssertBetaReady -and -not $betaSessionReady) {

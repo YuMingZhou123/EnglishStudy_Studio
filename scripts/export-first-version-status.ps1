@@ -140,6 +140,8 @@ else {
 
 $content = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
 $beta = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
+$contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
+$betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
 
 $decision = New-Decision $readiness $content $beta
@@ -168,6 +170,8 @@ $artifactLines = @(
     (New-LinkLine "First version progress" (Join-Path $RepoRoot "acceptance\first-version-progress.md"))
     (New-LinkLine "Local beta readiness" (Join-Path $RepoRoot "acceptance\local-beta-readiness.md"))
     (New-LinkLine "Local beta runbook" (Join-Path $RepoRoot "acceptance\local-beta-run.md"))
+    (New-LinkLine "Content gate check" (Join-Path $RepoRoot "acceptance\content-review-gate-check.md"))
+    (New-LinkLine "Beta feedback gate check" (Join-Path $RepoRoot "acceptance\beta-feedback-gate-check.md"))
     (New-LinkLine "Content review desk" (Join-Path $RepoRoot "content\mvp-content-review.html"))
     (New-LinkLine "Content review packets" (Join-Path $RepoRoot "content\review-packets\index.md"))
     (New-LinkLine "Beta feedback desk" (Join-Path $RepoRoot "feedback\internal-beta-feedback.html"))
@@ -212,6 +216,9 @@ $lines = @(
     "| Pass rows | $($content.passRows) |",
     "| Fix/remove rows | $($content.fixRows) |",
     "| Blank rows | $($content.blankRows) |",
+    "| Invalid status rows | $($content.invalidStatusRows) |",
+    "| Missing-note rows | $($content.missingNoteRows) |",
+    "| Gate shortages | $($contentGateCheck.minimumShortages) |",
     "| Minimum gate | $($content.passesMinimumGate) |",
     "",
     "## Beta Feedback",
@@ -225,6 +232,10 @@ $lines = @(
     "| Willing next users | $($beta.willingNextUsers) |",
     "| P0 issues | $($beta.p0Issues) |",
     "| P1 issues | $($beta.p1Issues) |",
+    "| Invalid rows | $($beta.invalidRows) |",
+    "| Incomplete touched rows | $($beta.incompleteTouchedRows) |",
+    "| Untriaged issue rows | $($beta.untriagedIssueRows) |",
+    "| Gate shortages | $($betaGateCheck.minimumShortages) |",
     "| Minimum gate | $($beta.passesMinimumGate) |",
     "",
     "## Fix Plan",
@@ -247,6 +258,8 @@ $lines = @(
     '- Complete beta feedback and import it with `.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts` or `.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts`.',
     '- Use `.\scripts\export-mvp-fix-plan.ps1` after each import to review remaining fixes.',
     '- Use `.\scripts\export-first-version-handoff.ps1` to refresh the review and beta handoff queue.',
+    '- Run `.\scripts\check-content-review-gate.ps1 -AssertReady` after content review is filled.',
+    '- Run `.\scripts\check-beta-feedback-gate.ps1 -AssertReady` after beta feedback is filled.',
     '- Run `.\scripts\validate-first-version-handoff.ps1 -AssertValid` before sharing handoff files.',
     '- Run `.\scripts\export-first-version-progress.ps1` to refresh the compact progress brief.',
     '- Run `.\scripts\check-local-beta-readiness.ps1` before inviting a real beta tester.',
@@ -272,6 +285,8 @@ Set-Content -LiteralPath $OutputPath -Value ($lines -join "`r`n") -Encoding UTF8
     firstVersionReady = if ($SkipReadiness) { $null } else { [bool]$readiness.firstVersionReady }
     contentPassRows = $content.passRows
     contentBlankRows = $content.blankRows
+    contentGateReady = [bool]$contentGateCheck.ready
     betaFilledRows = $beta.filledRows
+    betaGateReady = [bool]$betaGateCheck.ready
     openGateShortages = $fixPlan.openGateShortages
 } | ConvertTo-Json -Depth 6
