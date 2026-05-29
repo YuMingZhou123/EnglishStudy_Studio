@@ -65,6 +65,8 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-mvp-readiness.ps1
 .\scripts\check-mvp-readiness.ps1 -IncludeBuild
 .\scripts\prepare-mvp-acceptance.ps1
+.\scripts\start-content-review-batch.ps1
+.\scripts\start-beta-feedback-session.ps1
 .\scripts\export-mvp-acceptance-dashboard.ps1
 .\scripts\export-mvp-acceptance-tasks.ps1
 ```
@@ -95,10 +97,12 @@ dotnet run --project apps/api.tests/api.tests.csproj
 ```powershell
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
+.\scripts\start-content-review-batch.ps1
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 .\scripts\summarize-content-review.ps1
 .\scripts\export-beta-feedback-template.ps1
 .\scripts\export-beta-feedback-html.ps1
+.\scripts\start-beta-feedback-session.ps1
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\summarize-beta-feedback.ps1
 ```
@@ -194,7 +198,9 @@ npm run build
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
 - `.\scripts\generate-missing-audio.ps1` 可以为已发布句子生成缺失音频。
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
+- `.\scripts\start-content-review-batch.ps1` 可以生成下一批内容审核会话。
 - `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
+- `.\scripts\start-beta-feedback-session.ps1` 可以生成下一位真实测试用户的反馈会话。
 - `.\scripts\import-acceptance-csv.ps1` 可以校验并导入浏览器导出的审核/反馈 CSV。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
 - `.\scripts\prepare-mvp-acceptance.ps1` 可以一键准备人工验收入口并汇总当前门禁。

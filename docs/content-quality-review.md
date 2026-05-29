@@ -37,6 +37,18 @@ content/mvp-content-review.html
 .\scripts\export-content-review-packets.ps1
 ```
 
+开始当前批次审核时，建议使用批次会话入口：
+
+```powershell
+.\scripts\start-content-review-batch.ps1 -Open
+```
+
+该脚本会自动选择下一组待审核或待修复内容，并生成：
+
+```text
+acceptance/content-review-session.md
+```
+
 默认输出：
 
 ```text

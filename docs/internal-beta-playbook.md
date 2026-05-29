@@ -52,12 +52,25 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\prepare-local-beta-run.ps1
 ```
 
+开始某一位真实用户内测前，建议直接生成本次会话入口：
+
+```powershell
+.\scripts\start-beta-feedback-session.ps1 -Open
+```
+
+该脚本会自动选择下一位未填写反馈的用户位，例如 `U01`，并生成：
+
+```text
+acceptance/beta-feedback-session.md
+```
+
 默认输出：
 
 ```text
 feedback/internal-beta-feedback.csv
 feedback/internal-beta-feedback.html
 feedback/beta-feedback-packets/index.md
+acceptance/beta-feedback-session.md
 ```
 
 如果想给每个内测用户单独准备一份记录表，可以使用 `feedback/beta-feedback-packets/index.md`。每个用户一份 Markdown 文件，完成后先预检再导回主反馈表：

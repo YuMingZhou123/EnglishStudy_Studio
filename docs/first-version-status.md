@@ -1,6 +1,6 @@
 # 第一版当前状态
 
-更新时间：2026-05-28 16:09
+更新时间：2026-05-29 08:46
 分支：`develop`  
 当前结论：工程 MVP 已经基本跑通，可以进入人工内容审核和真实用户内测；但还不能宣布第一版完成。
 
@@ -124,7 +124,7 @@
 - API smoke test。
 - 页面级 smoke test。
 - MVP readiness 汇总脚本。
-- 内容审核和内测反馈生成、导入、汇总脚本。
+- 内容审核和内测反馈生成、会话启动、导入、汇总脚本。
 - 本地验收看板和任务清单生成脚本。
 
 ## 4. 当前不能算完成的原因
@@ -144,11 +144,20 @@
 .\scripts\prepare-mvp-acceptance.ps1 -Open
 ```
 
-然后按生成的任务清单执行：
+然后按生成的任务清单执行。优先使用会话启动脚本，它会自动定位下一批内容或下一位测试用户：
+
+```powershell
+.\scripts\start-content-review-batch.ps1 -Open
+.\scripts\start-beta-feedback-session.ps1 -Open
+```
+
+关键入口：
 
 ```text
 acceptance/mvp-acceptance-dashboard.html
 acceptance/mvp-acceptance-tasks.md
+acceptance/content-review-session.md
+acceptance/beta-feedback-session.md
 content/mvp-content-review.html
 feedback/internal-beta-feedback.html
 ```
@@ -171,6 +180,7 @@ feedback/internal-beta-feedback.html
 
 ```powershell
 .\scripts\check-mvp-readiness.ps1 -IncludeBuild
+.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady
 ```
 
 只有当输出同时满足下面三个结果时，才能宣布第一版完成：
