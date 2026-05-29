@@ -79,13 +79,21 @@ function Test-BetaFilled($row) {
 }
 
 function Get-BetaIssueText($row) {
-    return @(
+    $audioIssue = Get-Status (Get-FieldValue $row "AudioIssue")
+    $audioIssueValue = if (-not [string]::IsNullOrWhiteSpace($audioIssue) -and $audioIssue -ne "none") {
+        Get-FieldValue $row "AudioIssue"
+    }
+    else {
+        ""
+    }
+    $issueText = @(
         (Get-FieldValue $row "StuckStep"),
-        (Get-FieldValue $row "AudioIssue"),
+        $audioIssueValue,
         (Get-FieldValue $row "PageIssue"),
-        (Get-FieldValue $row "ContentIssue"),
-        (Get-FieldValue $row "Notes")
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        (Get-FieldValue $row "ContentIssue")
+    )
+
+    return $issueText | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
 function New-NormalizedRow($row, [int]$Index) {
@@ -240,6 +248,8 @@ $lines = @(
     '.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts',
     '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
+    ".\scripts\check-beta-feedback-session.ps1 -UserId $($target.userId)",
+    ".\scripts\check-beta-feedback-session.ps1 -UserId $($target.userId) -AssertComplete",
     '.\scripts\start-beta-feedback-session.ps1',
     '.\scripts\export-first-version-progress.ps1',
     '.\scripts\check-local-beta-readiness.ps1',

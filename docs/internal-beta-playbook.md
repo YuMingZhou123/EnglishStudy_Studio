@@ -87,21 +87,27 @@ acceptance/beta-feedback-session.md
 ```powershell
 .\scripts\import-acceptance-csv.ps1 -Kind beta -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
+.\scripts\check-beta-feedback-session.ps1 -UserId U01
+.\scripts\check-beta-feedback-session.ps1 -UserId U01 -AssertComplete
 .\scripts\summarize-beta-feedback.ps1
 ```
 
 说明：如果 HTML 反馈表导出的 `internal-beta-feedback.csv` 在浏览器下载目录，`import-acceptance-csv.ps1` 会自动找下载目录中的最新同名文件；如果文件在其他位置，使用 `-SourcePath` 指定。
 `-ValidateOnly` 会检查 CSV 格式和可统计字段，并返回这份待导入 CSV 的内测汇总，不会覆盖当前反馈表。
+`check-beta-feedback-session.ps1` 会检查单个真实测试用户是否填完必填字段、枚举值是否有效，以及有问题项时是否填写 `Priority`。
 
 建议优先使用 HTML 反馈表下拉选项，手写 CSV 时保持以下值：
 
 | 字段 | 可填写值 |
 | --- | --- |
+| `UserType` | 空白、`university_student`、`workplace_newcomer`、`general_learner` |
+| `EnglishLevel` | 空白、`beginner`、`intermediate`、`advanced`、`uncertain` |
 | `CompletedTest` | 空白、`yes`、`no` |
 | `IndependentCompletion` | 空白、`yes`、`no` |
 | `UnderstandsDifficulty` | 空白、`yes`、`partial`、`no` |
 | `WillingNext` | 空白、`yes`、`average`、`no` |
 | `PerceivedUseful` | 空白、`yes`、`partial`、`no` |
+| `AudioIssue` | 空白、`none`、`too_fast`、`too_slow`、`mechanical`、`low_volume`、`playback_failed` |
 | `Priority` | 空白、`P0`、`P1`、`P2` |
 
 ## 3. 参与用户

@@ -80,13 +80,21 @@ function Test-BetaFilled($row) {
 }
 
 function Get-BetaIssueText($row) {
-    return @(
+    $audioIssue = Get-Status $row.AudioIssue
+    $audioIssueValue = if (-not [string]::IsNullOrWhiteSpace($audioIssue) -and $audioIssue -ne "none") {
+        [string]$row.AudioIssue
+    }
+    else {
+        ""
+    }
+    $issueText = @(
         [string]$row.StuckStep,
-        [string]$row.AudioIssue,
+        $audioIssueValue,
         [string]$row.PageIssue,
-        [string]$row.ContentIssue,
-        [string]$row.Notes
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        [string]$row.ContentIssue
+    )
+
+    return $issueText | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
 function New-ContentBatchRows($rows) {
@@ -257,6 +265,7 @@ $lines = @(
     $nextBetaLine,
     '- Start content review: `.\scripts\start-content-review-batch.ps1`',
     '- Start beta feedback: `.\scripts\start-beta-feedback-session.ps1`',
+    '- Check beta feedback: `.\scripts\check-beta-feedback-session.ps1`',
     '- Final release gate: `.\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady`',
     "",
     "## Local Services",
@@ -310,6 +319,7 @@ $lines = @(
     '.\scripts\start-beta-feedback-session.ps1',
     '.\scripts\import-beta-feedback-packets.ps1 -ValidateOnly',
     '.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts',
+    '.\scripts\check-beta-feedback-session.ps1',
     '.\scripts\export-mvp-fix-plan.ps1',
     '.\scripts\export-first-version-handoff.ps1',
     '.\scripts\validate-first-version-handoff.ps1 -AssertValid',

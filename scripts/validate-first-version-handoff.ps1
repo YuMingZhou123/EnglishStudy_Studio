@@ -119,6 +119,7 @@ $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Ne
 $checks.Add((Test-TextContains "handoff has next beta slot" $handoffText "Next beta tester slot:" "handoff points to the next beta tester slot"))
 $checks.Add((Test-TextContains "handoff has start content review command" $handoffText "start-content-review-batch.ps1" "handoff includes content session command"))
 $checks.Add((Test-TextContains "handoff has start beta feedback command" $handoffText "start-beta-feedback-session.ps1" "handoff includes beta session command"))
+$checks.Add((Test-TextContains "handoff has check beta feedback command" $handoffText "check-beta-feedback-session.ps1" "handoff includes beta feedback checker command"))
 $checks.Add((Test-TextContains "handoff has final release command" $handoffText ".\scripts\export-first-version-release-gate.ps1 -IncludeBuild -AssertReady" "handoff includes final release gate command"))
 $checks.Add((Test-TextContains "handoff has guardrail against fake content pass" $handoffText 'Do not mark content as `pass`' "handoff warns against unreviewed pass marks"))
 $checks.Add((Test-TextContains "handoff has guardrail against fake beta feedback" $handoffText "Do not invent or copy beta feedback" "handoff warns against fabricated feedback"))
@@ -134,6 +135,7 @@ $checks.Add((Test-TextContains "local beta readiness preserves content gate" $lo
 $checks.Add((Test-TextContains "readme mentions handoff" $readmeText "export-first-version-handoff.ps1" "README lists handoff command"))
 $checks.Add((Test-TextContains "readme mentions local beta readiness" $readmeText "check-local-beta-readiness.ps1" "README lists local beta readiness command"))
 $checks.Add((Test-TextContains "readme mentions beta session" $readmeText "start-beta-feedback-session.ps1" "README lists beta session command"))
+$checks.Add((Test-TextContains "readme mentions beta session checker" $readmeText "check-beta-feedback-session.ps1" "README lists beta session checker command"))
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
 $passedChecks = @($checks | Where-Object { [bool]$_.passed })
