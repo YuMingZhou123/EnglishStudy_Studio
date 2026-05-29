@@ -158,6 +158,7 @@ else {
 $contentReviewHtmlPath = Join-Path $RepoRoot "content\mvp-content-review.html"
 $packetPath = Join-Path $RepoRoot ("content\review-packets\content-review-batch-{0:D3}-{1:D3}.md" -f ([int]$range.start), ([int]$range.end))
 $contentReviewGuidePath = Join-Path $RepoRoot "docs\content-quality-review.md"
+$precheckReportPath = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
 $progressPath = Join-Path $RepoRoot "acceptance\first-version-progress.md"
 $handoffPath = Join-Path $RepoRoot "acceptance\first-version-handoff.md"
 
@@ -196,6 +197,7 @@ $lines = @(
     "- Review desk: [open]($reviewDeskUri)",
     "- Review packet: [open]($packetUri)",
     "- Review guide: [open]($(ConvertTo-FileUri $contentReviewGuidePath))",
+    "- Automated precheck: [open]($(ConvertTo-FileUri $precheckReportPath))",
     "- First version progress: [open]($(ConvertTo-FileUri $progressPath))",
     "- First version handoff: [open]($(ConvertTo-FileUri $handoffPath))",
     "",

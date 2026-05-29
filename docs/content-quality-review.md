@@ -20,6 +20,7 @@
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\export-content-precheck-report.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\summarize-content-review.ps1
 ```
@@ -29,7 +30,10 @@
 ```text
 content/mvp-content-review.csv
 content/mvp-content-review.html
+acceptance/content-precheck-report.md
 ```
+
+`export-content-precheck-report.ps1` 会输出逐行自动预审提示，例如关键词是否出现在英文句子中、翻译是否像中文、句长是否和难度匹配。它只用于帮助人工审核优先看风险行，不会把任何内容标记为通过。
 
 如果想把 120 条内容分给多个人审核，可以导出 20 条一组的 Markdown 审核包：
 

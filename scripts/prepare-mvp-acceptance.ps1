@@ -73,6 +73,7 @@ $betaTemplate = Ensure-Template `
 $contentValidation = Invoke-JsonScript `
     -ScriptName "import-acceptance-csv.ps1" `
     -Parameters @{ Kind = "content"; SourcePath = $contentReviewCsv; ValidateOnly = $true }
+$contentPrecheck = Invoke-JsonScript -ScriptName "export-content-precheck-report.ps1"
 $betaValidation = Invoke-JsonScript `
     -ScriptName "import-acceptance-csv.ps1" `
     -Parameters @{ Kind = "beta"; SourcePath = $betaFeedbackCsv; ValidateOnly = $true }
@@ -143,6 +144,7 @@ else {
         html = $contentHtml
         packets = $contentPackets
         session = $contentSession
+        precheck = $contentPrecheck
         summary = $contentSummary
     }
     betaFeedback = [pscustomobject]@{
@@ -173,6 +175,7 @@ else {
         "Open acceptance/first-version-handoff-validation.md to confirm handoff files are shareable.",
         "Open acceptance/first-version-progress.md for the compact progress brief.",
         "Open acceptance/local-beta-readiness.md before inviting a real beta tester.",
+        "Open acceptance/content-precheck-report.md for automated content hints before manual review.",
         "Open acceptance/beta-feedback-session.md for the next real beta session.",
         "Use content/review-packets/index.md if you want to split content review across multiple reviewers.",
         "After reviewed packets are returned, run .\scripts\import-content-review-packets.ps1 -ValidateOnly, then .\scripts\import-content-review-packets.ps1 -RefreshArtifacts.",

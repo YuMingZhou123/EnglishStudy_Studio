@@ -249,6 +249,7 @@ API 启动后导入内容包：
 
 ```powershell
 .\scripts\export-content-review-sheet.ps1
+.\scripts\export-content-precheck-report.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\export-content-review-packets.ps1
 .\scripts\check-content-review-batch.ps1
@@ -284,6 +285,7 @@ API 启动后导入内容包：
 也可以直接运行 `.\scripts\prepare-mvp-acceptance.ps1`，它会保留已有 CSV，刷新内容审核台和内测反馈表，并输出第一版人工验收缺口。
 生成的 `acceptance/mvp-acceptance-dashboard.html` 会汇总第一版状态，并提供内容审核台和内测反馈表入口。
 生成的 `acceptance/mvp-acceptance-tasks.md` 会把内容审核拆成批次任务，并列出内测用户跟进任务。
+生成的 `acceptance/content-precheck-report.md` 会给内容人工审核提供自动预审提示，但不会替代人工审核结论。
 
 ## 第一版内测与审核
 

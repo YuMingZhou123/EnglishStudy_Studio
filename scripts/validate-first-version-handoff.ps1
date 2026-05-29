@@ -58,6 +58,7 @@ $paths = [ordered]@{
     status = Join-Path $RepoRoot "acceptance\first-version-status.md"
     localBetaRun = Join-Path $RepoRoot "acceptance\local-beta-run.md"
     localBetaReadiness = Join-Path $RepoRoot "acceptance\local-beta-readiness.md"
+    contentPrecheck = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
     contentReviewSession = Join-Path $RepoRoot "acceptance\content-review-session.md"
     betaFeedbackSession = Join-Path $RepoRoot "acceptance\beta-feedback-session.md"
     contentReviewCsv = Join-Path $RepoRoot "content\mvp-content-review.csv"
@@ -117,6 +118,7 @@ $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
 $checks.Add((Test-TextContains "handoff has next beta slot" $handoffText "Next beta tester slot:" "handoff points to the next beta tester slot"))
+$checks.Add((Test-TextContains "handoff has content precheck command" $handoffText "export-content-precheck-report.ps1" "handoff includes content precheck command"))
 $checks.Add((Test-TextContains "handoff has start content review command" $handoffText "start-content-review-batch.ps1" "handoff includes content session command"))
 $checks.Add((Test-TextContains "handoff has check content review command" $handoffText "check-content-review-batch.ps1" "handoff includes content review checker command"))
 $checks.Add((Test-TextContains "handoff has start beta feedback command" $handoffText "start-beta-feedback-session.ps1" "handoff includes beta session command"))
@@ -138,6 +140,7 @@ $checks.Add((Test-TextContains "readme mentions local beta readiness" $readmeTex
 $checks.Add((Test-TextContains "readme mentions beta session" $readmeText "start-beta-feedback-session.ps1" "README lists beta session command"))
 $checks.Add((Test-TextContains "readme mentions beta session checker" $readmeText "check-beta-feedback-session.ps1" "README lists beta session checker command"))
 $checks.Add((Test-TextContains "readme mentions content batch checker" $readmeText "check-content-review-batch.ps1" "README lists content batch checker command"))
+$checks.Add((Test-TextContains "readme mentions content precheck" $readmeText "export-content-precheck-report.ps1" "README lists content precheck command"))
 
 $failedChecks = @($checks | Where-Object { -not [bool]$_.passed })
 $passedChecks = @($checks | Where-Object { [bool]$_.passed })
