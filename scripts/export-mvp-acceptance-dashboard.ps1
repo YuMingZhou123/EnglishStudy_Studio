@@ -271,6 +271,14 @@ $betaFeedback = Invoke-OptionalJsonScript `
     -ScriptName "summarize-beta-feedback.ps1" `
     -MissingMessage "Beta feedback sheet is missing."
 
+$contentGateCheck = Invoke-OptionalJsonScript `
+    -ScriptName "check-content-review-gate.ps1" `
+    -MissingMessage "Content review gate check could not run."
+
+$betaGateCheck = Invoke-OptionalJsonScript `
+    -ScriptName "check-beta-feedback-gate.ps1" `
+    -MissingMessage "Beta feedback gate check could not run."
+
 $readiness = if ($SkipReadiness) {
     $null
 }
@@ -283,17 +291,22 @@ else {
 
 $contentReviewHtmlPath = Join-Path $PSScriptRoot "..\content\mvp-content-review.html"
 $contentReviewCsvPath = Get-ObjectProperty $contentReview "reviewPath" (Join-Path $PSScriptRoot "..\content\mvp-content-review.csv")
+$contentPrecheckPath = Join-Path $PSScriptRoot "..\acceptance\content-precheck-report.md"
+$contentGateCheckPath = Join-Path $PSScriptRoot "..\acceptance\content-review-gate-check.md"
 $betaFeedbackHtmlPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"
 $betaFeedbackCsvPath = Get-ObjectProperty $betaFeedback "feedbackPath" (Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv")
+$betaGateCheckPath = Join-Path $PSScriptRoot "..\acceptance\beta-feedback-gate-check.md"
 $acceptanceTasksPath = Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-tasks.md"
 $contentReviewDocPath = Join-Path $PSScriptRoot "..\docs\content-quality-review.md"
 $betaPlaybookPath = Join-Path $PSScriptRoot "..\docs\internal-beta-playbook.md"
 $acceptanceChecklistPath = Join-Path $PSScriptRoot "..\docs\mvp-acceptance-checklist.md"
 
-$contentReviewReady = Test-ObjectFlag $contentReview "passesMinimumGate"
-$betaFeedbackReady = Test-ObjectFlag $betaFeedback "passesMinimumGate"
+$contentReviewReady = Test-ObjectFlag $contentGateCheck "ready"
+$betaFeedbackReady = Test-ObjectFlag $betaGateCheck "ready"
 $contentReviewCheckFailed = Test-ObjectFlag $contentReview "missing"
 $betaFeedbackCheckFailed = Test-ObjectFlag $betaFeedback "missing"
+$contentGateCheckFailed = Test-ObjectFlag $contentGateCheck "missing"
+$betaGateCheckFailed = Test-ObjectFlag $betaGateCheck "missing"
 $readinessCheckFailed = ($null -ne $readiness) -and (Test-ObjectFlag $readiness "missing")
 $automatedValue = Get-ObjectProperty $readiness "automatedReady"
 $productReviewValue = Get-ObjectProperty $readiness "productReviewReady"
@@ -303,12 +316,17 @@ $contentTotalRows = Get-ObjectProperty $contentReview "totalRows" "n/a"
 $contentPassRows = Get-ObjectProperty $contentReview "passRows" "n/a"
 $contentFixRows = Get-ObjectProperty $contentReview "fixRows" "n/a"
 $contentBlankRows = Get-ObjectProperty $contentReview "blankRows" "n/a"
+$contentInvalidRows = Get-ObjectProperty $contentGateCheck "invalidStatusRows" "n/a"
+$contentShortages = Get-ObjectProperty $contentGateCheck "minimumShortages" "n/a"
 $betaFilledRows = Get-ObjectProperty $betaFeedback "filledRows" "n/a"
 $betaCompletedUsers = Get-ObjectProperty $betaFeedback "completedUsers" "n/a"
 $betaIndependentUsers = Get-ObjectProperty $betaFeedback "independentUsers" "n/a"
 $betaDifficultyUsers = Get-ObjectProperty $betaFeedback "difficultyUnderstoodUsers" "n/a"
 $betaWillingNextUsers = Get-ObjectProperty $betaFeedback "willingNextUsers" "n/a"
 $betaP0Issues = Get-ObjectProperty $betaFeedback "p0Issues" "n/a"
+$betaInvalidRows = Get-ObjectProperty $betaGateCheck "invalidRows" "n/a"
+$betaIncompleteRows = Get-ObjectProperty $betaGateCheck "incompleteTouchedRows" "n/a"
+$betaShortages = Get-ObjectProperty $betaGateCheck "minimumShortages" "n/a"
 $nextContentBatch = Get-NextContentReviewBatch $contentReviewCsvPath
 $nextContentBatchQuery = @{ batch = $nextContentBatch.batch }
 if (-not [string]::IsNullOrWhiteSpace([string]$nextContentBatch.status)) {
@@ -327,7 +345,9 @@ $contentMetrics = @(
     New-GatedMetricHtml "Pass rows" $contentPassRows { param($value) $value -ge 100 }
     New-GatedMetricHtml "Fix rows" $contentFixRows { param($value) $value -eq 0 } "gate-bad"
     New-GatedMetricHtml "Blank rows" $contentBlankRows { param($value) $value -eq 0 }
-    New-StatusMetricHtml "Content gate" $contentReviewReady $contentReviewCheckFailed
+    New-GatedMetricHtml "Invalid rows" $contentInvalidRows { param($value) $value -eq 0 } "gate-bad"
+    New-GatedMetricHtml "Shortages" $contentShortages { param($value) $value -eq 0 }
+    New-StatusMetricHtml "Content gate" $contentReviewReady ($contentReviewCheckFailed -or $contentGateCheckFailed)
 ) -join "`n"
 
 $betaMetrics = @(
@@ -337,7 +357,10 @@ $betaMetrics = @(
     New-GatedMetricHtml "Difficulty" $betaDifficultyUsers { param($value) $value -ge 4 }
     New-GatedMetricHtml "Willing next" $betaWillingNextUsers { param($value) $value -ge 3 }
     New-GatedMetricHtml "P0 issues" $betaP0Issues { param($value) $value -eq 0 } "gate-bad"
-    New-StatusMetricHtml "Beta gate" $betaFeedbackReady $betaFeedbackCheckFailed
+    New-GatedMetricHtml "Invalid rows" $betaInvalidRows { param($value) $value -eq 0 } "gate-bad"
+    New-GatedMetricHtml "Incomplete" $betaIncompleteRows { param($value) $value -eq 0 }
+    New-GatedMetricHtml "Shortages" $betaShortages { param($value) $value -eq 0 }
+    New-StatusMetricHtml "Beta gate" $betaFeedbackReady ($betaFeedbackCheckFailed -or $betaGateCheckFailed)
 ) -join "`n"
 
 $readinessMetrics = @(
@@ -503,6 +526,8 @@ $contentMetrics
       <div class="links">
         <a class="button primary" href="$(ConvertTo-HtmlText $nextContentBatchUri)">$(ConvertTo-HtmlText $nextContentBatch.label)</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewHtmlPath))">Open review desk</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentGateCheckPath))">Gate report</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentPrecheckPath))">Precheck</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewDocPath))">Review guide</a>
       </div>
     </section>
@@ -514,6 +539,7 @@ $betaMetrics
       <div class="links">
         <a class="button primary" href="$(ConvertTo-HtmlText $nextBetaUserUri)">$(ConvertTo-HtmlText $nextBetaUser.label)</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaFeedbackHtmlPath))">Open feedback form</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaGateCheckPath))">Gate report</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $betaPlaybookPath))">Beta playbook</a>
       </div>
     </section>

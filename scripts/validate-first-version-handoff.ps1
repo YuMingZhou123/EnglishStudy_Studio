@@ -113,6 +113,7 @@ $checks.Add((New-Check "beta packet count" ($betaPacketFiles.Count -ge $betaRows
 
 $handoffText = Get-FileText $paths.handoff
 $tasksText = Get-FileText $paths.tasks
+$dashboardText = Get-FileText $paths.dashboard
 $statusText = Get-FileText $paths.status
 $localBetaText = Get-FileText $paths.localBetaRun
 $localBetaReadinessText = Get-FileText $paths.localBetaReadiness
@@ -134,6 +135,10 @@ $checks.Add((New-Check "handoff packet links resolved" (-not $handoffText.Contai
 $checks.Add((Test-TextContains "tasks link handoff" $tasksText "first-version-handoff.md" "acceptance tasks link handoff"))
 $checks.Add((Test-TextContains "tasks link content review session" $tasksText "content-review-session.md" "acceptance tasks link content review session"))
 $checks.Add((Test-TextContains "tasks link beta feedback session" $tasksText "beta-feedback-session.md" "acceptance tasks link beta feedback session"))
+$checks.Add((Test-TextContains "tasks link content gate" $tasksText "content-review-gate-check.md" "acceptance tasks link content gate check"))
+$checks.Add((Test-TextContains "tasks link beta gate" $tasksText "beta-feedback-gate-check.md" "acceptance tasks link beta gate check"))
+$checks.Add((Test-TextContains "dashboard links content gate" $dashboardText "content-review-gate-check.md" "acceptance dashboard links content gate check"))
+$checks.Add((Test-TextContains "dashboard links beta gate" $dashboardText "beta-feedback-gate-check.md" "acceptance dashboard links beta gate check"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
