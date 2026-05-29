@@ -141,6 +141,7 @@
 先准备人工验收入口：
 
 ```powershell
+.\scripts\start-first-version-work.ps1 -Open
 .\scripts\prepare-mvp-acceptance.ps1 -Open
 ```
 
@@ -156,6 +157,7 @@
 ```text
 acceptance/mvp-acceptance-dashboard.html
 acceptance/mvp-acceptance-tasks.md
+acceptance/first-version-work-session.md
 acceptance/content-review-session.md
 acceptance/beta-feedback-session.md
 content/mvp-content-review.html

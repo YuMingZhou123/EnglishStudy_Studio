@@ -64,6 +64,7 @@ node .\scripts\ui-smoke-test.mjs
 ```powershell
 .\scripts\check-mvp-readiness.ps1
 .\scripts\check-mvp-readiness.ps1 -IncludeBuild
+.\scripts\start-first-version-work.ps1
 .\scripts\prepare-mvp-acceptance.ps1
 .\scripts\start-content-review-batch.ps1
 .\scripts\start-beta-feedback-session.ps1
@@ -204,6 +205,7 @@ npm run build
 - `.\scripts\import-acceptance-csv.ps1` 可以校验并导入浏览器导出的审核/反馈 CSV。
 - `.\scripts\summarize-content-review.ps1` 和 `.\scripts\summarize-beta-feedback.ps1` 可以汇总人工验收结果。
 - `.\scripts\prepare-mvp-acceptance.ps1` 可以一键准备人工验收入口并汇总当前门禁。
+- `.\scripts\start-first-version-work.ps1` 可以刷新验收材料，并判断下一步应该继续内容审核、内测反馈还是最终发布门禁。
 - `.\scripts\export-mvp-acceptance-dashboard.ps1` 可以生成本地第一版验收总览。
 - `.\scripts\export-mvp-acceptance-tasks.ps1` 可以生成内容审核批次和内测用户跟进任务清单。
 - `dotnet build EnglishStudy.Studio.slnx` 通过。

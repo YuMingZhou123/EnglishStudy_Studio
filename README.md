@@ -159,11 +159,19 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\check-mvp-readiness.ps1
 ```
 
+继续推进第一版时，可以先运行一个工作入口脚本，它会刷新验收材料并告诉你当前最应该做内容审核、内测反馈还是最终门禁：
+
+```powershell
+.\scripts\start-first-version-work.ps1
+.\scripts\start-first-version-work.ps1 -Open
+```
+
 准备人工验收入口并汇总当前门禁：
 
 ```powershell
 .\scripts\prepare-mvp-acceptance.ps1
 .\scripts\prepare-local-beta-run.ps1
+.\scripts\start-first-version-work.ps1
 .\scripts\start-content-review-batch.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\export-first-version-handoff.ps1
@@ -258,6 +266,7 @@ API 启动后导入内容包：
 .\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts
 .\scripts\export-mvp-fix-plan.ps1
 .\scripts\export-first-version-status.ps1
+.\scripts\start-first-version-work.ps1
 .\scripts\start-content-review-batch.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\export-first-version-handoff.ps1
