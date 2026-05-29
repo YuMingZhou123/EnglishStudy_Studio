@@ -108,6 +108,7 @@ else {
 $readiness = Invoke-JsonScript -ScriptName "check-mvp-readiness.ps1" -Parameters $readinessParams
 $content = $readiness.contentReview
 $beta = $readiness.betaFeedback
+$contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
 $handoffValidation = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
 
@@ -126,7 +127,7 @@ $gates = @(
     (New-GateRow "Automated readiness" ([bool]$readiness.automatedReady) "automatedReady: $($readiness.automatedReady)" "true")
     (New-GateRow "Product review readiness" ([bool]$readiness.productReviewReady) "productReviewReady: $($readiness.productReviewReady)" "true")
     (New-GateRow "First version readiness" ([bool]$readiness.firstVersionReady) "firstVersionReady: $($readiness.firstVersionReady)" "true")
-    (New-GateRow "Content review gate" ([bool]$content.passesMinimumGate) "pass: $($content.passRows), fix: $($content.fixRows), blank: $($content.blankRows)" ">=100 pass, 0 fix, 0 blank, scene/level minimums met")
+    (New-GateRow "Content review gate" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), fix: $($contentGateCheck.fixRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), missing notes: $($contentGateCheck.missingNoteRows)" ">=100 pass, 0 fix, 0 blank, 0 invalid, scene/level minimums met")
     (New-GateRow "Beta feedback gate" ([bool]$beta.passesMinimumGate) "filled: $($beta.filledRows), completed: $($beta.completedUsers), independent: $($beta.independentUsers)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next")
     (New-GateRow "No untriaged beta issue notes" ($betaNeedsTriage -eq 0) "needs triage: $betaNeedsTriage" "0")
     (New-GateRow "Handoff artifacts valid" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "all handoff files and links valid")
@@ -214,7 +215,9 @@ $result = [pscustomobject]@{
     automatedReady = [bool]$readiness.automatedReady
     productReviewReady = [bool]$readiness.productReviewReady
     firstVersionReady = [bool]$readiness.firstVersionReady
-    contentBlankRows = $content.blankRows
+    contentBlankRows = $contentGateCheck.blankRows
+    contentInvalidStatusRows = $contentGateCheck.invalidStatusRows
+    contentMissingNoteRows = $contentGateCheck.missingNoteRows
     betaFilledRows = $beta.filledRows
     betaNeedsTriage = $betaNeedsTriage
     handoffValid = [bool]$handoffValidation.valid

@@ -68,6 +68,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\prepare-mvp-acceptance.ps1
 .\scripts\start-content-review-batch.ps1
 .\scripts\check-content-review-batch.ps1
+.\scripts\check-content-review-gate.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\check-beta-feedback-session.ps1
 .\scripts\export-mvp-acceptance-dashboard.ps1
@@ -101,6 +102,8 @@ dotnet run --project apps/api.tests/api.tests.csproj
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\start-content-review-batch.ps1
+.\scripts\check-content-review-batch.ps1
+.\scripts\check-content-review-gate.ps1
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
 .\scripts\summarize-content-review.ps1
 .\scripts\export-beta-feedback-template.ps1
@@ -204,6 +207,7 @@ npm run build
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
 - `.\scripts\start-content-review-batch.ps1` 可以生成下一批内容审核会话。
 - `.\scripts\check-content-review-batch.ps1` 可以检查单个内容审核批次是否填写完整。
+- `.\scripts\check-content-review-gate.ps1` 可以检查全部内容审核结果是否满足第一版发布门禁。
 - `.\scripts\export-beta-feedback-template.ps1` 和 `.\scripts\export-beta-feedback-html.ps1` 可以导出内测反馈表和本地反馈表单。
 - `.\scripts\start-beta-feedback-session.ps1` 可以生成下一位真实测试用户的反馈会话。
 - `.\scripts\check-beta-feedback-session.ps1` 可以检查单个真实测试用户的反馈是否填写完整、取值合法、问题项已标记优先级。

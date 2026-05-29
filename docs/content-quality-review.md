@@ -65,11 +65,13 @@ content/review-packets/content-review-batch-001-020.md
 ```powershell
 .\scripts\check-content-review-batch.ps1 -Batch 1-20
 .\scripts\check-content-review-batch.ps1 -Batch 1-20 -AssertComplete
+.\scripts\check-content-review-gate.ps1
 .\scripts\import-content-review-packets.ps1 -ValidateOnly
 .\scripts\import-content-review-packets.ps1 -RefreshArtifacts
 ```
 
 `check-content-review-batch.ps1` 只检查一个批次是否已填写状态、状态是否合法、非 `pass` 行是否写了备注，不会修改审核结果。
+`check-content-review-gate.ps1` 会检查全部 120 行、各场景/难度最低通过数量、非法状态和修复项备注，适合在最终发布门禁前运行。
 
 导入规则：只导入 `Status` 不为空的行；`fix_sentence`、`fix_translation`、`fix_keyword`、`fix_audio`、`remove` 必须填写 `Notes`；空白行会被跳过，不会覆盖主审核表。
 

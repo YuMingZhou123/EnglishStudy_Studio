@@ -174,6 +174,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\start-first-version-work.ps1
 .\scripts\start-content-review-batch.ps1
 .\scripts\check-content-review-batch.ps1
+.\scripts\check-content-review-gate.ps1
 .\scripts\start-beta-feedback-session.ps1
 .\scripts\check-beta-feedback-session.ps1
 .\scripts\export-first-version-handoff.ps1
@@ -253,6 +254,7 @@ API 启动后导入内容包：
 .\scripts\export-content-review-html.ps1
 .\scripts\export-content-review-packets.ps1
 .\scripts\check-content-review-batch.ps1
+.\scripts\check-content-review-gate.ps1
 .\scripts\import-content-review-packets.ps1 -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly
 .\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts
@@ -286,6 +288,7 @@ API 启动后导入内容包：
 生成的 `acceptance/mvp-acceptance-dashboard.html` 会汇总第一版状态，并提供内容审核台和内测反馈表入口。
 生成的 `acceptance/mvp-acceptance-tasks.md` 会把内容审核拆成批次任务，并列出内测用户跟进任务。
 生成的 `acceptance/content-precheck-report.md` 会给内容人工审核提供自动预审提示，但不会替代人工审核结论。
+生成的 `acceptance/content-review-gate-check.md` 会汇总所有内容审核批次，并检查最终内容审核门禁是否达标。
 
 ## 第一版内测与审核
 

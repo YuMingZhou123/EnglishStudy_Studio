@@ -18,6 +18,25 @@ function Get-Status($value) {
     return ([string]$value).Trim().ToLowerInvariant()
 }
 
+function Get-Notes($row) {
+    return @(
+        [string]$row.SentenceNotes,
+        [string]$row.TranslationNotes,
+        [string]$row.KeywordNotes,
+        [string]$row.AudioNotes,
+        [string]$row.FinalNotes
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+}
+
+$allowedStatuses = @(
+    "pass",
+    "fix_sentence",
+    "fix_translation",
+    "fix_keyword",
+    "fix_audio",
+    "remove"
+)
+
 $rows = @(Import-Csv -LiteralPath $ReviewPath -Encoding UTF8)
 $passRows = @($rows | Where-Object { (Get-Status $_.ReviewStatus) -eq "pass" })
 $fixRows = @($rows | Where-Object {
@@ -25,6 +44,17 @@ $fixRows = @($rows | Where-Object {
     $status.StartsWith("fix_") -or $status -eq "remove"
 })
 $blankRows = @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.ReviewStatus) })
+$invalidStatusRows = @($rows | Where-Object {
+    $status = Get-Status $_.ReviewStatus
+    -not [string]::IsNullOrWhiteSpace($status) -and $allowedStatuses -notcontains $status
+})
+$notesWithoutStatusRows = @($rows | Where-Object {
+    [string]::IsNullOrWhiteSpace([string]$_.ReviewStatus) -and @(Get-Notes $_).Count -gt 0
+})
+$missingNoteRows = @($rows | Where-Object {
+    $status = Get-Status $_.ReviewStatus
+    $allowedStatuses -contains $status -and $status -ne "pass" -and @(Get-Notes $_).Count -eq 0
+})
 
 $scenePassCounts = @{}
 foreach ($group in ($passRows | Group-Object SceneCode)) {
@@ -58,7 +88,10 @@ $passesMinimumGate =
     $allScenesHaveMinimum -and
     $allLevelsHaveMinimum -and
     $fixRows.Count -eq 0 -and
-    $blankRows.Count -eq 0
+    $blankRows.Count -eq 0 -and
+    $invalidStatusRows.Count -eq 0 -and
+    $notesWithoutStatusRows.Count -eq 0 -and
+    $missingNoteRows.Count -eq 0
 
 [pscustomobject]@{
     reviewPath = $ReviewPath
@@ -66,6 +99,9 @@ $passesMinimumGate =
     passRows = $passRows.Count
     fixRows = $fixRows.Count
     blankRows = $blankRows.Count
+    invalidStatusRows = $invalidStatusRows.Count
+    notesWithoutStatusRows = $notesWithoutStatusRows.Count
+    missingNoteRows = $missingNoteRows.Count
     scenePassCounts = $scenePassCounts
     levelPassCounts = $levelPassCounts
     passesMinimumGate = $passesMinimumGate
@@ -76,5 +112,8 @@ $passesMinimumGate =
         eachLevelPassRows = ">= 15"
         fixRows = "0"
         blankRows = "0"
+        invalidStatusRows = "0"
+        notesWithoutStatusRows = "0"
+        missingNoteRows = "0"
     }
 } | ConvertTo-Json -Depth 6
