@@ -162,6 +162,19 @@ function Normalize-Value($value) {
     return ([string]$value).Trim().ToLowerInvariant()
 }
 
+function Get-RowFieldValue($row, [string]$fieldName) {
+    if ($null -eq $row) {
+        return ""
+    }
+
+    $property = $row.PSObject.Properties[$fieldName]
+    if ($null -eq $property) {
+        return ""
+    }
+
+    return [string]$property.Value
+}
+
 function Assert-AllowedValues {
     param(
         [array]$Rows,
@@ -176,7 +189,7 @@ function Assert-AllowedValues {
     }
 
     $invalidRows = @($Rows | Where-Object {
-        $normalized = Normalize-Value $_.$Column
+        $normalized = Normalize-Value (Get-RowFieldValue $_ $Column)
         -not [string]::IsNullOrWhiteSpace($normalized) -and -not $allowedSet.ContainsKey($normalized)
     })
 
@@ -187,7 +200,7 @@ function Assert-AllowedValues {
     $examples = @(
         $invalidRows |
             Select-Object -First 10 |
-            ForEach-Object { "$($_.$KeyColumn):$($_.$Column)" }
+            ForEach-Object { "$(Get-RowFieldValue $_ $KeyColumn):$(Get-RowFieldValue $_ $Column)" }
     )
     $allowedText = (@("blank") + $AllowedValues) -join ", "
     throw "CSV contains invalid $Column value(s). Allowed values: $allowedText. Examples: $($examples -join '; ')"
@@ -205,6 +218,21 @@ function Validate-ContentReviewRows([array]$rows) {
             "fix_keyword",
             "fix_audio",
             "remove"
+        )
+
+    Assert-AllowedValues `
+        -Rows $rows `
+        -KeyColumn "RowNumber" `
+        -Column "AudioReviewed" `
+        -AllowedValues @(
+            "yes",
+            "y",
+            "true",
+            "1",
+            "no",
+            "n",
+            "false",
+            "0"
         )
 }
 

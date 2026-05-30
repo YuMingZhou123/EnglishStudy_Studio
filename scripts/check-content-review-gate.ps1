@@ -61,6 +61,24 @@ function Get-Notes($row) {
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
+function Get-FieldValue($row, [string]$fieldName) {
+    if ($null -eq $row) {
+        return ""
+    }
+
+    $property = $row.PSObject.Properties[$fieldName]
+    if ($null -eq $property) {
+        return ""
+    }
+
+    return [string]$property.Value
+}
+
+function Test-AudioReviewed($row) {
+    $value = (Get-FieldValue $row "AudioReviewed").Trim().ToLowerInvariant()
+    return @("yes", "y", "true", "1") -contains $value
+}
+
 function New-Shortage([string]$Area, [string]$Gate, [int]$Current, [int]$Target) {
     [pscustomobject]@{
         area = $Area
@@ -120,6 +138,10 @@ $rowChecks = @($rows | ForEach-Object {
         $problems.Add("fix/remove missing notes")
     }
 
+    if ($status -eq "pass" -and -not (Test-AudioReviewed $_)) {
+        $problems.Add("pass missing audio review")
+    }
+
     [pscustomobject]@{
         rowNumber = [int]$_.RowNumber
         scene = [string]$_.SceneCode
@@ -142,6 +164,7 @@ $blankRows = @($rowChecks | Where-Object { $_.problems -contains "blank status" 
 $invalidStatusRows = @($rowChecks | Where-Object { $_.problems -contains "invalid status" })
 $notesWithoutStatusRows = @($rowChecks | Where-Object { $_.problems -contains "notes without status" })
 $missingNoteRows = @($rowChecks | Where-Object { $_.problems -contains "fix/remove missing notes" })
+$audioUnreviewedPassRows = @($rowChecks | Where-Object { $_.problems -contains "pass missing audio review" })
 
 $scenePassCounts = [ordered]@{}
 foreach ($group in ($passRows | Group-Object scene | Sort-Object Name)) {
@@ -182,7 +205,8 @@ $ready =
     $blankRows.Count -eq 0 -and
     $invalidStatusRows.Count -eq 0 -and
     $notesWithoutStatusRows.Count -eq 0 -and
-    $missingNoteRows.Count -eq 0
+    $missingNoteRows.Count -eq 0 -and
+    $audioUnreviewedPassRows.Count -eq 0
 
 $batchCount = [math]::Ceiling($rows.Count / $BatchSize)
 $batchRows = @(
@@ -263,6 +287,7 @@ $lines = @(
     "| Invalid status rows | $($invalidStatusRows.Count) |",
     "| Notes without status rows | $($notesWithoutStatusRows.Count) |",
     "| Fix/remove missing notes rows | $($missingNoteRows.Count) |",
+    "| Pass rows missing audio review | $($audioUnreviewedPassRows.Count) |",
     "| Minimum-count shortages | $($shortages.Count) |",
     "",
     "## Minimum Shortages",
@@ -304,6 +329,7 @@ $result = [pscustomobject]@{
     invalidStatusRows = $invalidStatusRows.Count
     notesWithoutStatusRows = $notesWithoutStatusRows.Count
     missingNoteRows = $missingNoteRows.Count
+    audioUnreviewedPassRows = $audioUnreviewedPassRows.Count
     minimumShortages = $shortages.Count
     problemRows = $problemRows.Count
     batchCount = $batchRows.Count

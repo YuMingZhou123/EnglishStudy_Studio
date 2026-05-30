@@ -28,6 +28,24 @@ function Get-Notes($row) {
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
+function Get-FieldValue($row, [string]$fieldName) {
+    if ($null -eq $row) {
+        return ""
+    }
+
+    $property = $row.PSObject.Properties[$fieldName]
+    if ($null -eq $property) {
+        return ""
+    }
+
+    return [string]$property.Value
+}
+
+function Test-AudioReviewed($row) {
+    $value = (Get-FieldValue $row "AudioReviewed").Trim().ToLowerInvariant()
+    return @("yes", "y", "true", "1") -contains $value
+}
+
 $allowedStatuses = @(
     "pass",
     "fix_sentence",
@@ -55,6 +73,7 @@ $missingNoteRows = @($rows | Where-Object {
     $status = Get-Status $_.ReviewStatus
     $allowedStatuses -contains $status -and $status -ne "pass" -and @(Get-Notes $_).Count -eq 0
 })
+$audioUnreviewedPassRows = @($passRows | Where-Object { -not (Test-AudioReviewed $_) })
 
 $scenePassCounts = @{}
 foreach ($group in ($passRows | Group-Object SceneCode)) {
@@ -91,7 +110,8 @@ $passesMinimumGate =
     $blankRows.Count -eq 0 -and
     $invalidStatusRows.Count -eq 0 -and
     $notesWithoutStatusRows.Count -eq 0 -and
-    $missingNoteRows.Count -eq 0
+    $missingNoteRows.Count -eq 0 -and
+    $audioUnreviewedPassRows.Count -eq 0
 
 [pscustomobject]@{
     reviewPath = $ReviewPath
@@ -102,6 +122,7 @@ $passesMinimumGate =
     invalidStatusRows = $invalidStatusRows.Count
     notesWithoutStatusRows = $notesWithoutStatusRows.Count
     missingNoteRows = $missingNoteRows.Count
+    audioUnreviewedPassRows = $audioUnreviewedPassRows.Count
     scenePassCounts = $scenePassCounts
     levelPassCounts = $levelPassCounts
     passesMinimumGate = $passesMinimumGate
@@ -115,5 +136,6 @@ $passesMinimumGate =
         invalidStatusRows = "0"
         notesWithoutStatusRows = "0"
         missingNoteRows = "0"
+        audioUnreviewedPassRows = "0"
     }
 } | ConvertTo-Json -Depth 6

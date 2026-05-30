@@ -124,7 +124,7 @@ $gates = @(
     (New-GateRow "Product review readiness" ([bool]$readiness.productReviewReady) "productReviewReady: $($readiness.productReviewReady)" "true")
     (New-GateRow "First version readiness" ([bool]$readiness.firstVersionReady) "firstVersionReady: $($readiness.firstVersionReady)" "true")
     (New-GateRow "Content audio readiness" ([bool]$contentAudioReadiness.ready) "missing: $($contentAudioReadiness.missingAudioRows), unreadable: $($contentAudioReadiness.unreadableAudioRows), checked: $($contentAudioReadiness.checkedAudioRows)" "all published sentence audio is bound and readable")
-    (New-GateRow "Content review gate" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), fix: $($contentGateCheck.fixRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), missing notes: $($contentGateCheck.missingNoteRows)" ">=100 pass, 0 fix, 0 blank, 0 invalid, scene/level minimums met")
+    (New-GateRow "Content review gate" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), fix: $($contentGateCheck.fixRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), missing notes: $($contentGateCheck.missingNoteRows), pass without audio review: $($contentGateCheck.audioUnreviewedPassRows)" ">=100 pass, 0 fix, 0 blank, 0 invalid, 0 pass rows missing audio review, scene/level minimums met")
     (New-GateRow "Beta feedback gate" ([bool]$betaGateCheck.ready) "filled: $($betaGateCheck.filledRows), completed: $($betaGateCheck.completedUsers), independent: $($betaGateCheck.independentUsers), invalid: $($betaGateCheck.invalidRows), incomplete: $($betaGateCheck.incompleteTouchedRows)" ">=5 completed, >=4 independent, >=4 difficulty understood, >=3 willing next, 0 invalid/incomplete")
     (New-GateRow "No untriaged beta issue notes" ($betaNeedsTriage -eq 0) "needs triage: $betaNeedsTriage" "0")
     (New-GateRow "Handoff artifacts valid" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "all handoff files and links valid")
@@ -218,6 +218,7 @@ $result = [pscustomobject]@{
     unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     contentInvalidStatusRows = $contentGateCheck.invalidStatusRows
     contentMissingNoteRows = $contentGateCheck.missingNoteRows
+    contentAudioUnreviewedPassRows = $contentGateCheck.audioUnreviewedPassRows
     betaFilledRows = $betaGateCheck.filledRows
     betaInvalidRows = $betaGateCheck.invalidRows
     betaIncompleteTouchedRows = $betaGateCheck.incompleteTouchedRows

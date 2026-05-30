@@ -158,6 +158,8 @@ $rows = for ($index = 0; $index -lt $items.Count; $index++) {
         TranslationNotes = Get-ReviewValue $reviewRow "TranslationNotes"
         KeywordNotes = Get-ReviewValue $reviewRow "KeywordNotes"
         AudioNotes = Get-ReviewValue $reviewRow "AudioNotes"
+        AudioReviewed = Get-ReviewValue $reviewRow "AudioReviewed"
+        AudioReviewedAt = Get-ReviewValue $reviewRow "AudioReviewedAt"
         FinalNotes = Get-ReviewValue $reviewRow "FinalNotes"
     }
 }
@@ -312,6 +314,19 @@ $html = @'
       align-items: center;
       margin-bottom: 10px;
     }
+    .audio-check {
+      display: inline-flex;
+      grid-template-columns: auto;
+      gap: 6px;
+      align-items: center;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 13px;
+    }
     .notes {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -383,8 +398,8 @@ $html = @'
     const rows = JSON.parse(document.getElementById("review-data").textContent);
     const fields = [
       "RowNumber", "SceneCode", "SceneName", "Level", "Text", "Translation",
-      "KeywordCount", "Keywords", "AudioUrl", "AudioAssetId", "AudioLookupStatus", "ReviewStatus", "SentenceNotes",
-      "TranslationNotes", "KeywordNotes", "AudioNotes", "FinalNotes"
+      "KeywordCount", "Keywords", "AudioUrl", "AudioAssetId", "AudioLookupStatus", "AudioReviewed",
+      "AudioReviewedAt", "ReviewStatus", "SentenceNotes", "TranslationNotes", "KeywordNotes", "AudioNotes", "FinalNotes"
     ];
     const statusOptions = ["", "pass", "fix_sentence", "fix_translation", "fix_keyword", "fix_audio", "remove"];
     const storageKey = `english-study-content-review:${location.pathname}`;
@@ -402,6 +417,10 @@ $html = @'
       renderSummary();
     }
 
+    function isYes(value) {
+      return ["yes", "y", "true", "1"].includes(String(value ?? "").trim().toLowerCase());
+    }
+
     function escapeHtml(value) {
       return String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -416,6 +435,15 @@ $html = @'
 
     const audioPlayer = new Audio();
 
+    function markAudioReviewed(row) {
+      saved[row.RowNumber] ||= {};
+      saved[row.RowNumber].AudioReviewed = "yes";
+      saved[row.RowNumber].AudioReviewedAt = new Date().toISOString();
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+      renderCards();
+      renderSummary();
+    }
+
     function play(row, rate) {
       if (row.AudioUrl) {
         window.speechSynthesis?.cancel();
@@ -423,7 +451,9 @@ $html = @'
         audioPlayer.currentTime = 0;
         audioPlayer.src = row.AudioUrl;
         audioPlayer.playbackRate = rate;
-        audioPlayer.play().catch(error => {
+        audioPlayer.play().then(() => {
+          markAudioReviewed(row);
+        }).catch(error => {
           alert(`Audio playback failed. Mark fix_audio if this happens during review.\n\n${error.message}`);
         });
         return;
@@ -438,6 +468,7 @@ $html = @'
       utterance.lang = "en-US";
       utterance.rate = rate;
       window.speechSynthesis.speak(utterance);
+      markAudioReviewed(row);
     }
 
     function renderFilters() {
@@ -503,6 +534,7 @@ $html = @'
       const filteredRows = getFilteredRows();
       document.getElementById("cards").innerHTML = filteredRows.map(row => {
         const status = valueOf(row, "ReviewStatus");
+        const audioReviewed = isYes(valueOf(row, "AudioReviewed"));
         const options = statusOptions.map(option =>
           `<option value="${option}" ${option === status ? "selected" : ""}>${option || "not_reviewed"}</option>`
         ).join("");
@@ -515,6 +547,7 @@ $html = @'
               <span class="tag">${row.WordCount} words</span>
               <span class="tag">${row.KeywordCount} keywords</span>
               <span class="tag ${row.AudioUrl ? "gate-ok" : "gate-warn"}">${row.AudioUrl ? "audio ready" : "audio missing"}</span>
+              <span class="tag ${audioReviewed ? "gate-ok" : "gate-warn"}">${audioReviewed ? "audio reviewed" : "audio not reviewed"}</span>
               ${row.AudioUrl ? `<a class="tag" href="${escapeHtml(row.AudioUrl)}" target="_blank" rel="noreferrer">audio file</a>` : ""}
             </div>
             <p class="sentence">${escapeHtml(row.Text)}</p>
@@ -524,6 +557,10 @@ $html = @'
               <button type="button" data-play="${row.RowNumber}" data-rate="1">Play</button>
               <button type="button" data-play="${row.RowNumber}" data-rate="0.75">Slow</button>
               <select data-field="ReviewStatus" data-row="${row.RowNumber}">${options}</select>
+              <label class="audio-check">
+                <input type="checkbox" data-field="AudioReviewed" data-row="${row.RowNumber}" ${audioReviewed ? "checked" : ""}>
+                Audio reviewed
+              </label>
             </div>
             <div class="notes">
               ${["SentenceNotes", "TranslationNotes", "KeywordNotes", "AudioNotes", "FinalNotes"].map(field => `
@@ -542,6 +579,7 @@ $html = @'
       const pass = statuses.filter(status => status === "pass").length;
       const fix = statuses.filter(status => status.startsWith("fix_") || status === "remove").length;
       const blank = statuses.filter(status => !status).length;
+      const audioReviewed = rows.filter(row => isYes(valueOf(row, "AudioReviewed"))).length;
       const scenePass = {};
       const levelPass = {};
       rows.forEach(row => {
@@ -552,12 +590,13 @@ $html = @'
       });
       const sceneGate = Object.values(scenePass).filter(count => count >= 15).length;
       const levelGate = ["beginner", "intermediate", "advanced"].filter(level => (levelPass[level] || 0) >= 15).length;
-      const ready = pass >= 100 && fix === 0 && blank === 0 && sceneGate >= 5 && levelGate === 3;
+      const ready = pass >= 100 && audioReviewed >= pass && fix === 0 && blank === 0 && sceneGate >= 5 && levelGate === 3;
       const metrics = [
         ["Total rows", rows.length, ""],
         ["pass", pass, pass >= 100 ? "gate-ok" : "gate-warn"],
         ["Fix rows", fix, fix === 0 ? "gate-ok" : "gate-bad"],
         ["Blank rows", blank, blank === 0 ? "gate-ok" : "gate-warn"],
+        ["Audio reviewed", audioReviewed, audioReviewed >= pass && pass > 0 ? "gate-ok" : "gate-warn"],
         ["Scene gate", `${sceneGate}/5`, sceneGate >= 5 ? "gate-ok" : "gate-warn"],
         ["Level gate", `${levelGate}/3`, levelGate === 3 ? "gate-ok" : "gate-warn"]
       ];
@@ -597,8 +636,9 @@ $html = @'
       const label = status || "blank";
       if (status === "pass") {
         const phrase = "I REVIEWED THE VISIBLE ROWS";
+        const missingAudioReview = filteredRows.filter(row => !isYes(valueOf(row, "AudioReviewed"))).length;
         const response = prompt(
-          `You are about to mark ${filteredRows.length} visible row(s) as pass.\n\nOnly continue if sentence text, translation, keywords, and audio experience have all been checked.\n\nType "${phrase}" to confirm.`
+          `You are about to mark ${filteredRows.length} visible row(s) as pass.\n\nRows not marked audio reviewed: ${missingAudioReview}.\nOnly continue if sentence text, translation, keywords, and audio experience have all been checked.\n\nType "${phrase}" to confirm.`
         );
         if (response !== phrase) return;
       } else {
@@ -641,12 +681,14 @@ $html = @'
     document.getElementById("cards").addEventListener("input", event => {
       const element = event.target.closest("[data-field][data-row]");
       if (!element) return;
-      saveValue(element.dataset.row, element.dataset.field, element.value);
+      const value = element.type === "checkbox" ? (element.checked ? "yes" : "") : element.value;
+      saveValue(element.dataset.row, element.dataset.field, value);
     });
     document.getElementById("cards").addEventListener("change", event => {
       const element = event.target.closest("[data-field][data-row]");
       if (!element) return;
-      saveValue(element.dataset.row, element.dataset.field, element.value);
+      const value = element.type === "checkbox" ? (element.checked ? "yes" : "") : element.value;
+      saveValue(element.dataset.row, element.dataset.field, value);
     });
   </script>
 </body>

@@ -61,6 +61,24 @@ function Test-PartialOrYes($value) {
     return @("partial", "partly", $partialCn, $averageCn) -contains $normalized
 }
 
+function Get-FieldValue($row, [string]$fieldName) {
+    if ($null -eq $row) {
+        return ""
+    }
+
+    $property = $row.PSObject.Properties[$fieldName]
+    if ($null -eq $property) {
+        return ""
+    }
+
+    return [string]$property.Value
+}
+
+function Test-AudioReviewed($row) {
+    $value = (Get-FieldValue $row "AudioReviewed").Trim().ToLowerInvariant()
+    return @("yes", "y", "true", "1") -contains $value
+}
+
 function Get-ReviewNotes($row) {
     return @(
         [string]$row.SentenceNotes,
@@ -127,6 +145,7 @@ $contentFixRows = @($contentRows | Where-Object {
     $status.StartsWith("fix_") -or $status -eq "remove"
 })
 $contentBlankRows = @($contentRows | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.ReviewStatus) })
+$contentAudioUnreviewedPassRows = @($contentPassRows | Where-Object { -not (Test-AudioReviewed $_) })
 
 $scenePassCounts = @{}
 foreach ($group in ($contentPassRows | Group-Object SceneCode)) {
@@ -164,6 +183,7 @@ $shortages.Add((New-ShortageRow "Content" "total rows >= 120" $contentRows.Count
 $shortages.Add((New-ShortageRow "Content" "pass rows >= 100" $contentPassRows.Count 100))
 $shortages.Add((New-MaximumRow "Content" "blank rows = 0" $contentBlankRows.Count 0))
 $shortages.Add((New-MaximumRow "Content" "fix/remove rows = 0" $contentFixRows.Count 0))
+$shortages.Add((New-MaximumRow "Content" "pass rows missing audio review = 0" $contentAudioUnreviewedPassRows.Count 0))
 
 foreach ($scene in @($contentRows | ForEach-Object { $_.SceneCode } | Sort-Object -Unique)) {
     $count = if ($scenePassCounts.ContainsKey($scene)) { [int]$scenePassCounts[$scene] } else { 0 }

@@ -70,14 +70,14 @@ content/review-packets/content-review-batch-001-020.md
 .\scripts\import-content-review-packets.ps1 -RefreshArtifacts
 ```
 
-`check-content-review-batch.ps1` 只检查一个批次是否已填写状态、状态是否合法、非 `pass` 行是否写了备注，不会修改审核结果。
-`check-content-review-gate.ps1` 会检查全部 120 行、各场景/难度最低通过数量、非法状态和修复项备注，适合在最终发布门禁前运行。
+`check-content-review-batch.ps1` 只检查一个批次是否已填写状态、状态是否合法、非 `pass` 行是否写了备注，以及 `pass` 行是否已标记音频已听，不会修改审核结果。
+`check-content-review-gate.ps1` 会检查全部 120 行、各场景/难度最低通过数量、非法状态、修复项备注和 `pass` 行音频已听状态，适合在最终发布门禁前运行。
 
 导入规则：只导入 `Status` 不为空的行；`fix_sentence`、`fix_translation`、`fix_keyword`、`fix_audio`、`remove` 必须填写 `Notes`；空白行会被跳过，不会覆盖主审核表。
 
-审核时可以直接在 CSV 中填写 `ReviewStatus` 和各类备注；也可以打开 HTML 审核台，逐条选择状态、填写备注，再导出新的 CSV。建议状态：
+审核时可以直接在 CSV 中填写 `ReviewStatus`、`AudioReviewed` 和各类备注；也可以打开 HTML 审核台，逐条播放音频、选择状态、填写备注，再导出新的 CSV。`pass` 行应先听过音频，并把 `AudioReviewed` 标记为 `yes`。建议状态：
 
-HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过滤；逐条确认当前筛选结果后，可以把可见行批量标记为 `pass` 或清空状态重审。建议每次只处理一个批次，避免 120 条内容一次性审核时漏行。
+HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过滤；播放音频后会自动标记该行 `AudioReviewed=yes`，也可以手动勾选。逐条确认当前筛选结果后，可以把可见行批量标记为 `pass` 或清空状态重审。建议每次只处理一个批次，避免 120 条内容一次性审核时漏行。
 
 - `pass`
 - `fix_sentence`

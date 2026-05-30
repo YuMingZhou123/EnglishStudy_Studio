@@ -45,6 +45,19 @@ function Get-WordCount([string]$text) {
     return [regex]::Matches($text, "[A-Za-z]+(?:'[A-Za-z]+)?").Count
 }
 
+function Get-FieldValue($row, [string]$fieldName) {
+    if ($null -eq $row) {
+        return ""
+    }
+
+    $property = $row.PSObject.Properties[$fieldName]
+    if ($null -eq $property) {
+        return ""
+    }
+
+    return [string]$property.Value
+}
+
 function Get-MarkdownLink([string]$label, [string]$path) {
     $uri = ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
     return "[$label]($uri)"
@@ -109,8 +122,9 @@ for ($index = 0; $index -lt $batchCount; $index++) {
         "- Open the review desk for actual audio playback: [Rows $start-$end]($reviewDeskUri).",
         "- Review sentence text, translation, target keywords, and obvious audio concerns.",
         '- Use one status per row: `pass`, `fix_sentence`, `fix_translation`, `fix_keyword`, `fix_audio`, or `remove`.',
+        '- Set `Audio reviewed` to `yes` only after listening to the row in the review desk.',
         '- Leave a note whenever the status is not `pass`.',
-        '- Edit only the `Status` and `Notes` columns, then run `.\scripts\import-content-review-packets.ps1 -ValidateOnly` before importing.',
+        '- Edit only the `Status`, `Audio reviewed`, and `Notes` columns, then run `.\scripts\import-content-review-packets.ps1 -ValidateOnly` before importing.',
         "",
         "## Batch Summary",
         "",
@@ -121,8 +135,8 @@ for ($index = 0; $index -lt $batchCount; $index++) {
         "",
         "## Rows",
         "",
-        "| Row | Scene | Level | Words | Keywords | Status | Sentence | Translation | Target keywords | Notes |",
-        "| ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- |"
+        "| Row | Scene | Level | Words | Keywords | Status | Audio reviewed | Sentence | Translation | Target keywords | Notes |",
+        "| ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- |"
     )
 
     foreach ($row in $batchRows) {
@@ -135,7 +149,7 @@ for ($index = 0; $index -lt $batchCount; $index++) {
         ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
         $wordCount = Get-WordCount $row.Text
-        $lines += "| $($row.RowNumber) | $(ConvertTo-MarkdownText $row.SceneCode) | $(ConvertTo-MarkdownText $row.Level) | $wordCount | $($row.KeywordCount) | $(ConvertTo-MarkdownText $row.ReviewStatus) | $(ConvertTo-MarkdownText $row.Text) | $(ConvertTo-MarkdownText $row.Translation) | $(ConvertTo-MarkdownText $row.Keywords) | $(ConvertTo-MarkdownText ($notes -join '; ')) |"
+        $lines += "| $($row.RowNumber) | $(ConvertTo-MarkdownText $row.SceneCode) | $(ConvertTo-MarkdownText $row.Level) | $wordCount | $($row.KeywordCount) | $(ConvertTo-MarkdownText $row.ReviewStatus) | $(ConvertTo-MarkdownText (Get-FieldValue $row 'AudioReviewed')) | $(ConvertTo-MarkdownText $row.Text) | $(ConvertTo-MarkdownText $row.Translation) | $(ConvertTo-MarkdownText $row.Keywords) | $(ConvertTo-MarkdownText ($notes -join '; ')) |"
     }
 
     Set-Content -LiteralPath $outputPath -Value ($lines -join "`r`n") -Encoding UTF8

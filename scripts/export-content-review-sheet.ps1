@@ -44,6 +44,8 @@ $rows = for ($index = 0; $index -lt $items.Count; $index++) {
         TranslationNotes = ""
         KeywordNotes = ""
         AudioNotes = ""
+        AudioReviewed = ""
+        AudioReviewedAt = ""
         FinalNotes = ""
     }
 }

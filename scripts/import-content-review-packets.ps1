@@ -44,6 +44,19 @@ function Normalize-Status($value) {
     return ([string]$value).Trim().ToLowerInvariant()
 }
 
+function Normalize-AudioReviewed($value) {
+    $normalized = ([string]$value).Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($normalized) -or @("no", "n", "false", "0") -contains $normalized) {
+        return ""
+    }
+
+    if (@("yes", "y", "true", "1") -contains $normalized) {
+        return "yes"
+    }
+
+    throw "Audio reviewed must be blank, yes, or no. Found: $value"
+}
+
 function ConvertFrom-MarkdownText($value) {
     $text = ([string]$value).Trim()
     if ([string]::IsNullOrWhiteSpace($text)) {
@@ -120,6 +133,20 @@ function Resolve-PacketFiles {
     return $files
 }
 
+function Get-ColumnIndex([string[]]$headers, [string]$name, [bool]$Required = $true) {
+    for ($index = 0; $index -lt $headers.Count; $index++) {
+        if ($headers[$index].Trim().Equals($name, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $index
+        }
+    }
+
+    if ($Required) {
+        throw "Review packet table is missing required column: $name"
+    }
+
+    return -1
+}
+
 function Read-PacketRows($packetFile) {
     $lines = @(Get-Content -LiteralPath $packetFile.FullName -Encoding UTF8)
     $headerIndex = -1
@@ -135,6 +162,12 @@ function Read-PacketRows($packetFile) {
         throw "Review packet has no editable rows table: $($packetFile.FullName)"
     }
 
+    $headers = @(Split-MarkdownTableRow $lines[$headerIndex])
+    $rowColumn = Get-ColumnIndex $headers "Row"
+    $statusColumn = Get-ColumnIndex $headers "Status"
+    $notesColumn = Get-ColumnIndex $headers "Notes"
+    $audioReviewedColumn = Get-ColumnIndex $headers "Audio reviewed" $false
+
     $packetRows = New-Object System.Collections.Generic.List[object]
     for ($index = $headerIndex + 2; $index -lt $lines.Count; $index++) {
         $line = $lines[$index].Trim()
@@ -147,27 +180,35 @@ function Read-PacketRows($packetFile) {
         }
 
         $cells = @(Split-MarkdownTableRow $line)
-        if ($cells.Count -lt 10) {
-            throw "Review packet row has $($cells.Count) column(s), expected at least 10: $($packetFile.FullName) line $($index + 1)"
+        if ($cells.Count -lt $headers.Count) {
+            throw "Review packet row has $($cells.Count) column(s), expected at least $($headers.Count): $($packetFile.FullName) line $($index + 1)"
         }
 
         $rowNumber = 0
-        if (-not [int]::TryParse($cells[0], [ref]$rowNumber)) {
-            throw "Review packet has invalid row number '$($cells[0])': $($packetFile.FullName) line $($index + 1)"
+        if (-not [int]::TryParse($cells[$rowColumn], [ref]$rowNumber)) {
+            throw "Review packet has invalid row number '$($cells[$rowColumn])': $($packetFile.FullName) line $($index + 1)"
         }
 
-        $status = Normalize-Status $cells[5]
-        $notesCell = if ($cells.Count -gt 10) {
-            ($cells[9..($cells.Count - 1)] -join " | ")
+        $status = Normalize-Status $cells[$statusColumn]
+        $audioReviewed = if ($audioReviewedColumn -ge 0) {
+            Normalize-AudioReviewed $cells[$audioReviewedColumn]
         }
         else {
-            $cells[9]
+            ""
+        }
+        $notesCell = if ($cells.Count -gt ($notesColumn + 1)) {
+            ($cells[$notesColumn..($cells.Count - 1)] -join " | ")
+        }
+        else {
+            $cells[$notesColumn]
         }
         $notes = ConvertFrom-MarkdownText $notesCell
 
         $packetRows.Add([pscustomobject]@{
             rowNumber = $rowNumber
             status = $status
+            audioReviewed = $audioReviewed
+            hasAudioReviewedColumn = $audioReviewedColumn -ge 0
             notes = $notes
             packetPath = $packetFile.FullName
             lineNumber = $index + 1
@@ -204,6 +245,14 @@ function Invoke-JsonScript {
     $scriptPath = Join-Path $PSScriptRoot $scriptName
     $output = & $scriptPath @Parameters
     return ($output | Out-String) | ConvertFrom-Json
+}
+
+function Ensure-ReviewColumn([array]$rows, [string]$fieldName) {
+    foreach ($row in $rows) {
+        if ($null -eq $row.PSObject.Properties[$fieldName]) {
+            $row | Add-Member -NotePropertyName $fieldName -NotePropertyValue ""
+        }
+    }
 }
 
 $packetFiles = @(Resolve-PacketFiles)
@@ -282,11 +331,22 @@ $backupPath = $null
 $refreshed = @()
 if (-not $ValidateOnly) {
     $backupPath = Backup-Destination $ReviewPath
+    Ensure-ReviewColumn $reviewRows "AudioReviewed"
+    Ensure-ReviewColumn $reviewRows "AudioReviewedAt"
 
     foreach ($update in $updates) {
         $target = $reviewRowsByNumber[$update.rowNumber]
         $target.ReviewStatus = $update.status
         $target.FinalNotes = $update.notes
+        if ([bool]$update.hasAudioReviewedColumn) {
+            $target.AudioReviewed = $update.audioReviewed
+            if ($update.audioReviewed -eq "yes" -and [string]::IsNullOrWhiteSpace([string]$target.AudioReviewedAt)) {
+                $target.AudioReviewedAt = (Get-Date).ToString("o")
+            }
+            elseif ([string]::IsNullOrWhiteSpace([string]$update.audioReviewed)) {
+                $target.AudioReviewedAt = ""
+            }
+        }
     }
 
     $reviewRows | Export-Csv -LiteralPath $ReviewPath -NoTypeInformation -Encoding UTF8
