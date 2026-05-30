@@ -637,8 +637,13 @@ $html = @'
       if (status === "pass") {
         const phrase = "I REVIEWED THE VISIBLE ROWS";
         const missingAudioReview = filteredRows.filter(row => !isYes(valueOf(row, "AudioReviewed"))).length;
+        if (missingAudioReview > 0) {
+          alert(`Cannot mark visible rows as pass yet.\n\nRows not marked audio reviewed: ${missingAudioReview}.\nPlay each row or tick Audio reviewed before using bulk pass.`);
+          return;
+        }
+
         const response = prompt(
-          `You are about to mark ${filteredRows.length} visible row(s) as pass.\n\nRows not marked audio reviewed: ${missingAudioReview}.\nOnly continue if sentence text, translation, keywords, and audio experience have all been checked.\n\nType "${phrase}" to confirm.`
+          `You are about to mark ${filteredRows.length} visible row(s) as pass.\n\nOnly continue if sentence text, translation, keywords, and audio experience have all been checked.\n\nType "${phrase}" to confirm.`
         );
         if (response !== phrase) return;
       } else {
