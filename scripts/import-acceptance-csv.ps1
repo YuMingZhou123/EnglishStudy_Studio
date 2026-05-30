@@ -227,6 +227,97 @@ function Validate-BetaFeedbackRows([array]$rows) {
     Assert-AllowedValues -Rows $rows -KeyColumn "UserId" -Column "Priority" -AllowedValues @("P0", "P1", "P2")
 }
 
+function Get-KeyValue($row, [string]$keyColumn) {
+    if ($keyColumn -eq "RowNumber") {
+        $rowNumber = 0
+        if (-not [int]::TryParse([string]$row.RowNumber, [ref]$rowNumber)) {
+            throw "CSV contains invalid RowNumber value: $($row.RowNumber)"
+        }
+
+        return [string]$rowNumber
+    }
+
+    return ([string]$row.$keyColumn).Trim()
+}
+
+function New-RowMap([array]$rows, [string]$keyColumn) {
+    $map = @{}
+    foreach ($row in $rows) {
+        $key = Get-KeyValue $row $keyColumn
+        if ($map.ContainsKey($key)) {
+            throw "CSV contains duplicate $keyColumn value: $key"
+        }
+
+        $map[$key] = $row
+    }
+
+    return $map
+}
+
+function Assert-CompatibleWithDestination($config, [array]$sourceRows) {
+    if (-not (Test-Path -LiteralPath $config.destinationPath)) {
+        return
+    }
+
+    $destinationRows = @(Import-Csv -LiteralPath $config.destinationPath -Encoding UTF8)
+    if ($destinationRows.Count -eq 0) {
+        return
+    }
+
+    if ($sourceRows.Count -ne $destinationRows.Count) {
+        throw "CSV row count must match the current canonical $($config.expectedFileName). Source rows: $($sourceRows.Count); expected rows: $($destinationRows.Count). Export/import the full desk CSV, not a filtered subset."
+    }
+
+    $sourceByKey = New-RowMap $sourceRows $config.keyColumn
+    $destinationByKey = New-RowMap $destinationRows $config.keyColumn
+
+    $missingKeys = @($destinationByKey.Keys | Where-Object { -not $sourceByKey.ContainsKey($_) } | Sort-Object)
+    $unknownKeys = @($sourceByKey.Keys | Where-Object { -not $destinationByKey.ContainsKey($_) } | Sort-Object)
+
+    if ($missingKeys.Count -gt 0 -or $unknownKeys.Count -gt 0) {
+        $missingText = if ($missingKeys.Count -gt 0) { ($missingKeys | Select-Object -First 10) -join ", " } else { "none" }
+        $unknownText = if ($unknownKeys.Count -gt 0) { ($unknownKeys | Select-Object -First 10) -join ", " } else { "none" }
+        throw "CSV keys must match the current canonical $($config.expectedFileName). Missing keys: $missingText. Unknown keys: $unknownText."
+    }
+
+    if ($config.keyColumn -ne "RowNumber") {
+        return
+    }
+
+    $protectedColumns = @(
+        "SceneCode",
+        "SceneName",
+        "Level",
+        "Text",
+        "Translation",
+        "KeywordCount",
+        "Keywords"
+    )
+
+    $changedProtectedValues = New-Object System.Collections.Generic.List[string]
+    foreach ($key in ($destinationByKey.Keys | Sort-Object { [int]$_ })) {
+        $sourceRow = $sourceByKey[$key]
+        $destinationRow = $destinationByKey[$key]
+
+        foreach ($column in $protectedColumns) {
+            if ([string]$sourceRow.$column -ne [string]$destinationRow.$column) {
+                $changedProtectedValues.Add("${key}:$column")
+                if ($changedProtectedValues.Count -ge 10) {
+                    break
+                }
+            }
+        }
+
+        if ($changedProtectedValues.Count -ge 10) {
+            break
+        }
+    }
+
+    if ($changedProtectedValues.Count -gt 0) {
+        throw "Content review import may only change review status and notes. Protected content field changes found: $($changedProtectedValues -join ', ')."
+    }
+}
+
 function Backup-Destination([string]$destination) {
     if ($NoBackup -or -not (Test-Path -LiteralPath $destination)) {
         return $null
@@ -261,6 +352,7 @@ $source = Resolve-SourcePath $config
 $source = Get-FullPath $source
 $destination = $config.destinationPath
 $rows = Validate-Rows $config $source
+Assert-CompatibleWithDestination $config $rows
 
 if ($ValidateOnly) {
     $summaryParams = @{}
