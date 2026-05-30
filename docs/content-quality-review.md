@@ -77,7 +77,7 @@ content/review-packets/content-review-batch-001-020.md
 
 审核时可以直接在 CSV 中填写 `ReviewStatus`、`AudioReviewed` 和各类备注；也可以打开 HTML 审核台，逐条播放音频、选择状态、填写备注，再导出新的 CSV。`pass` 行应先听过音频，并把 `AudioReviewed` 标记为 `yes`。建议状态：
 
-HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过滤；播放音频后会自动标记该行 `AudioReviewed=yes`，也可以手动勾选。逐条确认当前筛选结果后，可以把可见行批量标记为 `pass` 或清空状态重审。建议每次只处理一个批次，避免 120 条内容一次性审核时漏行。
+HTML 审核台支持按场景、难度、20 条一组的批次、审核状态过滤；播放音频后会自动标记该行 `AudioReviewed=yes`，也可以手动勾选。单行或批量标记 `pass` 前，相关行都必须先标记音频已听。逐条确认当前筛选结果后，可以把可见行批量标记为 `pass` 或清空状态重审。建议每次只处理一个批次，避免 120 条内容一次性审核时漏行。
 
 - `pass`
 - `fix_sentence`

@@ -179,6 +179,7 @@ $checks.Add((Test-TextContains "content review desk embeds audio URLs" $contentR
 $checks.Add((Test-TextContains "content review desk uses actual audio player" $contentReviewHtmlText "audioPlayer.src = row.AudioUrl" "review desk plays actual audio URL before falling back to browser TTS"))
 $checks.Add((Test-TextContains "content review desk tracks audio review" $contentReviewHtmlText "AudioReviewed" "review desk exports audio listening review state"))
 $checks.Add((Test-TextContains "content review desk blocks bulk pass before audio review" $contentReviewHtmlText "Cannot mark visible rows as pass yet" "review desk prevents bulk pass until visible rows are marked audio reviewed"))
+$checks.Add((Test-TextContains "content review desk blocks row pass before audio review" $contentReviewHtmlText "Cannot mark this row as pass yet" "review desk prevents a row pass until that row is marked audio reviewed"))
 $checks.Add((Test-TextContains "content packet links review desk audio" $firstContentPacketText "mvp-content-review.html" "content packets link back to review desk for actual audio playback"))
 $checks.Add((Test-TextContains "content packet tracks audio review" $firstContentPacketText "Audio reviewed" "content packets include audio reviewed state"))
 $checks.Add((Test-TextContains "beta packet links feedback desk" $firstBetaPacketText "internal-beta-feedback.html" "beta packets link back to feedback desk"))

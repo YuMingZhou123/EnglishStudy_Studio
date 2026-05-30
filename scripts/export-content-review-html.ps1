@@ -413,6 +413,9 @@ $html = @'
     function saveValue(rowNumber, field, value) {
       saved[rowNumber] ||= {};
       saved[rowNumber][field] = value;
+      if (field === "AudioReviewed") {
+        saved[rowNumber].AudioReviewedAt = isYes(value) ? new Date().toISOString() : "";
+      }
       localStorage.setItem(storageKey, JSON.stringify(saved));
       renderSummary();
     }
@@ -626,6 +629,26 @@ $html = @'
       URL.revokeObjectURL(link.href);
     }
 
+    function handleFieldChange(element) {
+      const rowNumber = Number(element.dataset.row);
+      const row = rows.find(item => item.RowNumber === rowNumber);
+      if (!row) return;
+
+      const field = element.dataset.field;
+      const value = element.type === "checkbox" ? (element.checked ? "yes" : "") : element.value;
+
+      if (field === "ReviewStatus" && value === "pass" && !isYes(valueOf(row, "AudioReviewed"))) {
+        alert("Cannot mark this row as pass yet.\n\nPlay the row or tick Audio reviewed first.");
+        element.value = valueOf(row, "ReviewStatus");
+        return;
+      }
+
+      saveValue(element.dataset.row, field, value);
+      if (field === "AudioReviewed") {
+        renderCards();
+      }
+    }
+
     function setVisibleStatus(status) {
       const filteredRows = getFilteredRows();
       if (filteredRows.length === 0) {
@@ -686,14 +709,13 @@ $html = @'
     document.getElementById("cards").addEventListener("input", event => {
       const element = event.target.closest("[data-field][data-row]");
       if (!element) return;
-      const value = element.type === "checkbox" ? (element.checked ? "yes" : "") : element.value;
-      saveValue(element.dataset.row, element.dataset.field, value);
+      if (element.tagName === "SELECT" || element.type === "checkbox") return;
+      handleFieldChange(element);
     });
     document.getElementById("cards").addEventListener("change", event => {
       const element = event.target.closest("[data-field][data-row]");
       if (!element) return;
-      const value = element.type === "checkbox" ? (element.checked ? "yes" : "") : element.value;
-      saveValue(element.dataset.row, element.dataset.field, value);
+      handleFieldChange(element);
     });
   </script>
 </body>
