@@ -130,10 +130,19 @@ $firstContentPacketText = if ($contentPacketFiles.Count -gt 0) {
 else {
     ""
 }
+$firstBetaPacketText = if ($betaPacketFiles.Count -gt 0) {
+    Get-FileText $betaPacketFiles[0].FullName
+}
+else {
+    ""
+}
+$betaPacketIndexText = Get-FileText $paths.betaPacketIndex
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
 $checks.Add((Test-TextContains "handoff has next beta slot" $handoffText "Next beta tester slot:" "handoff points to the next beta tester slot"))
+$checks.Add((Test-TextContains "handoff links content review desk" $handoffText "mvp-content-review.html" "handoff links the canonical content review desk"))
+$checks.Add((Test-TextContains "handoff links beta feedback desk" $handoffText "internal-beta-feedback.html" "handoff links the canonical beta feedback desk"))
 $checks.Add((Test-TextContains "handoff has content precheck command" $handoffText "export-content-precheck-report.ps1" "handoff includes content precheck command"))
 $checks.Add((Test-TextContains "handoff has content audio command" $handoffText "check-content-audio-readiness.ps1" "handoff includes audio technical readiness command"))
 $checks.Add((Test-TextContains "handoff has start content review command" $handoffText "start-content-review-batch.ps1" "handoff includes content session command"))
@@ -169,6 +178,8 @@ $checks.Add((Test-TextContains "content review desk confirms bulk pass" $content
 $checks.Add((Test-TextContains "content review desk embeds audio URLs" $contentReviewHtmlText "AudioUrl" "review desk embeds published audio URLs for actual listening review"))
 $checks.Add((Test-TextContains "content review desk uses actual audio player" $contentReviewHtmlText "audioPlayer.src = row.AudioUrl" "review desk plays actual audio URL before falling back to browser TTS"))
 $checks.Add((Test-TextContains "content packet links review desk audio" $firstContentPacketText "mvp-content-review.html" "content packets link back to review desk for actual audio playback"))
+$checks.Add((Test-TextContains "beta packet links feedback desk" $firstBetaPacketText "internal-beta-feedback.html" "beta packets link back to feedback desk"))
+$checks.Add((Test-TextContains "beta packet index links feedback desk" $betaPacketIndexText "internal-beta-feedback.html" "beta packet index links feedback desk"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
 $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))

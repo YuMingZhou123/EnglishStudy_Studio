@@ -21,6 +21,8 @@ if ($UserCount -lt 1) {
 
 $FeedbackPath = [System.IO.Path]::GetFullPath($FeedbackPath)
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+$RepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$FeedbackHtmlPath = Join-Path $RepoRoot "feedback\internal-beta-feedback.html"
 
 function ConvertTo-MarkdownText($value) {
     $text = ([string]$value).Trim()
@@ -34,6 +36,21 @@ function ConvertTo-MarkdownText($value) {
 function Get-MarkdownLink([string]$label, [string]$path) {
     $uri = ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
     return "[$label]($uri)"
+}
+
+function ConvertTo-FileUriWithQuery([string]$path, [hashtable]$Query = @{}) {
+    $uri = ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
+    if ($Query.Count -eq 0) {
+        return $uri
+    }
+
+    $pairs = foreach ($key in ($Query.Keys | Sort-Object)) {
+        $escapedKey = [System.Uri]::EscapeDataString([string]$key)
+        $escapedValue = [System.Uri]::EscapeDataString([string]$Query[$key])
+        "$escapedKey=$escapedValue"
+    }
+
+    return "${uri}?$($pairs -join '&')"
 }
 
 function Get-FieldValue($row, [string]$fieldName) {
@@ -107,6 +124,11 @@ foreach ($row in $rows) {
     $safeUserId = ($userId -replace "[^A-Za-z0-9_-]", "-")
     $outputPath = Join-Path $OutputDirectory ("beta-feedback-{0}.md" -f $safeUserId)
     $filled = Test-Filled $row
+    $feedbackStatus = if ($filled) { "filled" } else { "blank" }
+    $feedbackDeskUri = ConvertTo-FileUriWithQuery $FeedbackHtmlPath @{
+        user = $userId
+        status = $feedbackStatus
+    }
 
     $lines = @(
         "# Internal Beta Feedback $userId",
@@ -117,6 +139,7 @@ foreach ($row in $rows) {
         "",
         "## Session Tasks",
         "",
+        "- Open the feedback desk for this tester: [User $userId]($feedbackDeskUri).",
         "- Register a new account or sign in with a learner account.",
         "- Complete 2 beginner dictation questions.",
         "- Complete 2 intermediate dictation questions.",
@@ -148,6 +171,7 @@ foreach ($row in $rows) {
         userId = $userId
         outputPath = $outputPath
         filled = $filled
+        feedbackDeskUri = $feedbackDeskUri
     })
 }
 
@@ -159,10 +183,10 @@ $indexLines = @(
     "",
     'Use these packets to record one beta session per tester. The canonical feedback desk remains `feedback/internal-beta-feedback.html`.',
     "",
-    "| User | Filled | File |",
-    "| --- | --- | --- |"
+    "| User | Filled | Feedback desk | File |",
+    "| --- | --- | --- | --- |"
 ) + @($packetFiles | ForEach-Object {
-    "| $($_.userId) | $($_.filled) | $(Get-MarkdownLink 'Open' $_.outputPath) |"
+    "| $($_.userId) | $($_.filled) | [Open]($($_.feedbackDeskUri)) | $(Get-MarkdownLink 'Open' $_.outputPath) |"
 })
 
 Set-Content -LiteralPath $indexPath -Value ($indexLines -join "`r`n") -Encoding UTF8

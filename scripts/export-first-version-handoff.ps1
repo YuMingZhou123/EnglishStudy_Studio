@@ -41,6 +41,21 @@ function ConvertTo-FileUri([string]$path) {
     return ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
 }
 
+function ConvertTo-FileUriWithQuery([string]$path, [hashtable]$Query = @{}) {
+    $uri = ConvertTo-FileUri $path
+    if ($Query.Count -eq 0) {
+        return $uri
+    }
+
+    $pairs = foreach ($key in ($Query.Keys | Sort-Object)) {
+        $escapedKey = [System.Uri]::EscapeDataString([string]$key)
+        $escapedValue = [System.Uri]::EscapeDataString([string]$Query[$key])
+        "$escapedKey=$escapedValue"
+    }
+
+    return "${uri}?$($pairs -join '&')"
+}
+
 function Get-MarkdownLink([string]$label, [string]$path) {
     if (-not (Test-Path -LiteralPath $path)) {
         return "missing"
@@ -201,6 +216,8 @@ $betaSlots = @(New-BetaSlotRows $betaRows)
 $nextContentBatch = @($contentBatches | Where-Object { $_.blankRows -gt 0 } | Select-Object -First 1)
 $nextBetaSlot = @($betaSlots | Where-Object { -not $_.filled } | Select-Object -First 1)
 $humanPlanPath = Join-Path $RepoRoot "acceptance\first-version-human-plan.md"
+$contentReviewHtmlPath = Join-Path $RepoRoot "content\mvp-content-review.html"
+$betaFeedbackHtmlPath = Join-Path $RepoRoot "feedback\internal-beta-feedback.html"
 $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 $contentBatchLines = if ($contentBatches.Count -eq 0) {
@@ -208,10 +225,11 @@ $contentBatchLines = if ($contentBatches.Count -eq 0) {
 }
 else {
     @(
-        "| Batch | State | Pass | Fix/remove | Blank | Packet |",
-        "| --- | --- | ---: | ---: | ---: | --- |"
+        "| Batch | State | Pass | Fix/remove | Blank | Review desk | Packet |",
+        "| --- | --- | ---: | ---: | ---: | --- | --- |"
     ) + @($contentBatches | ForEach-Object {
-        "| $(ConvertTo-MarkdownText $_.batch) | $(ConvertTo-MarkdownText $_.state) | $($_.passRows) | $($_.fixRows) | $($_.blankRows) | $(Get-MarkdownLink 'Open' $_.packetPath) |"
+        $deskUri = ConvertTo-FileUriWithQuery $contentReviewHtmlPath @{ batch = $_.batch; status = "blank" }
+        "| $(ConvertTo-MarkdownText $_.batch) | $(ConvertTo-MarkdownText $_.state) | $($_.passRows) | $($_.fixRows) | $($_.blankRows) | [Open]($deskUri) | $(Get-MarkdownLink 'Open' $_.packetPath) |"
     })
 }
 
@@ -220,22 +238,26 @@ $betaSlotLines = if ($betaSlots.Count -eq 0) {
 }
 else {
     @(
-        "| User | Filled | Completed | Independent | Priority | Needs triage | Packet |",
-        "| --- | --- | --- | --- | --- | --- | --- |"
+        "| User | Filled | Completed | Independent | Priority | Needs triage | Feedback desk | Packet |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |"
     ) + @($betaSlots | ForEach-Object {
-        "| $(ConvertTo-MarkdownText $_.userId) | $($_.filled) | $(ConvertTo-MarkdownText $_.completedTest) | $(ConvertTo-MarkdownText $_.independentCompletion) | $(ConvertTo-MarkdownText $_.priority) | $($_.needsTriage) | $(Get-MarkdownLink 'Open' $_.packetPath) |"
+        $status = if ($_.filled) { "filled" } else { "blank" }
+        $deskUri = ConvertTo-FileUriWithQuery $betaFeedbackHtmlPath @{ user = $_.userId; status = $status }
+        "| $(ConvertTo-MarkdownText $_.userId) | $($_.filled) | $(ConvertTo-MarkdownText $_.completedTest) | $(ConvertTo-MarkdownText $_.independentCompletion) | $(ConvertTo-MarkdownText $_.priority) | $($_.needsTriage) | [Open]($deskUri) | $(Get-MarkdownLink 'Open' $_.packetPath) |"
     })
 }
 
 $nextContentLine = if ($nextContentBatch.Count -gt 0) {
-    "- Next content review batch: $($nextContentBatch[0].batch) ($(Get-MarkdownLink 'open packet' $nextContentBatch[0].packetPath))"
+    $deskUri = ConvertTo-FileUriWithQuery $contentReviewHtmlPath @{ batch = $nextContentBatch[0].batch; status = "blank" }
+    "- Next content review batch: $($nextContentBatch[0].batch) ([open review desk]($deskUri), $(Get-MarkdownLink 'open packet' $nextContentBatch[0].packetPath))"
 }
 else {
     "- Next content review batch: none"
 }
 
 $nextBetaLine = if ($nextBetaSlot.Count -gt 0) {
-    "- Next beta tester slot: $($nextBetaSlot[0].userId) ($(Get-MarkdownLink 'open packet' $nextBetaSlot[0].packetPath))"
+    $deskUri = ConvertTo-FileUriWithQuery $betaFeedbackHtmlPath @{ user = $nextBetaSlot[0].userId; status = "blank" }
+    "- Next beta tester slot: $($nextBetaSlot[0].userId) ([open feedback desk]($deskUri), $(Get-MarkdownLink 'open packet' $nextBetaSlot[0].packetPath))"
 }
 else {
     "- Next beta tester slot: none"
