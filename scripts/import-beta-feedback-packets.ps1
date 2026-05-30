@@ -306,9 +306,18 @@ foreach ($row in $feedbackRows) {
     $rowsByUserId[$userId] = $row
 }
 
+$unknownFilledPackets = @($filledPackets | Where-Object { -not $rowsByUserId.ContainsKey((Normalize-Value $_.userId)) })
+if ($unknownFilledPackets.Count -gt 0) {
+    $examples = @(
+        $unknownFilledPackets |
+            Select-Object -First 10 |
+            ForEach-Object { "$($_.userId):$($_.packetPath)" }
+    )
+    throw "Beta feedback packets can only update existing tester slots from the feedback CSV. Unknown filled tester(s): $($examples -join '; ')"
+}
+
 $backupPath = $null
 $refreshed = @()
-$appendedRows = 0
 if (-not $ValidateOnly) {
     $backupPath = Backup-Destination $FeedbackPath
 
@@ -319,20 +328,7 @@ if (-not $ValidateOnly) {
 
     foreach ($packet in $filledPackets) {
         $key = Normalize-Value $packet.userId
-        if ($rowsByUserId.ContainsKey($key)) {
-            $target = $rowsByUserId[$key]
-        }
-        else {
-            $target = [pscustomobject]([ordered]@{})
-            foreach ($field in $Fields) {
-                $target | Add-Member -NotePropertyName $field -NotePropertyValue ""
-            }
-
-            $target.UserId = $packet.userId
-            $rowsByUserId[$key] = $target
-            $mergedRows.Add($target)
-            $appendedRows++
-        }
+        $target = $rowsByUserId[$key]
 
         foreach ($field in $Fields) {
             $value = [string]$packet.values.$field
@@ -391,7 +387,7 @@ else {
     skippedBlankPackets = $packets.Count - $filledPackets.Count
     validateOnly = [bool]$ValidateOnly
     imported = -not $ValidateOnly
-    appendedRows = $appendedRows
+    appendedRows = 0
     backupPath = $backupPath
     refreshedArtifacts = $refreshed
     summary = $summary
