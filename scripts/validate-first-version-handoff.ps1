@@ -124,6 +124,12 @@ $localBetaReadinessText = Get-FileText $paths.localBetaReadiness
 $contentReviewSessionText = Get-FileText $paths.contentReviewSession
 $contentAudioReadinessText = Get-FileText $paths.contentAudioReadiness
 $contentReviewHtmlText = Get-FileText $paths.contentReviewHtml
+$firstContentPacketText = if ($contentPacketFiles.Count -gt 0) {
+    Get-FileText $contentPacketFiles[0].FullName
+}
+else {
+    ""
+}
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
@@ -160,6 +166,9 @@ $checks.Add((Test-TextContains "content session links human plan" $contentReview
 $checks.Add((Test-TextContains "content session links audio readiness" $contentReviewSessionText "content-audio-readiness.md" "content review session links content audio readiness"))
 $checks.Add((Test-TextContains "content audio readiness requires listening review" $contentAudioReadinessText "Human listening review required: True" "audio readiness does not replace human listening review"))
 $checks.Add((Test-TextContains "content review desk confirms bulk pass" $contentReviewHtmlText "I REVIEWED THE VISIBLE ROWS" "review desk requires explicit typed confirmation before bulk pass"))
+$checks.Add((Test-TextContains "content review desk embeds audio URLs" $contentReviewHtmlText "AudioUrl" "review desk embeds published audio URLs for actual listening review"))
+$checks.Add((Test-TextContains "content review desk uses actual audio player" $contentReviewHtmlText "audioPlayer.src = row.AudioUrl" "review desk plays actual audio URL before falling back to browser TTS"))
+$checks.Add((Test-TextContains "content packet links review desk audio" $firstContentPacketText "mvp-content-review.html" "content packets link back to review desk for actual audio playback"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
 $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))

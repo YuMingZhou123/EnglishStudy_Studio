@@ -1,7 +1,11 @@
 param(
     [string]$ContentPath = "",
     [string]$ReviewPath = "",
-    [string]$OutputPath = ""
+    [string]$OutputPath = "",
+    [string]$ApiBaseUrl = "http://localhost:5180",
+    [string]$AdminEmail = "admin@example.com",
+    [string]$AdminPassword = 'Admin123$',
+    [switch]$SkipAudioLookup
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +26,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 $ContentPath = [System.IO.Path]::GetFullPath($ContentPath)
 $ReviewPath = [System.IO.Path]::GetFullPath($ReviewPath)
 $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+$ApiBaseUrl = $ApiBaseUrl.TrimEnd("/")
 
 if (-not (Test-Path -LiteralPath $ContentPath)) {
     throw "Content file not found: $ContentPath"
@@ -44,6 +49,71 @@ function Get-ReviewValue($reviewRow, [string]$fieldName) {
     return [string]$property.Value
 }
 
+function ConvertTo-JsonBody($value) {
+    return $value | ConvertTo-Json -Depth 20 -Compress
+}
+
+function Normalize-SentenceText([string]$text) {
+    return ([regex]::Replace(([string]$text).Trim().ToLowerInvariant(), "\s+", " "))
+}
+
+function Get-PublishedAudioMap {
+    if ($SkipAudioLookup) {
+        return [pscustomobject]@{
+            status = "skipped"
+            error = ""
+            rows = @{}
+        }
+    }
+
+    try {
+        $auth = Invoke-RestMethod `
+            -Method Post `
+            -Uri "$ApiBaseUrl/api/auth/login" `
+            -ContentType "application/json" `
+            -TimeoutSec 10 `
+            -Body (ConvertTo-JsonBody @{ email = $AdminEmail; password = $AdminPassword })
+
+        $token = [string]$auth.accessToken
+        if ([string]::IsNullOrWhiteSpace($token)) {
+            throw "Admin login did not return an access token."
+        }
+
+        $sentenceResponse = Invoke-RestMethod `
+            -Method Get `
+            -Uri "$ApiBaseUrl/api/admin/sentences?status=published" `
+            -Headers @{ Authorization = "Bearer $token" } `
+            -TimeoutSec 20
+
+        $map = @{}
+        foreach ($sentence in @($sentenceResponse)) {
+            $key = Normalize-SentenceText $sentence.text
+            if ([string]::IsNullOrWhiteSpace($key) -or $map.ContainsKey($key)) {
+                continue
+            }
+
+            $map[$key] = [pscustomobject]@{
+                audioUrl = [string]$sentence.audioUrl
+                audioAssetId = [string]$sentence.audioAssetId
+                status = if ([string]::IsNullOrWhiteSpace([string]$sentence.audioUrl)) { "missing_audio_url" } else { "ready" }
+            }
+        }
+
+        return [pscustomobject]@{
+            status = "ready"
+            error = ""
+            rows = $map
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            status = "unavailable"
+            error = $_.Exception.Message
+            rows = @{}
+        }
+    }
+}
+
 $reviewRowsByNumber = @{}
 if (Test-Path -LiteralPath $ReviewPath) {
     foreach ($row in @(Import-Csv -LiteralPath $ReviewPath -Encoding UTF8)) {
@@ -56,11 +126,16 @@ if (Test-Path -LiteralPath $ReviewPath) {
 
 $json = Get-Content -LiteralPath $ContentPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $items = @($json.items)
+$audioMap = Get-PublishedAudioMap
 
 $rows = for ($index = 0; $index -lt $items.Count; $index++) {
     $rowNumber = $index + 1
     $item = $items[$index]
     $reviewRow = $reviewRowsByNumber[$rowNumber]
+    $audio = $audioMap.rows[(Normalize-SentenceText $item.text)]
+    $audioUrl = if ($null -ne $audio) { [string]$audio.audioUrl } else { Get-ReviewValue $reviewRow "AudioUrl" }
+    $audioAssetId = if ($null -ne $audio) { [string]$audio.audioAssetId } else { Get-ReviewValue $reviewRow "AudioAssetId" }
+    $audioLookupStatus = if ($null -ne $audio) { [string]$audio.status } else { [string]$audioMap.status }
     $keywords = @($item.keywords) | ForEach-Object {
         "$($_.lemma) [$($_.surfaceText)] - $($_.meaningCn)"
     }
@@ -75,6 +150,9 @@ $rows = for ($index = 0; $index -lt $items.Count; $index++) {
         WordCount = Get-WordCount $item.text
         KeywordCount = @($item.keywords).Count
         Keywords = $keywords -join "; "
+        AudioUrl = $audioUrl
+        AudioAssetId = $audioAssetId
+        AudioLookupStatus = $audioLookupStatus
         ReviewStatus = Get-ReviewValue $reviewRow "ReviewStatus"
         SentenceNotes = Get-ReviewValue $reviewRow "SentenceNotes"
         TranslationNotes = Get-ReviewValue $reviewRow "TranslationNotes"
@@ -272,7 +350,7 @@ $html = @'
       <div class="top">
         <div>
           <h1>MVP Content Review Desk</h1>
-          <p class="hint">Review sentence text, translation, keywords, and audio experience. Exported CSV works with summarize-content-review.ps1.</p>
+          <p class="hint">Review sentence text, translation, keywords, and the actual published audio when available. Exported CSV works with summarize-content-review.ps1.</p>
         </div>
         <button class="primary" id="exportCsv">Export CSV</button>
       </div>
@@ -305,7 +383,7 @@ $html = @'
     const rows = JSON.parse(document.getElementById("review-data").textContent);
     const fields = [
       "RowNumber", "SceneCode", "SceneName", "Level", "Text", "Translation",
-      "KeywordCount", "Keywords", "ReviewStatus", "SentenceNotes",
+      "KeywordCount", "Keywords", "AudioUrl", "AudioAssetId", "AudioLookupStatus", "ReviewStatus", "SentenceNotes",
       "TranslationNotes", "KeywordNotes", "AudioNotes", "FinalNotes"
     ];
     const statusOptions = ["", "pass", "fix_sentence", "fix_translation", "fix_keyword", "fix_audio", "remove"];
@@ -336,13 +414,27 @@ $html = @'
       return `"${String(value ?? "").replaceAll('"', '""')}"`;
     }
 
-    function play(text, rate) {
+    const audioPlayer = new Audio();
+
+    function play(row, rate) {
+      if (row.AudioUrl) {
+        window.speechSynthesis?.cancel();
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+        audioPlayer.src = row.AudioUrl;
+        audioPlayer.playbackRate = rate;
+        audioPlayer.play().catch(error => {
+          alert(`Audio playback failed. Mark fix_audio if this happens during review.\n\n${error.message}`);
+        });
+        return;
+      }
+
       if (!("speechSynthesis" in window)) {
-        alert("This browser does not support speechSynthesis.");
+        alert("No published audio URL is embedded for this row, and this browser does not support speechSynthesis.");
         return;
       }
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(row.Text);
       utterance.lang = "en-US";
       utterance.rate = rate;
       window.speechSynthesis.speak(utterance);
@@ -422,6 +514,8 @@ $html = @'
               <span class="tag">${escapeHtml(row.Level)}</span>
               <span class="tag">${row.WordCount} words</span>
               <span class="tag">${row.KeywordCount} keywords</span>
+              <span class="tag ${row.AudioUrl ? "gate-ok" : "gate-warn"}">${row.AudioUrl ? "audio ready" : "audio missing"}</span>
+              ${row.AudioUrl ? `<a class="tag" href="${escapeHtml(row.AudioUrl)}" target="_blank" rel="noreferrer">audio file</a>` : ""}
             </div>
             <p class="sentence">${escapeHtml(row.Text)}</p>
             <p class="translation">${escapeHtml(row.Translation)}</p>
@@ -532,13 +626,17 @@ $html = @'
     document.getElementById("statusFilter").addEventListener("change", renderCards);
     document.getElementById("markVisiblePass").addEventListener("click", () => setVisibleStatus("pass"));
     document.getElementById("clearVisibleStatus").addEventListener("click", () => setVisibleStatus(""));
-    document.getElementById("stopAudio").addEventListener("click", () => window.speechSynthesis?.cancel());
+    document.getElementById("stopAudio").addEventListener("click", () => {
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+      window.speechSynthesis?.cancel();
+    });
     document.getElementById("exportCsv").addEventListener("click", exportCsv);
     document.getElementById("cards").addEventListener("click", event => {
       const button = event.target.closest("button[data-play]");
       if (!button) return;
       const row = rows.find(item => item.RowNumber === Number(button.dataset.play));
-      if (row) play(row.Text, Number(button.dataset.rate));
+      if (row) play(row, Number(button.dataset.rate));
     });
     document.getElementById("cards").addEventListener("input", event => {
       const element = event.target.closest("[data-field][data-row]");

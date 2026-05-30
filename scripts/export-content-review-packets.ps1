@@ -21,6 +21,8 @@ if ($BatchSize -lt 1) {
 
 $ReviewPath = [System.IO.Path]::GetFullPath($ReviewPath)
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+$RepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$ContentReviewHtmlPath = Join-Path $RepoRoot "content\mvp-content-review.html"
 
 if (-not (Test-Path -LiteralPath $ReviewPath)) {
     throw "Review file not found: $ReviewPath. Run .\scripts\export-content-review-sheet.ps1 first."
@@ -46,6 +48,21 @@ function Get-WordCount([string]$text) {
 function Get-MarkdownLink([string]$label, [string]$path) {
     $uri = ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
     return "[$label]($uri)"
+}
+
+function ConvertTo-FileUriWithQuery([string]$path, [hashtable]$Query = @{}) {
+    $uri = ([System.Uri][System.IO.Path]::GetFullPath($path)).AbsoluteUri
+    if ($Query.Count -eq 0) {
+        return $uri
+    }
+
+    $pairs = foreach ($key in ($Query.Keys | Sort-Object)) {
+        $escapedKey = [System.Uri]::EscapeDataString([string]$key)
+        $escapedValue = [System.Uri]::EscapeDataString([string]$Query[$key])
+        "$escapedKey=$escapedValue"
+    }
+
+    return "${uri}?$($pairs -join '&')"
 }
 
 $rows = @(Import-Csv -LiteralPath $ReviewPath -Encoding UTF8)
@@ -78,6 +95,7 @@ for ($index = 0; $index -lt $batchCount; $index++) {
     $blankRows = @($batchRows | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.ReviewStatus) })
     $fileName = "content-review-batch-{0:D3}-{1:D3}.md" -f $start, $end
     $outputPath = Join-Path $OutputDirectory $fileName
+    $reviewDeskUri = ConvertTo-FileUriWithQuery $ContentReviewHtmlPath @{ batch = "$start-$end"; status = "blank" }
 
     $lines = @(
         "# Content Review Batch $start-$end",
@@ -88,6 +106,7 @@ for ($index = 0; $index -lt $batchCount; $index++) {
         "",
         "## Reviewer Instructions",
         "",
+        "- Open the review desk for actual audio playback: [Rows $start-$end]($reviewDeskUri).",
         "- Review sentence text, translation, target keywords, and obvious audio concerns.",
         '- Use one status per row: `pass`, `fix_sentence`, `fix_translation`, `fix_keyword`, `fix_audio`, or `remove`.',
         '- Leave a note whenever the status is not `pass`.',
