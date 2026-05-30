@@ -237,7 +237,7 @@ API 启动后导入内容包：
 导入后为已发布句子生成缺失音频：
 
 ```powershell
-.\scripts\generate-missing-audio.ps1
+.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio
 ```
 
 脚本会循环调用后台批量 TTS 接口，每轮最多生成 20 条，直到已发布句子没有缺失音频。

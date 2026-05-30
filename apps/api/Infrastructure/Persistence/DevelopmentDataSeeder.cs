@@ -113,7 +113,6 @@ public static class DevelopmentDataSeeder
             "beginner",
             "I need to schedule a meeting with the marketing team.",
             "我需要安排一次与市场团队的会议。",
-            "audio/demo/schedule-meeting.mp3",
             (words["schedule"], "schedule", 100),
             (words["meeting"], "meeting", 80),
             (words["marketing"], "marketing", 60));
@@ -124,7 +123,6 @@ public static class DevelopmentDataSeeder
             "beginner",
             "The subway was crowded during rush hour.",
             "高峰时段地铁很拥挤。",
-            "audio/demo/crowded-subway.mp3",
             (words["subway"], "subway", 100),
             (words["crowded"], "crowded", 90));
 
@@ -134,7 +132,6 @@ public static class DevelopmentDataSeeder
             "intermediate",
             "Could you explain the assignment before Friday?",
             "你能在周五之前解释一下这个作业吗？",
-            "audio/demo/explain-assignment.mp3",
             (words["explain"], "explain", 100),
             (words["assignment"], "assignment", 90));
 
@@ -144,7 +141,6 @@ public static class DevelopmentDataSeeder
             "intermediate",
             "She answered the interview questions with confidence.",
             "她自信地回答了面试问题。",
-            "audio/demo/interview-confidence.mp3",
             (words["interview"], "interview", 100),
             (words["confidence"], "confidence", 90));
 
@@ -154,7 +150,6 @@ public static class DevelopmentDataSeeder
             "advanced",
             "We changed our reservation because the luggage was delayed.",
             "因为行李延误了，我们更改了预订。",
-            "audio/demo/reservation-luggage-delayed.mp3",
             (words["reservation"], "reservation", 100),
             (words["luggage"], "luggage", 90),
             (words["delayed"], "delayed", 80));
@@ -309,7 +304,6 @@ public static class DevelopmentDataSeeder
         string level,
         string text,
         string translation,
-        string audioObjectKey,
         params (Word Word, string SurfaceText, int Priority)[] keywords)
     {
         var sentence = new Sentence
@@ -318,7 +312,8 @@ public static class DevelopmentDataSeeder
             Text = text,
             Translation = translation,
             Level = level,
-            AudioUrl = $"http://localhost:9000/english-study/{audioObjectKey}",
+            // Local setup generates TTS assets instead of pointing at demo objects that may not exist.
+            AudioUrl = null,
             Source = "seed",
             Status = "published"
         };

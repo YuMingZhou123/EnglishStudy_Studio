@@ -94,7 +94,7 @@ dotnet run --project apps/api.tests/api.tests.csproj
 .\scripts\validate-mvp-content.ps1
 .\scripts\audit-mvp-content-quality.ps1
 .\scripts\import-mvp-content.ps1
-.\scripts\generate-missing-audio.ps1
+.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio
 ```
 
 导出内容审核表：
@@ -160,7 +160,7 @@ npm run build
 | PostgreSQL 可以连接 | 已验证 | `/health/ready` database Healthy |
 | MinIO 可以访问 | 已验证 | `/health/ready` storage Healthy |
 | 音频可以上传到 MinIO | 已验证 | `POST /api/admin/media/upload`，smoke test |
-| 前端可以播放媒体 API 音频 | 已验证 | 听写页使用 `<audio>`；smoke test 已验证媒体 API 可回读；`.\scripts\generate-missing-audio.ps1` 已补齐已发布句子音频 |
+| 前端可以播放媒体 API 音频 | 已验证 | 听写页使用 `<audio>`；smoke test 已验证媒体 API 可回读；`.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio` 已补齐已发布句子音频 |
 | 答题记录可以保存到 PostgreSQL | 已验证 | 提交后 `history` 和 `summary` 数量变化，smoke test |
 | EF Core 迁移可执行 | 已验证 | API 开发环境启动自动 `MigrateAsync`，`dotnet build` 通过 |
 | DDD 分层边界清晰 | 已实现 | `Domain/Application/Infrastructure/Controllers`，`Domain/Dictation` 已承载核心规则 |
@@ -174,7 +174,7 @@ npm run build
 | 第一批内容规模 100 到 300 句 | 已有可导入内容包 | `content/mvp-sentence-pack.json` 提供 120 条原创句子，运行 `.\scripts\import-mvp-content.ps1` 导入 |
 | 核心词 300 到 800 个 | 已达到 MVP 下限 | 内容包提供 335 个目标词配置项、324 个独立词形；内容质量仍需人工审核 |
 | 内容自动质量体检 | 已通过 | `.\scripts\audit-mvp-content-quality.ps1` 检查场景/难度分布、句长、关键词数量和词量门槛 |
-| 已发布句子音频覆盖 | 已补齐本地库 | `.\scripts\generate-missing-audio.ps1` 生成缺失音频；当前本地库已发布句子缺失音频为 0 |
+| 已发布句子音频覆盖 | 已补齐本地库 | `.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio` 生成缺失音频；当前本地库已发布句子缺失音频为 0 |
 | 5 到 10 名真实用户内测 | 已有执行手册和反馈汇总脚本，待真实用户完成 | 按 `docs/internal-beta-playbook.md` 安排用户试用；用 `.\scripts\summarize-beta-feedback.ps1` 汇总 |
 | 前端真实听音体验 | 自动化已覆盖按钮，待真人听感确认 | `node .\scripts\ui-smoke-test.mjs` 覆盖播放入口；真人按内测手册确认音量、清晰度和慢速体验 |
 | 内容质量审核 | 已有规范、导出脚本和汇总脚本，待人工逐条审核 | 按 `docs/content-quality-review.md` 审核；用 `.\scripts\summarize-content-review.ps1` 汇总 |
@@ -205,7 +205,7 @@ npm run build
 - `.\scripts\validate-mvp-content.ps1` 可以通过内容结构校验。
 - `.\scripts\audit-mvp-content-quality.ps1` 可以通过内容质量体检。
 - `.\scripts\import-mvp-content.ps1` 可以成功导入 120 条 MVP 句子包。
-- `.\scripts\generate-missing-audio.ps1` 可以为已发布句子生成缺失音频。
+- `.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio` 可以为已发布句子生成缺失音频，并替换没有本地资产的外部音频 URL。
 - `.\scripts\export-content-review-sheet.ps1` 和 `.\scripts\export-content-review-html.ps1` 可以导出人工审核表和本地审核台。
 - `.\scripts\start-content-review-batch.ps1` 可以生成下一批内容审核会话。
 - `.\scripts\check-content-review-batch.ps1` 可以检查单个内容审核批次是否填写完整。

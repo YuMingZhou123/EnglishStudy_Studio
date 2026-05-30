@@ -358,7 +358,9 @@ $audio = if ($SkipAudio) {
     New-Skipped "SkipAudio was set."
 }
 else {
-    Invoke-JsonScript -ScriptName "generate-missing-audio.ps1"
+    Invoke-JsonScript `
+        -ScriptName "generate-missing-audio.ps1" `
+        -Parameters @{ IncludeExternalAudio = $true }
 }
 
 $acceptance = Invoke-JsonScript -ScriptName "prepare-mvp-acceptance.ps1" -Parameters @{ SkipReadiness = $true }

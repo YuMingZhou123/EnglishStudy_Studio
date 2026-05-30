@@ -30,7 +30,7 @@ npm run dev
 ```powershell
 .\scripts\validate-mvp-content.ps1
 .\scripts\import-mvp-content.ps1
-.\scripts\generate-missing-audio.ps1
+.\scripts\generate-missing-audio.ps1 -IncludeExternalAudio
 .\scripts\smoke-test.ps1 -IncludeTts
 node .\scripts\ui-smoke-test.mjs
 ```

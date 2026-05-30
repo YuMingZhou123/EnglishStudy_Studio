@@ -77,7 +77,7 @@ for ($round = 1; $round -le $MaxRounds; $round++) {
         failedCount = $result.failedCount
     }
     $rounds += $roundSummary
-    $roundSummary | ConvertTo-Json -Depth 4
+    Write-Host ($roundSummary | ConvertTo-Json -Depth 4)
 
     $totalGenerated += [int]$result.generatedCount
     $totalFailed += [int]$result.failedCount
