@@ -116,6 +116,7 @@ $checks.Add((New-Check "beta packet count" ($betaPacketFiles.Count -ge $betaRows
 $handoffText = Get-FileText $paths.handoff
 $tasksText = Get-FileText $paths.tasks
 $dashboardText = Get-FileText $paths.dashboard
+$releaseGateText = Get-FileText $paths.releaseGate
 $statusText = Get-FileText $paths.status
 $humanPlanText = Get-FileText $paths.humanPlan
 $localBetaText = Get-FileText $paths.localBetaRun
@@ -150,6 +151,7 @@ $checks.Add((Test-TextContains "dashboard links content gate" $dashboardText "co
 $checks.Add((Test-TextContains "dashboard links content audio readiness" $dashboardText "content-audio-readiness.md" "acceptance dashboard links content audio readiness"))
 $checks.Add((Test-TextContains "dashboard links beta gate" $dashboardText "beta-feedback-gate-check.md" "acceptance dashboard links beta gate check"))
 $checks.Add((Test-TextContains "dashboard links human plan" $dashboardText "first-version-human-plan.md" "acceptance dashboard links human execution plan"))
+$checks.Add((Test-TextContains "release gate includes content audio readiness" $releaseGateText "Content audio readiness" "release gate checks audio readback before release"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
 $checks.Add((Test-TextContains "human plan has content queue" $humanPlanText "## Content Review Queue" "human plan includes content review queue"))
 $checks.Add((Test-TextContains "human plan has beta queue" $humanPlanText "## Beta Feedback Queue" "human plan includes beta feedback queue"))

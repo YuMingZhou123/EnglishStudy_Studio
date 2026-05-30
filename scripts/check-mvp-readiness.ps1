@@ -135,6 +135,26 @@ function Get-OptionalAcceptanceValidation($kind, [string]$sourcePath, $missingMe
     }
 }
 
+function Invoke-JsonScript {
+    param(
+        [string]$ScriptName,
+        [hashtable]$Parameters = @{}
+    )
+
+    $scriptPath = Join-Path $PSScriptRoot $ScriptName
+    if (-not (Test-Path -LiteralPath $scriptPath)) {
+        throw "Script not found: $scriptPath"
+    }
+
+    $output = & $scriptPath @Parameters
+    $text = $output | Out-String
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "Script returned empty output: $ScriptName"
+    }
+
+    return $text | ConvertFrom-Json
+}
+
 $steps = New-Object System.Collections.Generic.List[object]
 
 $steps.Add((Invoke-ReadinessStep "content-pack" {
@@ -252,6 +272,22 @@ $steps.Add((Invoke-ReadinessStep "permission-policy" {
 
 $steps.Add((Invoke-ReadinessStep "database-audio-coverage" {
     Get-DatabaseContentSummary
+}))
+
+$steps.Add((Invoke-ReadinessStep "content-audio-readiness" {
+    $summary = Invoke-JsonScript `
+        -ScriptName "check-content-audio-readiness.ps1" `
+        -Parameters @{
+            ApiBaseUrl = $ApiBaseUrl
+            AdminEmail = $AdminEmail
+            AdminPassword = $AdminPassword
+        }
+
+    if (-not [bool]$summary.ready) {
+        throw "Published sentence audio is not readable. Missing: $($summary.missingAudioRows), unreadable: $($summary.unreadableAudioRows)."
+    }
+
+    $summary
 }))
 
 if (-not $SkipSmoke) {
