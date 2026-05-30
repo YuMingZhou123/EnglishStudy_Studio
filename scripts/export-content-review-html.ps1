@@ -290,7 +290,7 @@ $html = @'
           <option value="fix_audio">fix_audio</option>
           <option value="remove">remove</option>
         </select>
-        <button id="markVisiblePass">Mark visible pass</button>
+        <button id="markVisiblePass">Mark visible pass after review</button>
         <button id="clearVisibleStatus">Clear visible status</button>
         <button id="stopAudio">Stop audio</button>
       </div>
@@ -501,8 +501,16 @@ $html = @'
       }
 
       const label = status || "blank";
-      const confirmed = confirm(`Set ReviewStatus=${label} for ${filteredRows.length} visible row(s)?`);
-      if (!confirmed) return;
+      if (status === "pass") {
+        const phrase = "I REVIEWED THE VISIBLE ROWS";
+        const response = prompt(
+          `You are about to mark ${filteredRows.length} visible row(s) as pass.\n\nOnly continue if sentence text, translation, keywords, and audio experience have all been checked.\n\nType "${phrase}" to confirm.`
+        );
+        if (response !== phrase) return;
+      } else {
+        const confirmed = confirm(`Set ReviewStatus=${label} for ${filteredRows.length} visible row(s)?`);
+        if (!confirmed) return;
+      }
 
       filteredRows.forEach(row => {
         saved[row.RowNumber] ||= {};

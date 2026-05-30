@@ -161,6 +161,7 @@ $contentReviewGuidePath = Join-Path $RepoRoot "docs\content-quality-review.md"
 $precheckReportPath = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
 $progressPath = Join-Path $RepoRoot "acceptance\first-version-progress.md"
 $handoffPath = Join-Path $RepoRoot "acceptance\first-version-handoff.md"
+$humanPlanPath = Join-Path $RepoRoot "acceptance\first-version-human-plan.md"
 
 $query = @{ batch = $batchName }
 if (-not [string]::IsNullOrWhiteSpace($statusFilter)) {
@@ -198,6 +199,7 @@ $lines = @(
     "- Review packet: [open]($packetUri)",
     "- Review guide: [open]($(ConvertTo-FileUri $contentReviewGuidePath))",
     "- Automated precheck: [open]($(ConvertTo-FileUri $precheckReportPath))",
+    "- Human execution plan: [open]($(ConvertTo-FileUri $humanPlanPath))",
     "- First version progress: [open]($(ConvertTo-FileUri $progressPath))",
     "- First version handoff: [open]($(ConvertTo-FileUri $handoffPath))",
     "",
@@ -223,6 +225,7 @@ $lines = @(
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
     '.\scripts\start-content-review-batch.ps1',
     '.\scripts\export-first-version-progress.ps1',
+    '.\scripts\export-first-version-human-plan.ps1',
     '.\scripts\check-local-beta-readiness.ps1',
     '```'
 )

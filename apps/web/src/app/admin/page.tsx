@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -16,6 +15,7 @@ import {
   adminApi,
   authApi,
 } from "@/lib/api";
+import { AppHeader } from "@/app/_components/AppHeader";
 import { clearSession, getToken } from "@/lib/session";
 
 type KeywordDraft = SentenceKeywordInput & { key: string };
@@ -423,6 +423,11 @@ export default function AdminPage() {
     }
   }
 
+  function logout() {
+    clearSession();
+    router.replace("/");
+  }
+
   const audioOptions = [
     ["", "暂不绑定"],
     ...mediaAssets.map((media) => [media.id, media.objectKey]),
@@ -487,13 +492,12 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f7f5] px-5 py-6 text-[#18211f] sm:px-8">
-      <section className="mx-auto grid w-full max-w-7xl gap-5">
+    <main className="min-h-screen bg-[#f4f7f5] text-[#18211f]">
+      <AppHeader active="admin" onLogout={logout} showAdmin />
+
+      <section className="mx-auto grid w-full max-w-7xl gap-5 px-5 py-6 sm:px-8">
         <header className="flex flex-col gap-4 border-b border-[#d9e1dc] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Link className="text-sm font-medium text-[#35766f]" href="/dashboard">
-              返回学习台
-            </Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-normal">
               内容管理
             </h1>

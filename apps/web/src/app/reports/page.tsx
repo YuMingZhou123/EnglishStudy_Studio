@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   getErrorMessage,
   isAuthError,
 } from "@/lib/api";
+import { AppHeader } from "@/app/_components/AppHeader";
 import { clearSession, getToken } from "@/lib/session";
 
 export default function ReportsPage() {
@@ -46,6 +46,11 @@ export default function ReportsPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  function logout() {
+    clearSession();
+    router.replace("/");
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f4f7f5] text-[#40504b]">
@@ -55,12 +60,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f7f5] px-5 py-6 text-[#18211f] sm:px-8">
-      <section className="mx-auto grid w-full max-w-6xl gap-5">
+    <main className="min-h-screen bg-[#f4f7f5] text-[#18211f]">
+      <AppHeader active="reports" onLogout={logout} />
+
+      <section className="mx-auto grid w-full max-w-6xl gap-5 px-5 py-6 sm:px-8">
         <header className="border-b border-[#d9e1dc] pb-5">
-          <Link className="text-sm font-medium text-[#35766f]" href="/dashboard">
-            返回学习台
-          </Link>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal">
             学习记录
           </h1>

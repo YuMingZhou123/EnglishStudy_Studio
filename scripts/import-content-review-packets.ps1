@@ -299,6 +299,7 @@ if (-not $ValidateOnly) {
         $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
         $releaseGateSummary = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
         $statusReportSummary = Invoke-JsonScript -ScriptName "export-first-version-status.ps1"
+        $humanPlanSummary = Invoke-JsonScript -ScriptName "export-first-version-human-plan.ps1"
         $handoffSummary = Invoke-JsonScript -ScriptName "export-first-version-handoff.ps1"
         $handoffValidationSummary = Invoke-JsonScript -ScriptName "validate-first-version-handoff.ps1"
         $progressSummary = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
@@ -311,6 +312,7 @@ if (-not $ValidateOnly) {
         $refreshed += $fixPlanSummary.outputPath
         $refreshed += $releaseGateSummary.outputPath
         $refreshed += $statusReportSummary.outputPath
+        $refreshed += $humanPlanSummary.outputPath
         $refreshed += $handoffSummary.outputPath
         $refreshed += $handoffValidationSummary.outputPath
         $refreshed += $progressSummary.outputPath

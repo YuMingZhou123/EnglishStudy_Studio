@@ -119,6 +119,8 @@ $statusText = Get-FileText $paths.status
 $humanPlanText = Get-FileText $paths.humanPlan
 $localBetaText = Get-FileText $paths.localBetaRun
 $localBetaReadinessText = Get-FileText $paths.localBetaReadiness
+$contentReviewSessionText = Get-FileText $paths.contentReviewSession
+$contentReviewHtmlText = Get-FileText $paths.contentReviewHtml
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
@@ -147,6 +149,8 @@ $checks.Add((Test-TextContains "status links handoff" $statusText "first-version
 $checks.Add((Test-TextContains "human plan has content queue" $humanPlanText "## Content Review Queue" "human plan includes content review queue"))
 $checks.Add((Test-TextContains "human plan has beta queue" $humanPlanText "## Beta Feedback Queue" "human plan includes beta feedback queue"))
 $checks.Add((Test-TextContains "human plan guards beta invite order" $humanPlanText "Do not invite beta testers before content review passes the gate." "human plan preserves content-before-beta guardrail"))
+$checks.Add((Test-TextContains "content session links human plan" $contentReviewSessionText "first-version-human-plan.md" "content review session links human execution plan"))
+$checks.Add((Test-TextContains "content review desk confirms bulk pass" $contentReviewHtmlText "I REVIEWED THE VISIBLE ROWS" "review desk requires explicit typed confirmation before bulk pass"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
 $checks.Add((Test-TextContains "local beta readiness has decision" $localBetaReadinessText "## Decision" "readiness report has decision section"))

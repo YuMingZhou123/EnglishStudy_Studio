@@ -10,6 +10,7 @@ import {
   isAuthError,
   vocabularyApi,
 } from "@/lib/api";
+import { AppHeader } from "@/app/_components/AppHeader";
 import { clearSession, getToken } from "@/lib/session";
 
 export default function VocabularyPage() {
@@ -41,16 +42,20 @@ export default function VocabularyPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  function logout() {
+    clearSession();
+    router.replace("/");
+  }
+
   return (
-    <main className="min-h-screen bg-[#f4f7f5] px-5 py-6 text-[#18211f] sm:px-8">
-      <section className="mx-auto grid w-full max-w-5xl gap-5">
+    <main className="min-h-screen bg-[#f4f7f5] text-[#18211f]">
+      <AppHeader active="review" onLogout={logout} />
+
+      <section className="mx-auto grid w-full max-w-5xl gap-5 px-5 py-6 sm:px-8">
         <header className="border-b border-[#d9e1dc] pb-5">
-          <Link className="text-sm font-medium text-[#35766f]" href="/dashboard">
-            返回学习台
-          </Link>
           <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold tracking-normal">词汇本</h1>
+              <h1 className="text-3xl font-semibold tracking-normal">我的复习</h1>
               <p className="mt-2 text-sm text-[#69736f]">
                 手动加入的生词和答错的目标词都会按复习时间重新进入语境听写。
               </p>

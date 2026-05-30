@@ -14,7 +14,8 @@ const text = {
   meaningHint: "\u4e2d\u6587\u63d0\u793a",
   submitAnswer: "\u63d0\u4ea4\u7b54\u6848",
   scoreUnit: "\u5206",
-  vocabulary: "\u8bcd\u6c47\u672c",
+  dashboard: "\u7ee7\u7eed\u4eca\u5929\u7684\u8bed\u5883\u542c\u5199",
+  vocabulary: "\u6211\u7684\u590d\u4e60",
   startReview: "\u5f00\u59cb\u590d\u4e60",
   reports: "\u5b66\u4e60\u8bb0\u5f55",
   reportDetails: "\u7ec3\u4e60\u660e\u7ec6",
@@ -345,7 +346,7 @@ async function main() {
     await waitTitle("EnglishStudy Studio");
     await submitLoginForm();
     await waitPath("/dashboard");
-    await waitText("LEARNING DESK");
+    await waitText(text.dashboard);
 
     await navigate("/dictation?mode=beginner");
     await waitText(text.beginnerDictation);
@@ -395,7 +396,7 @@ async function main() {
 
     await setViewport(390, 844, true);
     const mobilePages = [
-      { path: "/dashboard", expectedText: "LEARNING DESK", label: "mobile dashboard" },
+      { path: "/dashboard", expectedText: text.dashboard, label: "mobile dashboard" },
       {
         path: "/dictation?mode=advanced",
         expectedText: text.advancedDictation,
