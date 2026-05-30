@@ -269,6 +269,7 @@ if (-not (Test-Path -LiteralPath $BetaFeedbackPath)) {
 $contentRows = @(Import-Csv -LiteralPath $ContentReviewPath -Encoding UTF8)
 $betaRows = @(Import-Csv -LiteralPath $BetaFeedbackPath -Encoding UTF8)
 $contentGate = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $betaGate = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 $releaseGate = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
 $contentBatches = @(New-ContentBatchRows $contentRows)
@@ -277,6 +278,7 @@ $betaSlots = @(New-BetaSlotRows $betaRows)
 $nextContentBatch = @($contentBatches | Where-Object { $_.state -ne "done" } | Select-Object -First 1)
 $nextBetaSlot = @($betaSlots | Where-Object { $_.state -ne "done" } | Select-Object -First 1)
 $contentGateReady = [bool]$contentGate.ready
+$audioTechnicalReady = [bool]$contentAudioReadiness.ready
 $betaGateReady = [bool]$betaGate.ready
 $canInviteBeta = $contentGateReady -and [int]$betaGate.p0Issues -eq 0 -and [int]$betaGate.untriagedIssueRows -eq 0
 
@@ -330,6 +332,7 @@ $lines = @(
     "- Current lane: $lane",
     ('- Recommended command: `' + $recommendedCommand + '`'),
     "- Content gate ready: $contentGateReady",
+    "- Audio technical ready: $audioTechnicalReady",
     "- Beta gate ready: $betaGateReady",
     "- Can invite beta testers: $canInviteBeta",
     "- Next content batch: $nextContentText",
@@ -337,7 +340,7 @@ $lines = @(
     "",
     "## Work Order",
     "",
-    '1. Finish content review first. Do not mark rows as `pass` without checking sentence, translation, keywords, and audio experience.',
+    '1. Run audio technical readiness before content review, then finish content review first. Do not mark rows as `pass` without checking sentence, translation, keywords, and audio experience.',
     "2. Fix every non-pass content row and rerun the content gate.",
     "3. Invite real beta testers only after the content gate is ready.",
     "4. Record at least 5 completed beta sessions; keep U06-U10 as backup slots.",
@@ -358,6 +361,7 @@ $lines = @(
     "",
     '```powershell',
     '.\scripts\check-content-review-batch.ps1',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\check-content-review-gate.ps1',
     '.\scripts\check-local-beta-readiness.ps1',
     '.\scripts\check-beta-feedback-session.ps1',
@@ -372,6 +376,7 @@ $lines = @(
     "- First version work session: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\first-version-work-session.md'))",
     "- First version progress: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\first-version-progress.md'))",
     "- First version handoff: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\first-version-handoff.md'))",
+    "- Content audio readiness: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\content-audio-readiness.md'))",
     "- Local beta readiness: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\local-beta-readiness.md'))",
     "- Fix plan: $(Get-MarkdownLink 'open' (Join-Path $RepoRoot 'acceptance\mvp-fix-plan.md'))",
     "",
@@ -394,6 +399,9 @@ Set-Content -LiteralPath $OutputPath -Value ($lines -join "`r`n") -Encoding UTF8
     lane = $lane
     recommendedCommand = $recommendedCommand
     contentGateReady = $contentGateReady
+    audioTechnicalReady = $audioTechnicalReady
+    missingAudioRows = $contentAudioReadiness.missingAudioRows
+    unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     betaGateReady = $betaGateReady
     canInviteBeta = $canInviteBeta
     nextContentBatch = $nextContentText

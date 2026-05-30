@@ -61,6 +61,7 @@ function Get-NextLine([string]$Text, [string]$Prefix) {
 }
 
 $content = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $beta = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
 $releaseGate = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
@@ -145,6 +146,9 @@ $lines = @(
     "- Pass rows: $($content.passRows)",
     "- Blank rows: $($content.blankRows)",
     "- Fix/remove rows: $($content.fixRows)",
+    "- Audio technical readiness: $($contentAudioReadiness.ready)",
+    "- Missing audio rows: $($contentAudioReadiness.missingAudioRows)",
+    "- Unreadable audio rows: $($contentAudioReadiness.unreadableAudioRows)",
     "- Minimum gate: $($content.passesMinimumGate)",
     ""
 ) + $contentShortageLines + @(
@@ -176,6 +180,7 @@ $lines = @(
     "",
     "- Handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff.md")))",
     "- Content precheck: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-precheck-report.md")))",
+    "- Content audio readiness: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-audio-readiness.md")))",
     "- Content gate check: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-review-gate-check.md")))",
     "- Content review session: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-review-session.md")))",
     "- Beta feedback session: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\beta-feedback-session.md")))",
@@ -192,6 +197,7 @@ $lines = @(
     "",
     '```powershell',
     '.\scripts\export-content-precheck-report.ps1',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\start-content-review-batch.ps1',
     '.\scripts\check-content-review-batch.ps1',
     '.\scripts\check-content-review-gate.ps1',
@@ -221,6 +227,9 @@ Set-Content -LiteralPath $OutputPath -Value ($lines -join "`r`n") -Encoding UTF8
     productReviewReady = [bool]$releaseGate.productReviewReady
     firstVersionReady = [bool]$releaseGate.firstVersionReady
     contentBlankRows = $content.blankRows
+    audioTechnicalReady = [bool]$contentAudioReadiness.ready
+    missingAudioRows = $contentAudioReadiness.missingAudioRows
+    unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     betaFilledRows = $beta.filledRows
     nextContentBatch = $handoff.nextContentBatch
     nextBetaSlot = $handoff.nextBetaSlot

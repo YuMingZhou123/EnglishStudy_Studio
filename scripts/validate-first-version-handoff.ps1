@@ -60,6 +60,7 @@ $paths = [ordered]@{
     localBetaRun = Join-Path $RepoRoot "acceptance\local-beta-run.md"
     localBetaReadiness = Join-Path $RepoRoot "acceptance\local-beta-readiness.md"
     contentPrecheck = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
+    contentAudioReadiness = Join-Path $RepoRoot "acceptance\content-audio-readiness.md"
     contentReviewGateCheck = Join-Path $RepoRoot "acceptance\content-review-gate-check.md"
     contentReviewSession = Join-Path $RepoRoot "acceptance\content-review-session.md"
     betaFeedbackSession = Join-Path $RepoRoot "acceptance\beta-feedback-session.md"
@@ -120,12 +121,14 @@ $humanPlanText = Get-FileText $paths.humanPlan
 $localBetaText = Get-FileText $paths.localBetaRun
 $localBetaReadinessText = Get-FileText $paths.localBetaReadiness
 $contentReviewSessionText = Get-FileText $paths.contentReviewSession
+$contentAudioReadinessText = Get-FileText $paths.contentAudioReadiness
 $contentReviewHtmlText = Get-FileText $paths.contentReviewHtml
 $readmeText = Get-FileText (Join-Path $RepoRoot "README.md")
 
 $checks.Add((Test-TextContains "handoff has next content batch" $handoffText "Next content review batch:" "handoff points to the next content review batch"))
 $checks.Add((Test-TextContains "handoff has next beta slot" $handoffText "Next beta tester slot:" "handoff points to the next beta tester slot"))
 $checks.Add((Test-TextContains "handoff has content precheck command" $handoffText "export-content-precheck-report.ps1" "handoff includes content precheck command"))
+$checks.Add((Test-TextContains "handoff has content audio command" $handoffText "check-content-audio-readiness.ps1" "handoff includes audio technical readiness command"))
 $checks.Add((Test-TextContains "handoff has start content review command" $handoffText "start-content-review-batch.ps1" "handoff includes content session command"))
 $checks.Add((Test-TextContains "handoff has check content review command" $handoffText "check-content-review-batch.ps1" "handoff includes content review checker command"))
 $checks.Add((Test-TextContains "handoff has content review gate command" $handoffText "check-content-review-gate.ps1" "handoff includes full content gate checker command"))
@@ -140,9 +143,11 @@ $checks.Add((Test-TextContains "tasks link handoff" $tasksText "first-version-ha
 $checks.Add((Test-TextContains "tasks link content review session" $tasksText "content-review-session.md" "acceptance tasks link content review session"))
 $checks.Add((Test-TextContains "tasks link beta feedback session" $tasksText "beta-feedback-session.md" "acceptance tasks link beta feedback session"))
 $checks.Add((Test-TextContains "tasks link content gate" $tasksText "content-review-gate-check.md" "acceptance tasks link content gate check"))
+$checks.Add((Test-TextContains "tasks link content audio readiness" $tasksText "content-audio-readiness.md" "acceptance tasks link content audio readiness"))
 $checks.Add((Test-TextContains "tasks link beta gate" $tasksText "beta-feedback-gate-check.md" "acceptance tasks link beta gate check"))
 $checks.Add((Test-TextContains "tasks link human plan" $tasksText "first-version-human-plan.md" "acceptance tasks link human execution plan"))
 $checks.Add((Test-TextContains "dashboard links content gate" $dashboardText "content-review-gate-check.md" "acceptance dashboard links content gate check"))
+$checks.Add((Test-TextContains "dashboard links content audio readiness" $dashboardText "content-audio-readiness.md" "acceptance dashboard links content audio readiness"))
 $checks.Add((Test-TextContains "dashboard links beta gate" $dashboardText "beta-feedback-gate-check.md" "acceptance dashboard links beta gate check"))
 $checks.Add((Test-TextContains "dashboard links human plan" $dashboardText "first-version-human-plan.md" "acceptance dashboard links human execution plan"))
 $checks.Add((Test-TextContains "status links handoff" $statusText "first-version-handoff.md" "status report links handoff"))
@@ -150,6 +155,8 @@ $checks.Add((Test-TextContains "human plan has content queue" $humanPlanText "##
 $checks.Add((Test-TextContains "human plan has beta queue" $humanPlanText "## Beta Feedback Queue" "human plan includes beta feedback queue"))
 $checks.Add((Test-TextContains "human plan guards beta invite order" $humanPlanText "Do not invite beta testers before content review passes the gate." "human plan preserves content-before-beta guardrail"))
 $checks.Add((Test-TextContains "content session links human plan" $contentReviewSessionText "first-version-human-plan.md" "content review session links human execution plan"))
+$checks.Add((Test-TextContains "content session links audio readiness" $contentReviewSessionText "content-audio-readiness.md" "content review session links content audio readiness"))
+$checks.Add((Test-TextContains "content audio readiness requires listening review" $contentAudioReadinessText "Human listening review required: True" "audio readiness does not replace human listening review"))
 $checks.Add((Test-TextContains "content review desk confirms bulk pass" $contentReviewHtmlText "I REVIEWED THE VISIBLE ROWS" "review desk requires explicit typed confirmation before bulk pass"))
 $checks.Add((Test-TextContains "local beta run links handoff" $localBetaText "first-version-handoff.md" "local beta runbook links handoff"))
 $checks.Add((Test-TextContains "local beta run links readiness" $localBetaText "local-beta-readiness.md" "local beta runbook links readiness"))
@@ -164,6 +171,7 @@ $checks.Add((Test-TextContains "readme mentions beta session checker" $readmeTex
 $checks.Add((Test-TextContains "readme mentions beta feedback gate checker" $readmeText "check-beta-feedback-gate.ps1" "README lists full beta feedback gate checker command"))
 $checks.Add((Test-TextContains "readme mentions content batch checker" $readmeText "check-content-review-batch.ps1" "README lists content batch checker command"))
 $checks.Add((Test-TextContains "readme mentions content precheck" $readmeText "export-content-precheck-report.ps1" "README lists content precheck command"))
+$checks.Add((Test-TextContains "readme mentions content audio readiness" $readmeText "check-content-audio-readiness.ps1" "README lists content audio readiness command"))
 $checks.Add((Test-TextContains "readme mentions content review gate checker" $readmeText "check-content-review-gate.ps1" "README lists full content gate checker command"))
 $checks.Add((Test-TextContains "readme mentions human plan" $readmeText "export-first-version-human-plan.ps1" "README lists human execution plan command"))
 

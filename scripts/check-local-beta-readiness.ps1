@@ -96,6 +96,7 @@ $progress = Invoke-JsonScript -ScriptName "export-first-version-progress.ps1"
 $content = $readiness.contentReview
 $beta = $readiness.betaFeedback
 $contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
 $contentValidation = $readiness.contentReviewValidation
 $betaValidation = $readiness.betaFeedbackValidation
@@ -108,7 +109,8 @@ $reviewMaterialReady =
     [bool]$readiness.automatedReady -and
     [bool]$handoffValidation.valid -and
     [bool]$contentValidation.valid -and
-    [bool]$betaValidation.valid
+    [bool]$betaValidation.valid -and
+    [bool]$contentAudioReadiness.ready
 $betaSessionReady =
     $reviewMaterialReady -and
     [bool]$contentGateCheck.ready -and
@@ -123,6 +125,7 @@ $checks = @(
     (New-Check "Automated readiness" ([bool]$readiness.automatedReady) "automatedReady: $($readiness.automatedReady)" "true")
     (New-Check "Handoff validation" ([bool]$handoffValidation.valid) "failed checks: $($handoffValidation.failedChecks)" "0 failed checks")
     (New-Check "Content review sheet valid" ([bool]$contentValidation.valid) "rows: $($contentValidation.rowCount)" "valid CSV")
+    (New-Check "Content audio technical readiness" ([bool]$contentAudioReadiness.ready) "missing: $($contentAudioReadiness.missingAudioRows), unreadable: $($contentAudioReadiness.unreadableAudioRows)" "0 missing and 0 unreadable audio rows")
     (New-Check "Beta feedback sheet valid" ([bool]$betaValidation.valid) "rows: $($betaValidation.rowCount)" "valid CSV")
     (New-Check "Content ready for beta testers" ([bool]$contentGateCheck.ready) "pass: $($contentGateCheck.passRows), blank: $($contentGateCheck.blankRows), invalid: $($contentGateCheck.invalidStatusRows), shortages: $($contentGateCheck.minimumShortages)" "full content gate true")
     (New-Check "Beta tester slot available" $betaSlotAvailable "filled: $($betaGateCheck.filledRows), next: $($progress.nextBetaSlot)" "at least one open tester slot")
@@ -167,6 +170,7 @@ $lines = @(
     "- Beta session ready: $betaSessionReady",
     "- Automated readiness: $($readiness.automatedReady)",
     "- Handoff valid: $($handoffValidation.valid)",
+    "- Content audio technical readiness: $($contentAudioReadiness.ready)",
     "- Product review readiness: $($readiness.productReviewReady)",
     "- First version readiness: $($readiness.firstVersionReady)",
     "",
@@ -189,6 +193,7 @@ $lines = @(
     "- First version progress: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-progress.md")))",
     "- First version handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff.md")))",
     "- Handoff validation: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff-validation.md")))",
+    "- Content audio readiness: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-audio-readiness.md")))",
     "- Content gate check: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-review-gate-check.md")))",
     "- Beta gate check: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\beta-feedback-gate-check.md")))",
     "- Local beta runbook: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\local-beta-run.md")))",
@@ -197,6 +202,7 @@ $lines = @(
     "",
     '```powershell',
     '.\scripts\prepare-local-beta-run.ps1 -SkipInfrastructure -SkipServerStart -SkipContentImport -SkipAudio',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\check-content-review-gate.ps1',
     '.\scripts\check-beta-feedback-gate.ps1',
     '.\scripts\check-local-beta-readiness.ps1',
@@ -217,6 +223,9 @@ $result = [pscustomobject]@{
     betaSessionReady = $betaSessionReady
     automatedReady = [bool]$readiness.automatedReady
     handoffValid = [bool]$handoffValidation.valid
+    audioTechnicalReady = [bool]$contentAudioReadiness.ready
+    missingAudioRows = $contentAudioReadiness.missingAudioRows
+    unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     productReviewReady = [bool]$readiness.productReviewReady
     firstVersionReady = [bool]$readiness.firstVersionReady
     passedChecks = $passedChecks.Count

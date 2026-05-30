@@ -173,6 +173,7 @@ node .\scripts\ui-smoke-test.mjs
 .\scripts\prepare-local-beta-run.ps1
 .\scripts\start-first-version-work.ps1
 .\scripts\start-content-review-batch.ps1
+.\scripts\check-content-audio-readiness.ps1
 .\scripts\check-content-review-batch.ps1
 .\scripts\check-content-review-gate.ps1
 .\scripts\start-beta-feedback-session.ps1
@@ -253,6 +254,7 @@ API 启动后导入内容包：
 ```powershell
 .\scripts\export-content-review-sheet.ps1
 .\scripts\export-content-precheck-report.ps1
+.\scripts\check-content-audio-readiness.ps1
 .\scripts\export-content-review-html.ps1
 .\scripts\export-content-review-packets.ps1
 .\scripts\check-content-review-batch.ps1

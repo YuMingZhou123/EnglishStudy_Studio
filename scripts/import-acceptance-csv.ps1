@@ -309,6 +309,7 @@ $refreshed = @()
 if ($RefreshArtifacts) {
     $htmlSummary = Invoke-JsonScript -ScriptName $config.htmlScript
     $packetSummary = Invoke-JsonScript -ScriptName $config.packetScript
+    $audioReadinessSummary = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
     $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
     $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
     $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
@@ -321,6 +322,7 @@ if ($RefreshArtifacts) {
     $localBetaReadinessSummary = Invoke-JsonScript -ScriptName "check-local-beta-readiness.ps1"
     $refreshed += $htmlSummary.outputPath
     $refreshed += $packetSummary.($config.packetPathProperty)
+    $refreshed += $audioReadinessSummary.outputPath
     $refreshed += $dashboardSummary.outputPath
     $refreshed += $tasksSummary.outputPath
     $refreshed += $fixPlanSummary.outputPath

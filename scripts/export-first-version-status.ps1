@@ -139,6 +139,7 @@ else {
 }
 
 $content = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $beta = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
 $contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
 $betaGateCheck = Invoke-JsonScript -ScriptName "check-beta-feedback-gate.ps1"
@@ -170,6 +171,7 @@ $artifactLines = @(
     (New-LinkLine "First version progress" (Join-Path $RepoRoot "acceptance\first-version-progress.md"))
     (New-LinkLine "Local beta readiness" (Join-Path $RepoRoot "acceptance\local-beta-readiness.md"))
     (New-LinkLine "Local beta runbook" (Join-Path $RepoRoot "acceptance\local-beta-run.md"))
+    (New-LinkLine "Content audio readiness" (Join-Path $RepoRoot "acceptance\content-audio-readiness.md"))
     (New-LinkLine "Content gate check" (Join-Path $RepoRoot "acceptance\content-review-gate-check.md"))
     (New-LinkLine "Beta feedback gate check" (Join-Path $RepoRoot "acceptance\beta-feedback-gate-check.md"))
     (New-LinkLine "Content review desk" (Join-Path $RepoRoot "content\mvp-content-review.html"))
@@ -218,6 +220,9 @@ $lines = @(
     "| Blank rows | $($content.blankRows) |",
     "| Invalid status rows | $($content.invalidStatusRows) |",
     "| Missing-note rows | $($content.missingNoteRows) |",
+    "| Audio technical readiness | $($contentAudioReadiness.ready) |",
+    "| Missing audio rows | $($contentAudioReadiness.missingAudioRows) |",
+    "| Unreadable audio rows | $($contentAudioReadiness.unreadableAudioRows) |",
     "| Gate shortages | $($contentGateCheck.minimumShortages) |",
     "| Minimum gate | $($content.passesMinimumGate) |",
     "",
@@ -255,6 +260,7 @@ $lines = @(
     "## Next Actions",
     "",
     '- Complete content review and import it with `.\scripts\import-content-review-packets.ps1 -RefreshArtifacts` or `.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts`.',
+    '- Run `.\scripts\check-content-audio-readiness.ps1` before manual listening review to catch missing or unreadable audio.',
     '- Complete beta feedback and import it with `.\scripts\import-beta-feedback-packets.ps1 -RefreshArtifacts` or `.\scripts\import-acceptance-csv.ps1 -Kind beta -RefreshArtifacts`.',
     '- Use `.\scripts\export-mvp-fix-plan.ps1` after each import to review remaining fixes.',
     '- Use `.\scripts\export-first-version-handoff.ps1` to refresh the review and beta handoff queue.',
@@ -285,6 +291,9 @@ Set-Content -LiteralPath $OutputPath -Value ($lines -join "`r`n") -Encoding UTF8
     firstVersionReady = if ($SkipReadiness) { $null } else { [bool]$readiness.firstVersionReady }
     contentPassRows = $content.passRows
     contentBlankRows = $content.blankRows
+    audioTechnicalReady = [bool]$contentAudioReadiness.ready
+    missingAudioRows = $contentAudioReadiness.missingAudioRows
+    unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     contentGateReady = [bool]$contentGateCheck.ready
     betaFilledRows = $beta.filledRows
     betaGateReady = [bool]$betaGateCheck.ready

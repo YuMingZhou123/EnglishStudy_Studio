@@ -159,6 +159,7 @@ $contentReviewHtmlPath = Join-Path $RepoRoot "content\mvp-content-review.html"
 $packetPath = Join-Path $RepoRoot ("content\review-packets\content-review-batch-{0:D3}-{1:D3}.md" -f ([int]$range.start), ([int]$range.end))
 $contentReviewGuidePath = Join-Path $RepoRoot "docs\content-quality-review.md"
 $precheckReportPath = Join-Path $RepoRoot "acceptance\content-precheck-report.md"
+$audioReadinessPath = Join-Path $RepoRoot "acceptance\content-audio-readiness.md"
 $progressPath = Join-Path $RepoRoot "acceptance\first-version-progress.md"
 $handoffPath = Join-Path $RepoRoot "acceptance\first-version-handoff.md"
 $humanPlanPath = Join-Path $RepoRoot "acceptance\first-version-human-plan.md"
@@ -199,6 +200,7 @@ $lines = @(
     "- Review packet: [open]($packetUri)",
     "- Review guide: [open]($(ConvertTo-FileUri $contentReviewGuidePath))",
     "- Automated precheck: [open]($(ConvertTo-FileUri $precheckReportPath))",
+    "- Audio readiness: [open]($(ConvertTo-FileUri $audioReadinessPath))",
     "- Human execution plan: [open]($(ConvertTo-FileUri $humanPlanPath))",
     "- First version progress: [open]($(ConvertTo-FileUri $progressPath))",
     "- First version handoff: [open]($(ConvertTo-FileUri $handoffPath))",
@@ -217,6 +219,7 @@ $lines = @(
     "## Finish Commands",
     "",
     '```powershell',
+    ".\scripts\check-content-audio-readiness.ps1",
     ".\scripts\check-content-review-batch.ps1 -Batch $batchName",
     ".\scripts\check-content-review-batch.ps1 -Batch $batchName -AssertComplete",
     '.\scripts\import-content-review-packets.ps1 -ValidateOnly',

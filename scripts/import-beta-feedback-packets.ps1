@@ -349,6 +349,7 @@ if (-not $ValidateOnly) {
     if ($RefreshArtifacts) {
         $htmlSummary = Invoke-JsonScript -ScriptName "export-beta-feedback-html.ps1"
         $packetSummary = Invoke-JsonScript -ScriptName "export-beta-feedback-packets.ps1"
+        $audioReadinessSummary = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
         $dashboardSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-dashboard.ps1"
         $tasksSummary = Invoke-JsonScript -ScriptName "export-mvp-acceptance-tasks.ps1"
         $fixPlanSummary = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
@@ -362,6 +363,7 @@ if (-not $ValidateOnly) {
 
         $refreshed += $htmlSummary.outputPath
         $refreshed += $packetSummary.indexPath
+        $refreshed += $audioReadinessSummary.outputPath
         $refreshed += $dashboardSummary.outputPath
         $refreshed += $tasksSummary.outputPath
         $refreshed += $fixPlanSummary.outputPath

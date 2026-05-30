@@ -74,6 +74,7 @@ $contentValidation = Invoke-JsonScript `
     -ScriptName "import-acceptance-csv.ps1" `
     -Parameters @{ Kind = "content"; SourcePath = $contentReviewCsv; ValidateOnly = $true }
 $contentPrecheck = Invoke-JsonScript -ScriptName "export-content-precheck-report.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $contentGateCheck = Invoke-JsonScript -ScriptName "check-content-review-gate.ps1"
 $betaValidation = Invoke-JsonScript `
     -ScriptName "import-acceptance-csv.ps1" `
@@ -148,6 +149,7 @@ else {
         packets = $contentPackets
         session = $contentSession
         precheck = $contentPrecheck
+        audioReadiness = $contentAudioReadiness
         gateCheck = $contentGateCheck
         summary = $contentSummary
     }
@@ -183,6 +185,7 @@ else {
         "Open acceptance/first-version-progress.md for the compact progress brief.",
         "Open acceptance/local-beta-readiness.md before inviting a real beta tester.",
         "Open acceptance/content-precheck-report.md for automated content hints before manual review.",
+        "Open acceptance/content-audio-readiness.md for audio binding and readback checks before manual listening review.",
         "Open acceptance/content-review-gate-check.md for the full content review gate check.",
         "Open acceptance/beta-feedback-session.md for the next real beta session.",
         "Open acceptance/beta-feedback-gate-check.md for the full beta feedback gate check.",

@@ -23,6 +23,7 @@ $betaFeedbackPacketDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScrip
 $dashboardPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\mvp-acceptance-dashboard.html"))
 $contentReviewSessionPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\content-review-session.md"))
 $contentPrecheckPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\content-precheck-report.md"))
+$contentAudioReadinessPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\content-audio-readiness.md"))
 $contentGateCheckPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\content-review-gate-check.md"))
 $betaFeedbackSessionPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\beta-feedback-session.md"))
 $betaGateCheckPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\acceptance\beta-feedback-gate-check.md"))
@@ -168,6 +169,7 @@ $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $dashboardLink = Get-MarkdownLink "Open dashboard" (ConvertTo-FileUri $dashboardPath)
 $contentReviewSessionLink = Get-MarkdownLink "Open content review session" (ConvertTo-FileUri $contentReviewSessionPath)
 $contentPrecheckLink = Get-MarkdownLink "Open content precheck" (ConvertTo-FileUri $contentPrecheckPath)
+$contentAudioReadinessLink = Get-MarkdownLink "Open content audio readiness" (ConvertTo-FileUri $contentAudioReadinessPath)
 $contentGateCheckLink = Get-MarkdownLink "Open content gate check" (ConvertTo-FileUri $contentGateCheckPath)
 $betaFeedbackSessionLink = Get-MarkdownLink "Open beta feedback session" (ConvertTo-FileUri $betaFeedbackSessionPath)
 $betaGateCheckLink = Get-MarkdownLink "Open beta gate check" (ConvertTo-FileUri $betaGateCheckPath)
@@ -218,6 +220,8 @@ $lines = @(
     "",
     "Content precheck: $contentPrecheckLink",
     "",
+    "Content audio readiness: $contentAudioReadinessLink",
+    "",
     "Content gate check: $contentGateCheckLink",
     "",
     "Beta feedback session: $betaFeedbackSessionLink",
@@ -256,6 +260,7 @@ $lines = @(
     "## Finish Commands",
     "",
     '```powershell',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -ValidateOnly',
     '.\scripts\import-acceptance-csv.ps1 -Kind content -RefreshArtifacts',
     '.\scripts\start-content-review-batch.ps1',

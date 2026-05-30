@@ -275,6 +275,10 @@ $contentGateCheck = Invoke-OptionalJsonScript `
     -ScriptName "check-content-review-gate.ps1" `
     -MissingMessage "Content review gate check could not run."
 
+$contentAudioReadiness = Invoke-OptionalJsonScript `
+    -ScriptName "check-content-audio-readiness.ps1" `
+    -MissingMessage "Content audio readiness check could not run."
+
 $betaGateCheck = Invoke-OptionalJsonScript `
     -ScriptName "check-beta-feedback-gate.ps1" `
     -MissingMessage "Beta feedback gate check could not run."
@@ -292,6 +296,7 @@ else {
 $contentReviewHtmlPath = Join-Path $PSScriptRoot "..\content\mvp-content-review.html"
 $contentReviewCsvPath = Get-ObjectProperty $contentReview "reviewPath" (Join-Path $PSScriptRoot "..\content\mvp-content-review.csv")
 $contentPrecheckPath = Join-Path $PSScriptRoot "..\acceptance\content-precheck-report.md"
+$contentAudioReadinessPath = Join-Path $PSScriptRoot "..\acceptance\content-audio-readiness.md"
 $contentGateCheckPath = Join-Path $PSScriptRoot "..\acceptance\content-review-gate-check.md"
 $betaFeedbackHtmlPath = Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.html"
 $betaFeedbackCsvPath = Get-ObjectProperty $betaFeedback "feedbackPath" (Join-Path $PSScriptRoot "..\feedback\internal-beta-feedback.csv")
@@ -305,6 +310,7 @@ $acceptanceChecklistPath = Join-Path $PSScriptRoot "..\docs\mvp-acceptance-check
 $contentReviewReady = Test-ObjectFlag $contentGateCheck "ready"
 $betaFeedbackReady = Test-ObjectFlag $betaGateCheck "ready"
 $contentReviewCheckFailed = Test-ObjectFlag $contentReview "missing"
+$contentAudioReadinessCheckFailed = Test-ObjectFlag $contentAudioReadiness "missing"
 $betaFeedbackCheckFailed = Test-ObjectFlag $betaFeedback "missing"
 $contentGateCheckFailed = Test-ObjectFlag $contentGateCheck "missing"
 $betaGateCheckFailed = Test-ObjectFlag $betaGateCheck "missing"
@@ -319,6 +325,9 @@ $contentFixRows = Get-ObjectProperty $contentReview "fixRows" "n/a"
 $contentBlankRows = Get-ObjectProperty $contentReview "blankRows" "n/a"
 $contentInvalidRows = Get-ObjectProperty $contentGateCheck "invalidStatusRows" "n/a"
 $contentShortages = Get-ObjectProperty $contentGateCheck "minimumShortages" "n/a"
+$contentAudioReady = Get-ObjectProperty $contentAudioReadiness "ready"
+$contentAudioMissingRows = Get-ObjectProperty $contentAudioReadiness "missingAudioRows" "n/a"
+$contentAudioUnreadableRows = Get-ObjectProperty $contentAudioReadiness "unreadableAudioRows" "n/a"
 $betaFilledRows = Get-ObjectProperty $betaFeedback "filledRows" "n/a"
 $betaCompletedUsers = Get-ObjectProperty $betaFeedback "completedUsers" "n/a"
 $betaIndependentUsers = Get-ObjectProperty $betaFeedback "independentUsers" "n/a"
@@ -348,6 +357,9 @@ $contentMetrics = @(
     New-GatedMetricHtml "Blank rows" $contentBlankRows { param($value) $value -eq 0 }
     New-GatedMetricHtml "Invalid rows" $contentInvalidRows { param($value) $value -eq 0 } "gate-bad"
     New-GatedMetricHtml "Shortages" $contentShortages { param($value) $value -eq 0 }
+    New-StatusMetricHtml "Audio technical" $contentAudioReady $contentAudioReadinessCheckFailed
+    New-GatedMetricHtml "Missing audio" $contentAudioMissingRows { param($value) $value -eq 0 } "gate-bad"
+    New-GatedMetricHtml "Unreadable audio" $contentAudioUnreadableRows { param($value) $value -eq 0 } "gate-bad"
     New-StatusMetricHtml "Content gate" $contentReviewReady ($contentReviewCheckFailed -or $contentGateCheckFailed)
 ) -join "`n"
 
@@ -530,6 +542,7 @@ $contentMetrics
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewHtmlPath))">Open review desk</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentGateCheckPath))">Gate report</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentPrecheckPath))">Precheck</a>
+        <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentAudioReadinessPath))">Audio readiness</a>
         <a class="button" href="$(ConvertTo-HtmlText (ConvertTo-FileUri $contentReviewDocPath))">Review guide</a>
       </div>
     </section>

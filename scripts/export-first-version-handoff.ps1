@@ -191,6 +191,7 @@ else {
 }
 
 $contentSummary = Invoke-JsonScript -ScriptName "summarize-content-review.ps1"
+$contentAudioReadiness = Invoke-JsonScript -ScriptName "check-content-audio-readiness.ps1"
 $betaSummary = Invoke-JsonScript -ScriptName "summarize-beta-feedback.ps1"
 $fixPlan = Invoke-JsonScript -ScriptName "export-mvp-fix-plan.ps1"
 $releaseGate = Invoke-JsonScript -ScriptName "export-first-version-release-gate.ps1"
@@ -266,6 +267,7 @@ $lines = @(
     $nextBetaLine,
     "- Human execution plan: $(Get-MarkdownLink 'open' $humanPlanPath)",
     '- Content precheck: `.\scripts\export-content-precheck-report.ps1`',
+    '- Content audio readiness: `.\scripts\check-content-audio-readiness.ps1`',
     '- Start content review: `.\scripts\start-content-review-batch.ps1`',
     '- Check content review batch: `.\scripts\check-content-review-batch.ps1`',
     '- Check content review gate: `.\scripts\check-content-review-gate.ps1`',
@@ -292,6 +294,9 @@ $lines = @(
     "- Current pass rows: $($contentSummary.passRows)",
     "- Current blank rows: $($contentSummary.blankRows)",
     "- Current fix/remove rows: $($contentSummary.fixRows)",
+    "- Audio technical readiness: $($contentAudioReadiness.ready)",
+    "- Missing audio rows: $($contentAudioReadiness.missingAudioRows)",
+    "- Unreadable audio rows: $($contentAudioReadiness.unreadableAudioRows)",
     "- Required: at least 100 pass rows, 0 blank rows, 0 fix/remove rows, each scene and level above the minimum.",
     ""
 ) + $contentBatchLines + @(
@@ -320,6 +325,7 @@ $lines = @(
     "",
     '```powershell',
     '.\scripts\export-content-precheck-report.ps1',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\import-content-review-packets.ps1 -ValidateOnly',
     '.\scripts\import-content-review-packets.ps1 -RefreshArtifacts',
     '.\scripts\check-content-review-batch.ps1',
@@ -357,6 +363,9 @@ Set-Content -LiteralPath $OutputPath -Value ($lines -join "`r`n") -Encoding UTF8
     firstVersionReady = [bool]$releaseGate.firstVersionReady
     contentBatchCount = $contentBatches.Count
     nextContentBatch = if ($nextContentBatch.Count -gt 0) { $nextContentBatch[0].batch } else { $null }
+    audioTechnicalReady = [bool]$contentAudioReadiness.ready
+    missingAudioRows = $contentAudioReadiness.missingAudioRows
+    unreadableAudioRows = $contentAudioReadiness.unreadableAudioRows
     betaSlotCount = $betaSlots.Count
     nextBetaSlot = if ($nextBetaSlot.Count -gt 0) { $nextBetaSlot[0].userId } else { $null }
     openGateShortages = $fixPlan.openGateShortages

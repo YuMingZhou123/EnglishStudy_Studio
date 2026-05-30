@@ -69,6 +69,7 @@ $localBetaReadiness = $acceptance.localBetaReadiness
 $handoffValidation = $acceptance.handoffValidation
 $fixPlan = $acceptance.fixPlan
 $content = $acceptance.contentReview.summary
+$contentAudio = $acceptance.contentReview.audioReadiness
 $beta = $acceptance.betaFeedback.summary
 $contentSession = $acceptance.contentReview.session
 $betaSession = $acceptance.betaFeedback.session
@@ -163,6 +164,9 @@ $lines = @(
     "| Pass rows | $($content.passRows) |",
     "| Blank rows | $($content.blankRows) |",
     "| Fix/remove rows | $($content.fixRows) |",
+    "| Audio technical readiness | $($contentAudio.ready) |",
+    "| Missing audio rows | $($contentAudio.missingAudioRows) |",
+    "| Unreadable audio rows | $($contentAudio.unreadableAudioRows) |",
     "| Minimum gate | $($content.passesMinimumGate) |",
     "| Next batch | $(ConvertTo-MarkdownText $progress.nextContentBatch) |",
     "",
@@ -185,6 +189,7 @@ $lines = @(
     "- Work target: [open]($(ConvertTo-FileUri $action.targetPath))",
     "- Human execution plan: [open]($(ConvertTo-FileUri $humanPlan.outputPath))",
     "- Content review session: [open]($(ConvertTo-FileUri $contentSession.outputPath))",
+    "- Content audio readiness: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\content-audio-readiness.md")))",
     "- Beta feedback session: [open]($(ConvertTo-FileUri $betaSession.outputPath))",
     "- First version progress: [open]($(ConvertTo-FileUri $progress.outputPath))",
     "- First version handoff: [open]($(ConvertTo-FileUri (Join-Path $RepoRoot "acceptance\first-version-handoff.md")))",
@@ -202,6 +207,7 @@ $lines = @(
     '```powershell',
     '.\scripts\start-first-version-work.ps1',
     '.\scripts\start-first-version-work.ps1 -Open',
+    '.\scripts\check-content-audio-readiness.ps1',
     '.\scripts\check-content-review-batch.ps1',
     '.\scripts\check-beta-feedback-session.ps1',
     '.\scripts\check-mvp-readiness.ps1 -IncludeBuild',
@@ -235,6 +241,9 @@ if ($Open) {
     productReviewReady = [bool]$releaseGate.productReviewReady
     firstVersionReady = [bool]$releaseGate.firstVersionReady
     contentBlankRows = $content.blankRows
+    audioTechnicalReady = [bool]$contentAudio.ready
+    missingAudioRows = $contentAudio.missingAudioRows
+    unreadableAudioRows = $contentAudio.unreadableAudioRows
     betaFilledRows = $beta.filledRows
     nextContentBatch = $progress.nextContentBatch
     nextBetaSlot = $progress.nextBetaSlot
